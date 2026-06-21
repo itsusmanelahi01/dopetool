@@ -361,3 +361,79 @@ window.addEventListener("DOMContentLoaded", function () {
     loadLibrary(currentTab);
   }, 300);
 });
+
+// ---- Auto-update system ----
+var CURRENT_VERSION = "1.0.2";
+var GITHUB_RAW_BASE = "https://raw.githubusercontent.com/itsusmanelahi01/dopetool/main";
+
+function checkForUpdate() {
+  fetch(GITHUB_RAW_BASE + "/version.json?t=" + Date.now())
+    .then(function (res) { return res.json(); })
+    .then(function (data) {
+      if (data.version && data.version !== CURRENT_VERSION) {
+        showUpdateBanner(data.version);
+      }
+    })
+    .catch(function (err) {
+      console.log("Update check failed: " + err.message);
+    });
+}
+
+function showUpdateBanner(newVersion) {
+  var banner = document.createElement("div");
+  banner.id = "updateBanner";
+  banner.innerHTML =
+    '<span>Update available: v' + newVersion + '</span>' +
+    '<button id="updateNowBtn">Update Now</button>';
+  document.body.insertBefore(banner, document.body.firstChild);
+
+  document.getElementById("updateNowBtn").addEventListener("click", function () {
+    performUpdate(newVersion);
+  });
+}
+
+function performUpdate(newVersion) {
+  var banner = document.getElementById("updateBanner");
+  banner.innerHTML = '<span>Updating... please wait</span>';
+
+  var filesToUpdate = [
+    { remote: "/index.html", local: "index.html" },
+    { remote: "/js/main.js", local: "js/main.js" },
+    { remote: "/css/style.css", local: "css/style.css" },
+    { remote: "/jsx/hostscript.jsx", local: "jsx/hostscript.jsx" }
+  ];
+
+  var extensionPath = csInterface.getSystemPath(SystemPath.EXTENSION);
+  var completed = 0;
+
+  filesToUpdate.forEach(function (file) {
+    fetch(GITHUB_RAW_BASE + file.remote + "?t=" + Date.now())
+      .then(function (res) { return res.text(); })
+      .then(function (content) {
+        var fullPath = extensionPath + "/" + file.local;
+        var escapedContent = content
+          .replace(/\\/g, "\\\\")
+          .replace(/'/g, "\\'")
+          .replace(/\n/g, "\\n")
+          .replace(/\r/g, "");
+
+        var jsxWrite =
+          "var f = new File('" + fullPath.replace(/\\/g, "/") + "'); " +
+          "f.open('w'); f.write('" + escapedContent + "'); f.close();";
+
+        csInterface.evalScript(jsxWrite, function () {
+          completed++;
+          if (completed === filesToUpdate.length) {
+            banner.innerHTML = '<span>Updated to v' + newVersion + '! Close and reopen DopeTool.</span>';
+          }
+        });
+      })
+      .catch(function (err) {
+        banner.innerHTML = '<span>Update failed: ' + err.message + '</span>';
+      });
+  });
+}
+
+window.addEventListener("DOMContentLoaded", function () {
+  setTimeout(checkForUpdate, 1000);
+});

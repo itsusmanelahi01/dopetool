@@ -256,3 +256,24 @@ button:active {
 .ctxDelete:hover {
   background-color: #3a1f1f;
 }
+
+#updateBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #4c72ff;
+  color: #ffffff;
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+#updateBanner button {
+  background-color: #ffffff;
+  color: #4c72ff;
+  padding: 5px 10px;
+  font-size: 11px;
+  border-radius: 10px;
+}
