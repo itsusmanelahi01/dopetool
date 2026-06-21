@@ -1,65 +1,1 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8"/>
-  <link rel="stylesheet" href="css/style.css"/>
-</head>
-<body>
-  <div class="header">
-    <h2>DopeTool</h2>
-    <button id="testBtn">Test AE Connection</button>
-    <p id="output">Waiting...</p>
-  </div>
-
-  <div class="tabs">
-    <button class="tabBtn active" data-tab="colors">Colors</button>
-    <button class="tabBtn" data-tab="fonts">Fonts</button>
-    <button class="tabBtn" data-tab="textstyles">Text Styles</button>
-    <button class="tabBtn" data-tab="effects">Effects</button>
-  </div>
-
-  <div class="filterRow">
-    <input type="text" id="searchBox" placeholder="Search library..." />
-    <select id="clientFilter">
-      <option value="">All Clients</option>
-    </select>
-  </div>
-
-  <button id="captureBtn" class="captureBtn">+ Add Selected Layer to Library</button>
-
-  <div id="addForm" class="addForm hidden">
-    <div id="capturePreview" class="capturePreview"></div>
-    <input type="text" id="newName" placeholder="Name (e.g. Headline Green)" />
-    <input type="text" id="newClient" placeholder="Client (e.g. Fasset)" />
-    <div class="formButtons">
-      <button id="saveBtn">Save to Library</button>
-      <button id="cancelBtn" class="cancelBtn">Cancel</button>
-    </div>
-  </div>
-
-  <div id="libraryContent">Loading...</div>
-
-  <!-- Right-click context menu -->
-  <div id="contextMenu" class="contextMenu hidden">
-    <div id="ctxEdit" class="ctxItem">Edit</div>
-    <div id="ctxDelete" class="ctxItem ctxDelete">Delete</div>
-  </div>
-
-  <!-- Edit modal -->
-  <div id="editForm" class="addForm hidden">
-    <div class="cardTitle" style="margin-bottom:4px;">Edit Item</div>
-    <input type="text" id="editName" placeholder="Name" />
-    <input type="text" id="editClient" placeholder="Client" />
-    <div class="formButtons">
-      <button id="editSaveBtn">Save Changes</button>
-      <button id="editCancelBtn" class="cancelBtn">Cancel</button>
-    </div>
-  </div>
-
-  <script type="text/javascript" src="js/CSInterface.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-  <script type="text/javascript" src="js/firebase-init.js"></script>
-  <script type="text/javascript" src="js/main.js"></script>
-</body>
-</html>
+<!DOCTYPE html><html><head>  <meta charset="UTF-8"/>  <link rel="stylesheet" href="css/style.css"/></head><body>  <div class="header">    <h2>DopeTool</h2>    <button id="testBtn">Test AE Connection</button>    <p id="output">Waiting...</p>  </div>  <div class="tabs">    <button class="tabBtn active" data-tab="colors">Colors</button>    <button class="tabBtn" data-tab="fonts">Fonts</button>    <button class="tabBtn" data-tab="textstyles">Text Styles</button>    <button class="tabBtn" data-tab="effects">Effects</button>  </div>  <div class="filterRow">    <input type="text" id="searchBox" placeholder="Search library..." />    <select id="clientFilter">      <option value="">All Clients</option>    </select>  </div>  <button id="captureBtn" class="captureBtn">+ Add Selected Layer to Library</button>  <div id="addForm" class="addForm hidden">    <div id="capturePreview" class="capturePreview"></div>    <input type="text" id="newName" placeholder="Name (e.g. Headline Green)" />    <input type="text" id="newClient" placeholder="Client (e.g. Fasset)" />    <div class="formButtons">      <button id="saveBtn">Save to Library</button>      <button id="cancelBtn" class="cancelBtn">Cancel</button>    </div>  </div>  <div id="libraryContent">Loading...</div>  <!-- Right-click context menu -->  <div id="contextMenu" class="contextMenu hidden">    <div id="ctxEdit" class="ctxItem">Edit</div>    <div id="ctxDelete" class="ctxItem ctxDelete">Delete</div>  </div>  <!-- Edit modal -->  <div id="editForm" class="addForm hidden">    <div class="cardTitle" style="margin-bottom:4px;">Edit Item</div>    <input type="text" id="editName" placeholder="Name" />    <input type="text" id="editClient" placeholder="Client" />    <div class="formButtons">      <button id="editSaveBtn">Save Changes</button>      <button id="editCancelBtn" class="cancelBtn">Cancel</button>    </div>  </div>  <script type="text/javascript" src="js/CSInterface.js"></script>  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>  <script type="text/javascript" src="js/firebase-init.js"></script>  <script type="text/javascript" src="js/main.js"></script></body></html>

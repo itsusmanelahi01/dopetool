@@ -85,7 +85,6 @@ function populateClientFilter(items) {
   }
 }
 
-// ---- Capture button ----
 document.getElementById("captureBtn").addEventListener("click", function () {
   var captureCall = captureFunctionMap[currentTab];
   document.getElementById("output").innerText = "Capturing from selected layer...";
@@ -163,7 +162,6 @@ document.getElementById("saveBtn").addEventListener("click", function () {
     });
 });
 
-// ---- Load from Firebase (now tracks doc IDs) ----
 function loadLibrary(tab) {
   var contentEl = document.getElementById("libraryContent");
   contentEl.innerHTML = "Loading...";
@@ -260,7 +258,6 @@ function renderItems(items, tab) {
       card.addEventListener("click", makeEffectHandler(data.type));
     }
 
-    // Right-click context menu
     card.addEventListener("contextmenu", function (entryRef) {
       return function (e) {
         e.preventDefault();
@@ -274,7 +271,6 @@ function renderItems(items, tab) {
   }
 }
 
-// ---- Context menu (right-click) ----
 function showContextMenu(x, y) {
   var menu = document.getElementById("contextMenu");
   menu.style.left = x + "px";
@@ -356,14 +352,8 @@ function applyToAE(scriptCall) {
   });
 }
 
-window.addEventListener("DOMContentLoaded", function () {
-  setTimeout(function () {
-    loadLibrary(currentTab);
-  }, 300);
-});
-
-// ---- Auto-update system ----
-var CURRENT_VERSION = "1.0.2";
+// ---- Auto-update system (rebuilt using Node fs, safer than JSX file write) ----
+var CURRENT_VERSION = "1.0.3";
 var GITHUB_RAW_BASE = "https://raw.githubusercontent.com/itsusmanelahi01/dopetool/main";
 
 function checkForUpdate() {
@@ -380,6 +370,7 @@ function checkForUpdate() {
 }
 
 function showUpdateBanner(newVersion) {
+  if (document.getElementById("updateBanner")) return;
   var banner = document.createElement("div");
   banner.id = "updateBanner";
   banner.innerHTML =
@@ -396,42 +387,45 @@ function performUpdate(newVersion) {
   var banner = document.getElementById("updateBanner");
   banner.innerHTML = '<span>Updating... please wait</span>';
 
+  var nodeFs = require("fs");
+  var extensionPath = csInterface.getSystemPath(SystemPath.EXTENSION);
+
   var filesToUpdate = [
-    { remote: "/index.html", local: "index.html" },
-    { remote: "/js/main.js", local: "js/main.js" },
-    { remote: "/css/style.css", local: "css/style.css" },
-    { remote: "/jsx/hostscript.jsx", local: "jsx/hostscript.jsx" }
+    { remote: "/index.html", local: "/index.html" },
+    { remote: "/js/main.js", local: "/js/main.js" },
+    { remote: "/css/style.css", local: "/css/style.css" },
+    { remote: "/jsx/hostscript.jsx", local: "/jsx/hostscript.jsx" }
   ];
 
-  var extensionPath = csInterface.getSystemPath(SystemPath.EXTENSION);
   var completed = 0;
+  var failed = [];
 
   filesToUpdate.forEach(function (file) {
     fetch(GITHUB_RAW_BASE + file.remote + "?t=" + Date.now())
       .then(function (res) { return res.text(); })
       .then(function (content) {
-        var fullPath = extensionPath + "/" + file.local;
-        var escapedContent = content
-          .replace(/\\/g, "\\\\")
-          .replace(/'/g, "\\'")
-          .replace(/\n/g, "\\n")
-          .replace(/\r/g, "");
-
-        var jsxWrite =
-          "var f = new File('" + fullPath.replace(/\\/g, "/") + "'); " +
-          "f.open('w'); f.write('" + escapedContent + "'); f.close();";
-
-        csInterface.evalScript(jsxWrite, function () {
-          completed++;
-          if (completed === filesToUpdate.length) {
-            banner.innerHTML = '<span>Updated to v' + newVersion + '! Close and reopen DopeTool.</span>';
-          }
-        });
+        var fullPath = extensionPath + file.local;
+        nodeFs.writeFileSync(fullPath, content, "utf8");
+        completed++;
+        if (completed + failed.length === filesToUpdate.length) {
+          finishUpdate(newVersion, banner, failed);
+        }
       })
       .catch(function (err) {
-        banner.innerHTML = '<span>Update failed: ' + err.message + '</span>';
+        failed.push(file.local + ": " + err.message);
+        if (completed + failed.length === filesToUpdate.length) {
+          finishUpdate(newVersion, banner, failed);
+        }
       });
   });
+}
+
+function finishUpdate(newVersion, banner, failed) {
+  if (failed.length > 0) {
+    banner.innerHTML = '<span>Update partially failed: ' + failed.join(", ") + '</span>';
+  } else {
+    banner.innerHTML = '<span>Updated to v' + newVersion + '! Close and reopen DopeTool.</span>';
+  }
 }
 
 window.addEventListener("DOMContentLoaded", function () {
