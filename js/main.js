@@ -36,12 +36,11 @@ var localVersionPath = extensionPath + "/local_version.json";
 
 function updateTabUI() {
   var isEffects = currentTab === "effects";
-  document.getElementById("captureBtn").style.display = isEffects ? "none" : "block";
-  document.getElementById("ffxForm").classList.add("hidden");
+  document.getElementById("captureBtn").classList.toggle("hidden", isEffects);
+  document.getElementById("ffxToggleBtn").classList.toggle("hidden", !isEffects);
   document.getElementById("addForm").classList.add("hidden");
-  if (isEffects) {
-    document.getElementById("ffxForm").classList.remove("hidden");
-  }
+  document.getElementById("ffxForm").classList.add("hidden");
+  pendingCapture = null;
 }
 
 document.querySelectorAll(".tabBtn").forEach(function (btn) {
@@ -51,7 +50,6 @@ document.querySelectorAll(".tabBtn").forEach(function (btn) {
     currentTab = btn.getAttribute("data-tab");
     document.getElementById("searchBox").value = "";
     document.getElementById("clientFilter").value = "";
-    hideForm();
     hideContextMenu();
     updateTabUI();
     loadLibrary(currentTab);
@@ -92,6 +90,8 @@ function populateClientFilter(items) {
 
 // ---- Capture button (colors/fonts/textstyles) ----
 document.getElementById("captureBtn").addEventListener("click", function () {
+  var form = document.getElementById("addForm");
+  if (!form.classList.contains("hidden")) { form.classList.add("hidden"); pendingCapture = null; return; }
   var captureCall = captureFunctionMap[currentTab];
   document.getElementById("output").innerText = "Capturing from selected layer...";
   csInterface.evalScript(captureCall, function (resultStr) {
@@ -103,6 +103,12 @@ document.getElementById("captureBtn").addEventListener("click", function () {
     showCaptureForm(result);
     document.getElementById("output").innerText = "Captured. Fill in name and client, then save.";
   });
+});
+
+// ---- FFX toggle button (effects tab) ----
+document.getElementById("ffxToggleBtn").addEventListener("click", function () {
+  var form = document.getElementById("ffxForm");
+  form.classList.toggle("hidden");
 });
 
 function showCaptureForm(captured) {
@@ -122,12 +128,10 @@ function showCaptureForm(captured) {
   document.getElementById("newName").focus();
 }
 
-function hideForm() {
+document.getElementById("cancelBtn").addEventListener("click", function () {
   document.getElementById("addForm").classList.add("hidden");
   pendingCapture = null;
-}
-
-document.getElementById("cancelBtn").addEventListener("click", hideForm);
+});
 
 document.getElementById("saveBtn").addEventListener("click", function () {
   if (!pendingCapture) return;
@@ -139,14 +143,15 @@ document.getElementById("saveBtn").addEventListener("click", function () {
   db.collection(collectionMap[currentTab]).add(docData)
     .then(function () {
       document.getElementById("output").innerText = "Saved!";
-      hideForm();
+      document.getElementById("addForm").classList.add("hidden");
+      pendingCapture = null;
       loadLibrary(currentTab);
     })
     .catch(function (err) { document.getElementById("output").innerText = "Save failed: " + err.message; });
 });
 
-// ---- FFX form (effects tab) ----
 document.getElementById("ffxCancelBtn").addEventListener("click", function () {
+  document.getElementById("ffxForm").classList.add("hidden");
   document.getElementById("ffxName").value = "";
   document.getElementById("ffxClient").value = "";
   document.getElementById("ffxFilename").value = "";
@@ -156,11 +161,9 @@ document.getElementById("ffxSaveBtn").addEventListener("click", function () {
   var name = document.getElementById("ffxName").value.trim();
   var client = document.getElementById("ffxClient").value.trim();
   var filename = document.getElementById("ffxFilename").value.trim();
-
   if (!name) { document.getElementById("output").innerText = "Please enter a name."; return; }
   if (!filename) { document.getElementById("output").innerText = "Please enter the .ffx filename."; return; }
   if (filename.indexOf(".ffx") === -1) filename = filename + ".ffx";
-
   var docData = {
     name: name,
     client: client || "General",
@@ -168,11 +171,11 @@ document.getElementById("ffxSaveBtn").addEventListener("click", function () {
     type: "ffx",
     url: GITHUB_RAW_BASE + "/presets/" + filename
   };
-
-  document.getElementById("output").innerText = "Saving to library...";
+  document.getElementById("output").innerText = "Saving...";
   db.collection("effects").add(docData)
     .then(function () {
-      document.getElementById("output").innerText = "Saved! Make sure " + filename + " is pushed to GitHub presets/ folder.";
+      document.getElementById("output").innerText = "Saved! Push " + filename + " to GitHub presets/ folder.";
+      document.getElementById("ffxForm").classList.add("hidden");
       document.getElementById("ffxName").value = "";
       document.getElementById("ffxClient").value = "";
       document.getElementById("ffxFilename").value = "";
@@ -181,7 +184,6 @@ document.getElementById("ffxSaveBtn").addEventListener("click", function () {
     .catch(function (err) { document.getElementById("output").innerText = "Save failed: " + err.message; });
 });
 
-// ---- Load from Firebase ----
 function loadLibrary(tab) {
   var contentEl = document.getElementById("libraryContent");
   contentEl.innerHTML = "Loading...";
@@ -214,7 +216,6 @@ function makeFfxHandler(url, filename) {
   return function () {
     var outputEl = document.getElementById("output");
     outputEl.innerText = "Downloading preset...";
-
     fetch(url + "?t=" + Date.now())
       .then(function (res) {
         if (!res.ok) throw new Error("File not found on GitHub. Push it to presets/ folder first.");
@@ -223,18 +224,14 @@ function makeFfxHandler(url, filename) {
       .then(function (buffer) {
         csInterface.evalScript("getPresetsFolder()", function (presetsFolder) {
           if (!presetsFolder || presetsFolder.indexOf("ERROR") !== -1) {
-            outputEl.innerText = "Could not find AE presets folder: " + presetsFolder;
+            outputEl.innerText = "Could not find AE presets folder.";
             return;
           }
-
           var localPath = (presetsFolder + "/" + filename).replace(/\\/g, "/");
           var uint8 = new Uint8Array(buffer);
           var binary = "";
-          for (var i = 0; i < uint8.length; i++) {
-            binary += String.fromCharCode(uint8[i]);
-          }
+          for (var i = 0; i < uint8.length; i++) binary += String.fromCharCode(uint8[i]);
           var base64 = btoa(binary);
-
           var writeScript = [
             'var f = new File("' + localPath + '");',
             'f.encoding = "BINARY";',
@@ -243,30 +240,22 @@ function makeFfxHandler(url, filename) {
             'var map = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";',
             'var bin = "";',
             'for(var i = 0; i < b64.length; i += 4) {',
-            '  var a = map.indexOf(b64[i]), b = map.indexOf(b64[i+1]), c = map.indexOf(b64[i+2]), d = map.indexOf(b64[i+3]);',
-            '  bin += String.fromCharCode((a<<2)|(b>>4));',
-            '  if(b64[i+2] !== "=") bin += String.fromCharCode(((b&15)<<4)|(c>>2));',
-            '  if(b64[i+3] !== "=") bin += String.fromCharCode(((c&3)<<6)|d);',
+            '  var a=map.indexOf(b64[i]),b=map.indexOf(b64[i+1]),c=map.indexOf(b64[i+2]),d=map.indexOf(b64[i+3]);',
+            '  bin+=String.fromCharCode((a<<2)|(b>>4));',
+            '  if(b64[i+2]!=="=")bin+=String.fromCharCode(((b&15)<<4)|(c>>2));',
+            '  if(b64[i+3]!=="=")bin+=String.fromCharCode(((c&3)<<6)|d);',
             '}',
-            'f.write(bin);',
-            'f.close();',
-            '"written"'
+            'f.write(bin); f.close(); "written"'
           ].join("\n");
-
           csInterface.evalScript(writeScript, function (writeResult) {
-            if (writeResult !== "written") {
-              outputEl.innerText = "Write failed: " + writeResult;
-              return;
-            }
+            if (writeResult !== "written") { outputEl.innerText = "Write failed: " + writeResult; return; }
             csInterface.evalScript('applyFfxPreset("' + localPath + '")', function (applyResult) {
               outputEl.innerText = applyResult;
             });
           });
         });
       })
-      .catch(function (err) {
-        outputEl.innerText = "Download failed: " + err.message;
-      });
+      .catch(function (err) { outputEl.innerText = "Download failed: " + err.message; });
   };
 }
 
@@ -275,6 +264,35 @@ function makeEffectWithPropsHandler(effectData) {
     var escaped = JSON.stringify(effectData).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
     applyToAE('applyEffectWithProps("' + escaped + '")');
   };
+}
+
+function addLongPressHandler(element, entryRef) {
+  var timer = null;
+  var didLongPress = false;
+
+  element.addEventListener("mousedown", function (e) {
+    didLongPress = false;
+    timer = setTimeout(function () {
+      didLongPress = true;
+      activeContextId = entryRef.id;
+      activeContextItem = entryRef.data;
+      showContextMenu(e.pageX, e.pageY);
+    }, 600);
+  });
+
+  element.addEventListener("mouseup", function () { clearTimeout(timer); });
+  element.addEventListener("mouseleave", function () { clearTimeout(timer); });
+
+  element.addEventListener("contextmenu", function (e) {
+    e.preventDefault();
+    activeContextId = entryRef.id;
+    activeContextItem = entryRef.data;
+    showContextMenu(e.pageX, e.pageY);
+  });
+
+  element.addEventListener("click", function (e) {
+    if (didLongPress) { e.stopImmediatePropagation(); didLongPress = false; }
+  }, true);
 }
 
 function renderItems(items, tab) {
@@ -309,7 +327,7 @@ function renderItems(items, tab) {
       var allEffects = (data.effects || []).concat(data.layerStyles || []);
       card.addEventListener("click", makeTextStyleHandler(data.font, data.size, data.color, JSON.stringify(allEffects)));
     } else if (tab === "effects") {
-      var badge = data.type === "ffx" ? "\u2605 FFX Preset" : "Effect";
+      var badge = data.type === "ffx" ? "\u2605 FFX" : "Effect";
       card.innerHTML =
         '<div class="cardInfo"><div class="cardTitle">' + data.name + '</div>' +
         '<div class="cardSub">' + badge + ' \u00b7 ' + data.client + '</div></div>';
@@ -320,15 +338,7 @@ function renderItems(items, tab) {
       }
     }
 
-    card.addEventListener("contextmenu", function (entryRef) {
-      return function (e) {
-        e.preventDefault();
-        activeContextId = entryRef.id;
-        activeContextItem = entryRef.data;
-        showContextMenu(e.pageX, e.pageY);
-      };
-    }(entry));
-
+    addLongPressHandler(card, entry);
     contentEl.appendChild(card);
   }
 }

@@ -25,28 +25,11 @@
     </select>
   </div>
 
-  <!-- Capture button (hidden on effects tab) -->
+  <!-- Add button — shows capture for colors/fonts/textstyles, ffx toggle for effects -->
   <button id="captureBtn" class="captureBtn">+ Add Selected Layer to Library</button>
+  <button id="ffxToggleBtn" class="captureBtn hidden">+ Add FFX Preset</button>
 
-  <!-- FFX Add form (only shown on effects tab) -->
-  <div id="ffxForm" class="addForm hidden">
-    <div class="cardTitle" style="margin-bottom:4px; font-size:12px;">Add FFX Preset</div>
-    <div style="font-size:10px; color:#8b8b99; line-height:1.6; margin-bottom:6px;">
-      1. In AE: <b>Animation → Save Animation Preset</b><br>
-      2. Save .ffx into your <b>DopeTool/presets/</b> folder<br>
-      3. Run: <b>git add . && git commit -m "preset" && git push</b><br>
-      4. Fill in details below and save
-    </div>
-    <input type="text" id="ffxName" placeholder="Preset name (e.g. Neon Gradient)" />
-    <input type="text" id="ffxClient" placeholder="Client (e.g. Fasset)" />
-    <input type="text" id="ffxFilename" placeholder="filename.ffx (must match file in presets/)" />
-    <div class="formButtons">
-      <button id="ffxSaveBtn">Save to Library</button>
-      <button id="ffxCancelBtn" class="cancelBtn">Cancel</button>
-    </div>
-  </div>
-
-  <!-- Capture add form (for colors, fonts, textstyles) -->
+  <!-- Capture form (colors / fonts / textstyles) -->
   <div id="addForm" class="addForm hidden">
     <div id="capturePreview" class="capturePreview"></div>
     <input type="text" id="newName" placeholder="Name (e.g. Headline Green)" />
@@ -57,9 +40,27 @@
     </div>
   </div>
 
+  <!-- FFX form (effects tab only) -->
+  <div id="ffxForm" class="addForm hidden">
+    <div class="cardTitle" style="margin-bottom:4px; font-size:12px;">Add FFX Preset</div>
+    <div style="font-size:10px; color:#8b8b99; line-height:1.6; margin-bottom:6px;">
+      1. In AE: <b>Animation → Save Animation Preset</b><br>
+      2. Save .ffx into <b>DopeTool/presets/</b> folder<br>
+      3. Run: <b>git add . &amp;&amp; git commit -m "preset" &amp;&amp; git push</b><br>
+      4. Fill in details below
+    </div>
+    <input type="text" id="ffxName" placeholder="Preset display name" />
+    <input type="text" id="ffxClient" placeholder="Client (e.g. Fasset)" />
+    <input type="text" id="ffxFilename" placeholder="filename.ffx" />
+    <div class="formButtons">
+      <button id="ffxSaveBtn">Save to Library</button>
+      <button id="ffxCancelBtn" class="cancelBtn">Cancel</button>
+    </div>
+  </div>
+
   <div id="libraryContent">Loading...</div>
 
-  <!-- Right-click context menu -->
+  <!-- Context menu -->
   <div id="contextMenu" class="contextMenu hidden">
     <div id="ctxEdit" class="ctxItem">Edit</div>
     <div id="ctxDelete" class="ctxItem ctxDelete">Delete</div>

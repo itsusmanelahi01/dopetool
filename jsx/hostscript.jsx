@@ -216,18 +216,18 @@ function applyTextStyle(fontName, size, hex, effectsJsonStr) {
         textDocument.fillColor = result.rgb;
         textProp.setValue(textDocument);
         if (effects && effects.length > 0) {
-          for (var ef = 0; ef < effects.length; ef++) {
+          var effectsProp = layer.property("Effects");
+          for (var e = 0; e < effects.length; e++) {
             try {
-              var newEffect = layer.property("Effects").addProperty(effects[ef].matchName);
-              if (newEffect && effects[ef].props) restoreEffectProps(newEffect, effects[ef].props);
-            } catch (e) {}
+              var newFx = effectsProp.addProperty(effects[e].matchName);
+              if (newFx && effects[e].props) restoreEffectProps(newFx, effects[e].props);
+            } catch (fxErr) {}
           }
         }
         appliedCount++;
       }
     }
     app.endUndoGroup();
-    if (appliedCount === 0) return "No text layer selected.";
     return "Text style applied to " + appliedCount + " layer(s).";
   } catch (e) {
     return "JSX ERROR: " + e.toString();
@@ -261,28 +261,22 @@ function applyEffectWithProps(effectJsonStr) {
     var selectedLayers = comp.selectedLayers;
     if (selectedLayers.length === 0) return "No layer selected.";
     var effectData = JSON.parse(effectJsonStr);
+    var matchName = effectData.matchName || effectData.type;
+    if (!matchName) return "Error: No matchName found in effect data.";
     var appliedCount = 0;
-    var debugInfo = "";
-    app.beginUndoGroup("DopeTool Apply Effect With Props");
+    app.beginUndoGroup("DopeTool Apply Effect");
     for (var i = 0; i < selectedLayers.length; i++) {
       try {
-        var matchName = effectData.matchName || effectData.type;
         var newEffect = selectedLayers[i].property("Effects").addProperty(matchName);
-        if (!newEffect) { debugInfo += "addProperty returned null. "; continue; }
-        if (effectData.props && effectData.props.length > 0) {
+        if (newEffect && effectData.props && effectData.props.length > 0) {
           restoreEffectProps(newEffect, effectData.props);
-          debugInfo += "Restored " + effectData.props.length + " props. ";
-        } else {
-          debugInfo += "No props to restore. ";
         }
         appliedCount++;
-      } catch (e) {
-        debugInfo += "Error: " + e.toString() + ". ";
-      }
+      } catch (e) {}
     }
     app.endUndoGroup();
-    if (appliedCount === 0) return "Could not apply effect. " + debugInfo;
-    return "Effect applied to " + appliedCount + " layer(s). " + debugInfo;
+    if (appliedCount === 0) return "Could not apply effect.";
+    return "Effect applied to " + appliedCount + " layer(s).";
   } catch (e) {
     return "JSX ERROR: " + e.toString();
   }
@@ -392,7 +386,6 @@ function captureEffects() {
   }
 }
 
-// Apply a .ffx preset file that has been written to disk
 function applyFfxPreset(presetPath) {
   try {
     var comp = app.project.activeItem;
@@ -415,11 +408,16 @@ function applyFfxPreset(presetPath) {
   }
 }
 
-// Get the AE presets folder path
 function getPresetsFolder() {
   try {
-    var presetsFolder = Folder(app.path + "/Presets/");
-    if (!presetsFolder.exists) presetsFolder.create();
+    var appPathStr = app.path.fsName;
+    var presetsFolder = new Folder(appPathStr + "/Presets");
+    if (!presetsFolder.exists) {
+      presetsFolder = new Folder(
+        Folder.userData + "/Adobe/After Effects/" + app.version.split(".")[0] + ".x/User Presets"
+      );
+      if (!presetsFolder.exists) presetsFolder.create();
+    }
     return presetsFolder.fsName;
   } catch (e) {
     return "ERROR: " + e.toString();
