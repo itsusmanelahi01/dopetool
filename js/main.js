@@ -31,9 +31,7 @@ var captureFunctionMap = {
 
 document.querySelectorAll(".tabBtn").forEach(function (btn) {
   btn.addEventListener("click", function () {
-    document.querySelectorAll(".tabBtn").forEach(function (b) {
-      b.classList.remove("active");
-    });
+    document.querySelectorAll(".tabBtn").forEach(function (b) { b.classList.remove("active"); });
     btn.classList.add("active");
     currentTab = btn.getAttribute("data-tab");
     document.getElementById("searchBox").value = "";
@@ -63,9 +61,7 @@ function populateClientFilter(items) {
   var currentValue = select.value;
   var clients = [];
   items.forEach(function (item) {
-    if (item.data.client && clients.indexOf(item.data.client) === -1) {
-      clients.push(item.data.client);
-    }
+    if (item.data.client && clients.indexOf(item.data.client) === -1) clients.push(item.data.client);
   });
   clients.sort();
   select.innerHTML = '<option value="">All Clients</option>';
@@ -75,9 +71,7 @@ function populateClientFilter(items) {
     opt.innerText = client;
     select.appendChild(opt);
   });
-  if (clients.indexOf(currentValue) !== -1) {
-    select.value = currentValue;
-  }
+  if (clients.indexOf(currentValue) !== -1) select.value = currentValue;
 }
 
 document.getElementById("captureBtn").addEventListener("click", function () {
@@ -85,16 +79,9 @@ document.getElementById("captureBtn").addEventListener("click", function () {
   document.getElementById("output").innerText = "Capturing from selected layer...";
   csInterface.evalScript(captureCall, function (resultStr) {
     var result;
-    try {
-      result = JSON.parse(resultStr);
-    } catch (e) {
-      document.getElementById("output").innerText = "Capture failed: invalid response.";
-      return;
-    }
-    if (result.error) {
-      document.getElementById("output").innerText = "Capture failed: " + result.error;
-      return;
-    }
+    try { result = JSON.parse(resultStr); }
+    catch (e) { document.getElementById("output").innerText = "Capture failed: invalid response."; return; }
+    if (result.error) { document.getElementById("output").innerText = "Capture failed: " + result.error; return; }
     pendingCapture = result;
     showForm(result);
     document.getElementById("output").innerText = "Captured. Fill in name and client, then save.";
@@ -110,7 +97,8 @@ function showForm(captured) {
   } else if (currentTab === "fonts") {
     preview.innerHTML = '<span>' + captured.name + '</span>';
   } else if (currentTab === "textstyles") {
-    preview.innerHTML = '<div class="swatch" style="background-color:' + (captured.color || "#888") + '"></div><span>' + (captured.font || "") + ' \u00b7 ' + (captured.size || "") + '</span>';
+    var effectCount = (captured.effects ? captured.effects.length : 0) + (captured.layerStyles ? captured.layerStyles.length : 0);
+    preview.innerHTML = '<div class="swatch" style="background-color:' + (captured.color || "#888") + '"></div><span>' + (captured.font || "") + ' \u00b7 ' + (captured.size || "") + (effectCount > 0 ? ' \u00b7 ' + effectCount + ' effect(s)' : '') + '</span>';
   } else if (currentTab === "effects") {
     preview.innerHTML = '<span>' + captured.name + '</span>';
   }
@@ -130,10 +118,7 @@ document.getElementById("saveBtn").addEventListener("click", function () {
   if (!pendingCapture) return;
   var name = document.getElementById("newName").value.trim();
   var client = document.getElementById("newClient").value.trim();
-  if (!name) {
-    document.getElementById("output").innerText = "Please enter a name.";
-    return;
-  }
+  if (!name) { document.getElementById("output").innerText = "Please enter a name."; return; }
   var docData = Object.assign({}, pendingCapture, { name: name, client: client || "General" });
   var collectionName = collectionMap[currentTab];
   document.getElementById("output").innerText = "Saving to Firebase...";
@@ -143,31 +128,21 @@ document.getElementById("saveBtn").addEventListener("click", function () {
       hideForm();
       loadLibrary(currentTab);
     })
-    .catch(function (err) {
-      document.getElementById("output").innerText = "Save failed: " + err.message;
-    });
+    .catch(function (err) { document.getElementById("output").innerText = "Save failed: " + err.message; });
 });
 
 function loadLibrary(tab) {
   var contentEl = document.getElementById("libraryContent");
   contentEl.innerHTML = "Loading...";
-  var collectionName = collectionMap[tab];
-  db.collection(collectionName).get()
+  db.collection(collectionMap[tab]).get()
     .then(function (snapshot) {
       currentData = [];
-      snapshot.forEach(function (doc) {
-        currentData.push({ id: doc.id, data: doc.data() });
-      });
+      snapshot.forEach(function (doc) { currentData.push({ id: doc.id, data: doc.data() }); });
       populateClientFilter(currentData);
-      if (currentData.length === 0) {
-        contentEl.innerHTML = "No items in " + collectionName + " yet.";
-        return;
-      }
+      if (currentData.length === 0) { contentEl.innerHTML = "No items yet."; return; }
       renderItems(currentData, tab);
     })
-    .catch(function (err) {
-      contentEl.innerHTML = "Error: " + err.message;
-    });
+    .catch(function (err) { contentEl.innerHTML = "Error: " + err.message; });
 }
 
 function makeColorHandler(hexValue) {
@@ -179,21 +154,22 @@ function makeFontHandler(fontValue) {
 function makeTextStyleHandler(fontValue, sizeValue, colorValue, effectsJson) {
   return function () {
     var sizeNum = sizeValue.toString().replace("px", "");
-    var escaped = effectsJson.replace(/"/g, '\\"');
+    var escaped = effectsJson.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
     applyToAE('applyTextStyle("' + fontValue + '", ' + sizeNum + ', "' + colorValue + '", "' + escaped + '")');
   };
 }
-function makeEffectHandler(typeValue) {
-  return function () { applyToAE('applyEffect("' + typeValue + '")'); };
+function makeEffectWithPropsHandler(effectData) {
+  return function () {
+    var escaped = JSON.stringify(effectData).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+    applyToAE('applyEffectWithProps("' + escaped + '")');
+  };
 }
 
 function renderItems(items, tab) {
   var contentEl = document.getElementById("libraryContent");
   contentEl.innerHTML = "";
-  if (items.length === 0) {
-    contentEl.innerHTML = "No matches.";
-    return;
-  }
+  if (items.length === 0) { contentEl.innerHTML = "No matches."; return; }
+
   for (var idx = 0; idx < items.length; idx++) {
     var entry = items[idx];
     var data = entry.data;
@@ -212,19 +188,20 @@ function renderItems(items, tab) {
         '<div class="cardSub">' + (data.weight || "") + ' \u00b7 ' + data.client + '</div></div>';
       card.addEventListener("click", makeFontHandler(data.name));
     } else if (tab === "textstyles") {
-      var effectsBadge = (data.effects && data.effects.length > 0)
-        ? ' \u00b7 ' + data.effects.length + ' effect(s)' : '';
+      var effectCount = ((data.effects ? data.effects.length : 0) + (data.layerStyles ? data.layerStyles.length : 0));
+      var effectsBadge = effectCount > 0 ? ' \u00b7 ' + effectCount + ' fx' : '';
       card.innerHTML =
         '<div class="swatch" style="background-color:' + (data.color || "#888") + '"></div>' +
         '<div class="cardInfo"><div class="cardTitle">' + data.name + '</div>' +
         '<div class="cardSub">' + data.font + ' \u00b7 ' + data.size + effectsBadge + ' \u00b7 ' + data.client + '</div></div>';
-      var effectsJson = data.effects ? JSON.stringify(data.effects) : "[]";
-      card.addEventListener("click", makeTextStyleHandler(data.font, data.size, data.color, effectsJson));
+      var allEffects = (data.effects || []).concat(data.layerStyles || []);
+      card.addEventListener("click", makeTextStyleHandler(data.font, data.size, data.color, JSON.stringify(allEffects)));
     } else if (tab === "effects") {
+      var fxBadge = data.props ? ' \u00b7 settings saved' : '';
       card.innerHTML =
         '<div class="cardInfo"><div class="cardTitle">' + data.name + '</div>' +
-        '<div class="cardSub">' + (data.type || "") + ' \u00b7 ' + data.client + '</div></div>';
-      card.addEventListener("click", makeEffectHandler(data.type));
+        '<div class="cardSub">' + (data.type || data.matchName || "") + fxBadge + ' \u00b7 ' + data.client + '</div></div>';
+      card.addEventListener("click", makeEffectWithPropsHandler({ matchName: data.matchName || data.type, props: data.props || [] }));
     }
 
     card.addEventListener("contextmenu", function (entryRef) {
@@ -246,7 +223,6 @@ function showContextMenu(x, y) {
   menu.style.top = y + "px";
   menu.classList.remove("hidden");
 }
-
 function hideContextMenu() {
   document.getElementById("contextMenu").classList.add("hidden");
 }
@@ -256,17 +232,14 @@ document.addEventListener("click", function () { hideContextMenu(); });
 document.getElementById("ctxDelete").addEventListener("click", function (e) {
   e.stopPropagation();
   if (!activeContextId) return;
-  var collectionName = collectionMap[currentTab];
   document.getElementById("output").innerText = "Deleting...";
-  db.collection(collectionName).doc(activeContextId).delete()
+  db.collection(collectionMap[currentTab]).doc(activeContextId).delete()
     .then(function () {
       document.getElementById("output").innerText = "Deleted.";
       hideContextMenu();
       loadLibrary(currentTab);
     })
-    .catch(function (err) {
-      document.getElementById("output").innerText = "Delete failed: " + err.message;
-    });
+    .catch(function (err) { document.getElementById("output").innerText = "Delete failed: " + err.message; });
 });
 
 document.getElementById("ctxEdit").addEventListener("click", function (e) {
@@ -286,24 +259,17 @@ document.getElementById("editSaveBtn").addEventListener("click", function () {
   if (!activeContextId) return;
   var newName = document.getElementById("editName").value.trim();
   var newClient = document.getElementById("editClient").value.trim();
-  if (!newName) {
-    document.getElementById("output").innerText = "Name cannot be empty.";
-    return;
-  }
-  var collectionName = collectionMap[currentTab];
+  if (!newName) { document.getElementById("output").innerText = "Name cannot be empty."; return; }
   document.getElementById("output").innerText = "Updating...";
-  db.collection(collectionName).doc(activeContextId).update({
-    name: newName,
-    client: newClient || "General"
+  db.collection(collectionMap[currentTab]).doc(activeContextId).update({
+    name: newName, client: newClient || "General"
   })
     .then(function () {
       document.getElementById("output").innerText = "Updated.";
       document.getElementById("editForm").classList.add("hidden");
       loadLibrary(currentTab);
     })
-    .catch(function (err) {
-      document.getElementById("output").innerText = "Update failed: " + err.message;
-    });
+    .catch(function (err) { document.getElementById("output").innerText = "Update failed: " + err.message; });
 });
 
 function applyToAE(scriptCall) {
@@ -319,18 +285,13 @@ var extensionPath = csInterface.getSystemPath(SystemPath.EXTENSION);
 var localVersionPath = extensionPath + "/local_version.json";
 
 function getLocalVersion() {
-  try {
-    var raw = nodeFs.readFileSync(localVersionPath, "utf8");
-    return JSON.parse(raw).version || "0.0.0";
-  } catch (e) {
-    return "0.0.0";
-  }
+  try { return JSON.parse(nodeFs.readFileSync(localVersionPath, "utf8")).version || "0.0.0"; }
+  catch (e) { return "0.0.0"; }
 }
 
 function setLocalVersion(version) {
-  try {
-    nodeFs.writeFileSync(localVersionPath, JSON.stringify({ version: version }), "utf8");
-  } catch (e) {}
+  try { nodeFs.writeFileSync(localVersionPath, JSON.stringify({ version: version }), "utf8"); }
+  catch (e) {}
 }
 
 function checkForUpdate() {
@@ -338,59 +299,43 @@ function checkForUpdate() {
   fetch(GITHUB_RAW_BASE + "/version.json?t=" + Date.now())
     .then(function (res) { return res.json(); })
     .then(function (data) {
-      if (data.version && data.version !== localVersion) {
-        showUpdateBanner(data.version);
-      }
+      if (data.version && data.version !== localVersion) showUpdateBanner(data.version);
     })
-    .catch(function (err) {
-      console.log("Update check failed: " + err.message);
-    });
+    .catch(function () {});
 }
 
 function showUpdateBanner(newVersion) {
   if (document.getElementById("updateBanner")) return;
   var banner = document.createElement("div");
   banner.id = "updateBanner";
-  banner.innerHTML =
-    '<span>Update available: v' + newVersion + '</span>' +
-    '<button id="updateNowBtn">Update Now</button>';
+  banner.innerHTML = '<span>Update available: v' + newVersion + '</span><button id="updateNowBtn">Update Now</button>';
   document.body.insertBefore(banner, document.body.firstChild);
-  document.getElementById("updateNowBtn").addEventListener("click", function () {
-    performUpdate(newVersion);
-  });
+  document.getElementById("updateNowBtn").addEventListener("click", function () { performUpdate(newVersion); });
 }
 
 function performUpdate(newVersion) {
   var banner = document.getElementById("updateBanner");
   banner.innerHTML = '<span>Updating... please wait</span>';
-
   var filesToUpdate = [
     { remote: "/index.html", local: "/index.html" },
     { remote: "/js/main.js", local: "/js/main.js" },
     { remote: "/css/style.css", local: "/css/style.css" },
     { remote: "/jsx/hostscript.jsx", local: "/jsx/hostscript.jsx" }
   ];
-
   var completed = 0;
   var failed = [];
-
   filesToUpdate.forEach(function (file) {
     fetch(GITHUB_RAW_BASE + file.remote + "?t=" + Date.now())
       .then(function (res) { return res.text(); })
       .then(function (content) {
-        var fullPath = extensionPath + file.local;
-        nodeFs.writeFileSync(fullPath, content, "utf8");
+        nodeFs.writeFileSync(extensionPath + file.local, content, "utf8");
         completed++;
-        if (completed + failed.length === filesToUpdate.length) {
-          finishUpdate(newVersion, banner, failed);
-        }
+        if (completed + failed.length === filesToUpdate.length) finishUpdate(newVersion, banner, failed);
       })
       .catch(function (err) {
         failed.push(file.local);
         completed++;
-        if (completed + failed.length === filesToUpdate.length) {
-          finishUpdate(newVersion, banner, failed);
-        }
+        if (completed + failed.length === filesToUpdate.length) finishUpdate(newVersion, banner, failed);
       });
   });
 }
@@ -406,4 +351,5 @@ function finishUpdate(newVersion, banner, failed) {
 
 window.addEventListener("DOMContentLoaded", function () {
   setTimeout(checkForUpdate, 1000);
+  setTimeout(function () { loadLibrary(currentTab); }, 300);
 });
