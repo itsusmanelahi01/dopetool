@@ -391,3 +391,37 @@ function captureEffects() {
     return JSON.stringify({ error: e.toString() });
   }
 }
+
+// Apply a .ffx preset file that has been written to disk
+function applyFfxPreset(presetPath) {
+  try {
+    var comp = app.project.activeItem;
+    if (!comp || !(comp instanceof CompItem)) return "No active composition.";
+    var selectedLayers = comp.selectedLayers;
+    if (selectedLayers.length === 0) return "No layer selected.";
+
+    var presetFile = new File(presetPath);
+    if (!presetFile.exists) return "Preset file not found at: " + presetPath;
+
+    app.beginUndoGroup("DopeTool Apply FFX Preset");
+    for (var i = 0; i < selectedLayers.length; i++) {
+      selectedLayers[i].applyPreset(presetFile);
+    }
+    app.endUndoGroup();
+
+    return "Preset applied to " + selectedLayers.length + " layer(s).";
+  } catch (e) {
+    return "JSX ERROR: " + e.toString();
+  }
+}
+
+// Get the AE presets folder path
+function getPresetsFolder() {
+  try {
+    var presetsFolder = Folder(app.path + "/Presets/");
+    if (!presetsFolder.exists) presetsFolder.create();
+    return presetsFolder.fsName;
+  } catch (e) {
+    return "ERROR: " + e.toString();
+  }
+}
