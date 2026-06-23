@@ -31,9 +31,18 @@ var captureFunctionMap = {
 
 var GITHUB_RAW_BASE = "https://raw.githubusercontent.com/itsusmanelahi01/dopetool/main";
 var nodeFs = require("fs");
-var nodePath = require("path");
 var extensionPath = csInterface.getSystemPath(SystemPath.EXTENSION);
 var localVersionPath = extensionPath + "/local_version.json";
+
+function updateTabUI() {
+  var isEffects = currentTab === "effects";
+  document.getElementById("captureBtn").style.display = isEffects ? "none" : "block";
+  document.getElementById("ffxForm").classList.add("hidden");
+  document.getElementById("addForm").classList.add("hidden");
+  if (isEffects) {
+    document.getElementById("ffxForm").classList.remove("hidden");
+  }
+}
 
 document.querySelectorAll(".tabBtn").forEach(function (btn) {
   btn.addEventListener("click", function () {
@@ -44,6 +53,7 @@ document.querySelectorAll(".tabBtn").forEach(function (btn) {
     document.getElementById("clientFilter").value = "";
     hideForm();
     hideContextMenu();
+    updateTabUI();
     loadLibrary(currentTab);
   });
 });
@@ -80,177 +90,25 @@ function populateClientFilter(items) {
   if (clients.indexOf(currentValue) !== -1) select.value = currentValue;
 }
 
+// ---- Capture button (colors/fonts/textstyles) ----
 document.getElementById("captureBtn").addEventListener("click", function () {
-  if (currentTab === "effects") {
-    document.getElementById("output").innerText = "For effects with gradients, use the FFX upload workflow. See instructions below.";
-    showFfxInstructions();
-    return;
-  }
   var captureCall = captureFunctionMap[currentTab];
   document.getElementById("output").innerText = "Capturing from selected layer...";
   csInterface.evalScript(captureCall, function (resultStr) {
     var result;
     try { result = JSON.parse(resultStr); }
-    catch (e) { document.getElementById("output").innerText = "Capture failed: invalid response."; return; }
+    catch (e) { document.getElementById("output").innerText = "Capture failed."; return; }
     if (result.error) { document.getElementById("output").innerText = "Capture failed: " + result.error; return; }
     pendingCapture = result;
-    showForm(result);
+    showCaptureForm(result);
     document.getElementById("output").innerText = "Captured. Fill in name and client, then save.";
   });
 });
 
-function showFfxInstructions() {
+function showCaptureForm(captured) {
   var form = document.getElementById("addForm");
   var preview = document.getElementById("capturePreview");
   form.classList.remove("hidden");
-  preview.innerHTML =
-    '<div style="font-size:11px; color:#aaa; line-height:1.6;">' +
-    '1. In AE select your layer with the effect<br>' +
-    '2. Go to <b>Animation → Save Animation Preset</b><br>' +
-    '3. Save the .ffx file into your DopeTool/presets/ folder<br>' +
-    '4. Run: git add . && git commit -m "Add preset" && git push<br>' +
-    '5. Then enter the filename below (e.g. gradient-ramp.ffx)' +
-    '</div>';
-  document.getElementById("newName").place
-cat > ~/Library/Application\ Support/Adobe/CEP/extensions/DopeTool/js/main.js << 'MAINEOF'
-var csInterface = new CSInterface();
-
-document.getElementById("output").innerText = "Panel loaded OK";
-
-document.getElementById("testBtn").addEventListener("click", function () {
-  document.getElementById("output").innerText = "Calling AE...";
-  csInterface.evalScript("testConnection()", function (result) {
-    document.getElementById("output").innerText = result;
-  });
-});
-
-var currentTab = "colors";
-var currentData = [];
-var pendingCapture = null;
-var activeContextId = null;
-var activeContextItem = null;
-
-var collectionMap = {
-  colors: "colors",
-  fonts: "fonts",
-  textstyles: "textstyles",
-  effects: "effects"
-};
-
-var captureFunctionMap = {
-  colors: "captureColor()",
-  fonts: "captureFont()",
-  textstyles: "captureTextStyle()",
-  effects: "captureEffects()"
-};
-
-var GITHUB_RAW_BASE = "https://raw.githubusercontent.com/itsusmanelahi01/dopetool/main";
-var nodeFs = require("fs");
-var nodePath = require("path");
-var extensionPath = csInterface.getSystemPath(SystemPath.EXTENSION);
-var localVersionPath = extensionPath + "/local_version.json";
-
-document.querySelectorAll(".tabBtn").forEach(function (btn) {
-  btn.addEventListener("click", function () {
-    document.querySelectorAll(".tabBtn").forEach(function (b) { b.classList.remove("active"); });
-    btn.classList.add("active");
-    currentTab = btn.getAttribute("data-tab");
-    document.getElementById("searchBox").value = "";
-    document.getElementById("clientFilter").value = "";
-    hideForm();
-    hideContextMenu();
-    loadLibrary(currentTab);
-  });
-});
-
-document.getElementById("searchBox").addEventListener("input", applyFilters);
-document.getElementById("clientFilter").addEventListener("change", applyFilters);
-
-function applyFilters() {
-  var query = document.getElementById("searchBox").value.toLowerCase();
-  var selectedClient = document.getElementById("clientFilter").value;
-  var filtered = currentData.filter(function (item) {
-    var matchesSearch = JSON.stringify(item.data).toLowerCase().indexOf(query) !== -1;
-    var matchesClient = !selectedClient || item.data.client === selectedClient;
-    return matchesSearch && matchesClient;
-  });
-  renderItems(filtered, currentTab);
-}
-
-function populateClientFilter(items) {
-  var select = document.getElementById("clientFilter");
-  var currentValue = select.value;
-  var clients = [];
-  items.forEach(function (item) {
-    if (item.data.client && clients.indexOf(item.data.client) === -1) clients.push(item.data.client);
-  });
-  clients.sort();
-  select.innerHTML = '<option value="">All Clients</option>';
-  clients.forEach(function (client) {
-    var opt = document.createElement("option");
-    opt.value = client;
-    opt.innerText = client;
-    select.appendChild(opt);
-  });
-  if (clients.indexOf(currentValue) !== -1) select.value = currentValue;
-}
-
-document.getElementById("captureBtn").addEventListener("click", function () {
-  if (currentTab === "effects") {
-    document.getElementById("output").innerText = "For effects with gradients, use the FFX upload workflow. See instructions below.";
-    showFfxInstructions();
-    return;
-  }
-  var captureCall = captureFunctionMap[currentTab];
-  document.getElementById("output").innerText = "Capturing from selected layer...";
-  csInterface.evalScript(captureCall, function (resultStr) {
-    var result;
-    try { result = JSON.parse(resultStr); }
-    catch (e) { document.getElementById("output").innerText = "Capture failed: invalid response."; return; }
-    if (result.error) { document.getElementById("output").innerText = "Capture failed: " + result.error; return; }
-    pendingCapture = result;
-    showForm(result);
-    document.getElementById("output").innerText = "Captured. Fill in name and client, then save.";
-  });
-});
-
-function showFfxInstructions() {
-  var form = document.getElementById("addForm");
-  var preview = document.getElementById("capturePreview");
-  form.classList.remove("hidden");
-  preview.innerHTML =
-    '<div style="font-size:11px; color:#aaa; line-height:1.6;">' +
-    '1. In AE select your layer with the effect<br>' +
-    '2. Go to <b>Animation → Save Animation Preset</b><br>' +
-    '3. Save the .ffx file into your DopeTool/presets/ folder<br>' +
-    '4. Run: git add . && git commit -m "Add preset" && git push<br>' +
-    '5. Then enter the filename below (e.g. gradient-ramp.ffx)' +
-    '</div>';
-  document.getElementById("newName").placeholder = "Preset display name";
-  document.getElementById("newClient").placeholder = "Client (e.g. Fasset)";
-
-  var filenameInput = document.getElementById("ffxFilename");
-  if (!filenameInput) {
-    var inp = document.createElement("input");
-    inp.type = "text";
-    inp.id = "ffxFilename";
-    inp.placeholder = "filename.ffx (must match file in presets/ folder)";
-    inp.style.cssText = "width:100%;box-sizing:border-box;padding:8px 12px;background:#15151a;border:1.5px solid #2c2c38;border-radius:12px;color:#fff;font-size:12px;";
-    document.getElementById("addForm").insertBefore(inp, document.getElementById("formButtons") || document.getElementById("saveBtn").parentNode);
-  }
-
-  document.getElementById("newName").value = "";
-  document.getElementById("newClient").value = "";
-}
-
-function showForm(captured) {
-  var form = document.getElementById("addForm");
-  var preview = document.getElementById("capturePreview");
-  form.classList.remove("hidden");
-
-  var ffxInput = document.getElementById("ffxFilename");
-  if (ffxInput) ffxInput.parentNode.removeChild(ffxInput);
-
   if (currentTab === "colors") {
     preview.innerHTML = '<div class="swatch" style="background-color:' + captured.hex + '"></div><span>' + captured.hex + '</span>';
   } else if (currentTab === "fonts") {
@@ -258,11 +116,7 @@ function showForm(captured) {
   } else if (currentTab === "textstyles") {
     var effectCount = ((captured.effects ? captured.effects.length : 0) + (captured.layerStyles ? captured.layerStyles.length : 0));
     preview.innerHTML = '<div class="swatch" style="background-color:' + (captured.color || "#888") + '"></div><span>' + (captured.font || "") + ' \u00b7 ' + (captured.size || "") + (effectCount > 0 ? ' \u00b7 ' + effectCount + ' fx' : '') + '</span>';
-  } else if (currentTab === "effects") {
-    preview.innerHTML = '<span>' + (captured.name || "") + '</span>';
   }
-  document.getElementById("newName").placeholder = "Name (e.g. Headline Green)";
-  document.getElementById("newClient").placeholder = "Client (e.g. Fasset)";
   document.getElementById("newName").value = "";
   document.getElementById("newClient").value = "";
   document.getElementById("newName").focus();
@@ -270,57 +124,64 @@ function showForm(captured) {
 
 function hideForm() {
   document.getElementById("addForm").classList.add("hidden");
-  var ffxInput = document.getElementById("ffxFilename");
-  if (ffxInput) ffxInput.parentNode.removeChild(ffxInput);
   pendingCapture = null;
 }
 
 document.getElementById("cancelBtn").addEventListener("click", hideForm);
 
 document.getElementById("saveBtn").addEventListener("click", function () {
+  if (!pendingCapture) return;
   var name = document.getElementById("newName").value.trim();
   var client = document.getElementById("newClient").value.trim();
   if (!name) { document.getElementById("output").innerText = "Please enter a name."; return; }
-
-  // FFX preset save flow
-  if (currentTab === "effects") {
-    var ffxInput = document.getElementById("ffxFilename");
-    var filename = ffxInput ? ffxInput.value.trim() : "";
-    if (!filename) { document.getElementById("output").innerText = "Please enter the .ffx filename."; return; }
-    if (filename.indexOf(".ffx") === -1) filename = filename + ".ffx";
-
-    var docData = {
-      name: name,
-      client: client || "General",
-      filename: filename,
-      type: "ffx",
-      url: GITHUB_RAW_BASE + "/presets/" + filename
-    };
-
-    document.getElementById("output").innerText = "Saving to library...";
-    db.collection("effects").add(docData)
-      .then(function () {
-        document.getElementById("output").innerText = "Saved! Push your .ffx file to GitHub presets/ folder.";
-        hideForm();
-        loadLibrary(currentTab);
-      })
-      .catch(function (err) { document.getElementById("output").innerText = "Save failed: " + err.message; });
-    return;
-  }
-
-  if (!pendingCapture) return;
   var docData = Object.assign({}, pendingCapture, { name: name, client: client || "General" });
-  var collectionName = collectionMap[currentTab];
-  document.getElementById("output").innerText = "Saving to Firebase...";
-  db.collection(collectionName).add(docData)
+  document.getElementById("output").innerText = "Saving...";
+  db.collection(collectionMap[currentTab]).add(docData)
     .then(function () {
-      document.getElementById("output").innerText = "Saved to " + collectionName + "!";
+      document.getElementById("output").innerText = "Saved!";
       hideForm();
       loadLibrary(currentTab);
     })
     .catch(function (err) { document.getElementById("output").innerText = "Save failed: " + err.message; });
 });
 
+// ---- FFX form (effects tab) ----
+document.getElementById("ffxCancelBtn").addEventListener("click", function () {
+  document.getElementById("ffxName").value = "";
+  document.getElementById("ffxClient").value = "";
+  document.getElementById("ffxFilename").value = "";
+});
+
+document.getElementById("ffxSaveBtn").addEventListener("click", function () {
+  var name = document.getElementById("ffxName").value.trim();
+  var client = document.getElementById("ffxClient").value.trim();
+  var filename = document.getElementById("ffxFilename").value.trim();
+
+  if (!name) { document.getElementById("output").innerText = "Please enter a name."; return; }
+  if (!filename) { document.getElementById("output").innerText = "Please enter the .ffx filename."; return; }
+  if (filename.indexOf(".ffx") === -1) filename = filename + ".ffx";
+
+  var docData = {
+    name: name,
+    client: client || "General",
+    filename: filename,
+    type: "ffx",
+    url: GITHUB_RAW_BASE + "/presets/" + filename
+  };
+
+  document.getElementById("output").innerText = "Saving to library...";
+  db.collection("effects").add(docData)
+    .then(function () {
+      document.getElementById("output").innerText = "Saved! Make sure " + filename + " is pushed to GitHub presets/ folder.";
+      document.getElementById("ffxName").value = "";
+      document.getElementById("ffxClient").value = "";
+      document.getElementById("ffxFilename").value = "";
+      loadLibrary(currentTab);
+    })
+    .catch(function (err) { document.getElementById("output").innerText = "Save failed: " + err.message; });
+});
+
+// ---- Load from Firebase ----
 function loadLibrary(tab) {
   var contentEl = document.getElementById("libraryContent");
   contentEl.innerHTML = "Loading...";
@@ -356,40 +217,51 @@ function makeFfxHandler(url, filename) {
 
     fetch(url + "?t=" + Date.now())
       .then(function (res) {
-        if (!res.ok) throw new Error("File not found on GitHub. Make sure you pushed it to presets/ folder.");
+        if (!res.ok) throw new Error("File not found on GitHub. Push it to presets/ folder first.");
         return res.arrayBuffer();
       })
       .then(function (buffer) {
         csInterface.evalScript("getPresetsFolder()", function (presetsFolder) {
-          if (presetsFolder.indexOf("ERROR") !== -1) {
-            outputEl.innerText = "Could not find AE presets folder.";
+          if (!presetsFolder || presetsFolder.indexOf("ERROR") !== -1) {
+            outputEl.innerText = "Could not find AE presets folder: " + presetsFolder;
             return;
           }
 
-          var localPath = presetsFolder + "/" + filename;
+          var localPath = (presetsFolder + "/" + filename).replace(/\\/g, "/");
           var uint8 = new Uint8Array(buffer);
           var binary = "";
           for (var i = 0; i < uint8.length; i++) {
             binary += String.fromCharCode(uint8[i]);
           }
-
           var base64 = btoa(binary);
-          var writeScript =
-            'var f = new File("' + localPath.replace(/\\/g, "/") + '");' +
-            'f.encoding = "BINARY";' +
-            'f.open("w");' +
-            'f.write(Base64.decode("' + base64 + '"));' +
-            'f.close();' +
-            '"Written: ' + localPath + '"';
 
-          csInterface.evalScript(
-            'var f = new File("' + localPath.replace(/\\/g, "/") + '"); f.encoding = "BINARY"; f.open("w"); var b64 = "' + base64 + '"; var bin = ""; for(var i=0;i<b64.length;i+=4){var a=b64.charCodeAt(i),b=b64.charCodeAt(i+1),c=b64.charCodeAt(i+2),d=b64.charCodeAt(i+3); var map="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"; a=map.indexOf(b64[i]);b=map.indexOf(b64[i+1]);c=map.indexOf(b64[i+2]);d=map.indexOf(b64[i+3]); bin+=String.fromCharCode((a<<2)|(b>>4)); if(b64[i+2]!="=")bin+=String.fromCharCode(((b&15)<<4)|(c>>2)); if(b64[i+3]!="=")bin+=String.fromCharCode(((c&3)<<6)|d);} f.write(bin); f.close(); "done"',
-            function (writeResult) {
-              csInterface.evalScript('applyFfxPreset("' + localPath.replace(/\\/g, "/") + '")', function (applyResult) {
-                outputEl.innerText = applyResult;
-              });
+          var writeScript = [
+            'var f = new File("' + localPath + '");',
+            'f.encoding = "BINARY";',
+            'f.open("w");',
+            'var b64 = "' + base64 + '";',
+            'var map = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";',
+            'var bin = "";',
+            'for(var i = 0; i < b64.length; i += 4) {',
+            '  var a = map.indexOf(b64[i]), b = map.indexOf(b64[i+1]), c = map.indexOf(b64[i+2]), d = map.indexOf(b64[i+3]);',
+            '  bin += String.fromCharCode((a<<2)|(b>>4));',
+            '  if(b64[i+2] !== "=") bin += String.fromCharCode(((b&15)<<4)|(c>>2));',
+            '  if(b64[i+3] !== "=") bin += String.fromCharCode(((c&3)<<6)|d);',
+            '}',
+            'f.write(bin);',
+            'f.close();',
+            '"written"'
+          ].join("\n");
+
+          csInterface.evalScript(writeScript, function (writeResult) {
+            if (writeResult !== "written") {
+              outputEl.innerText = "Write failed: " + writeResult;
+              return;
             }
-          );
+            csInterface.evalScript('applyFfxPreset("' + localPath + '")', function (applyResult) {
+              outputEl.innerText = applyResult;
+            });
+          });
         });
       })
       .catch(function (err) {
@@ -437,7 +309,7 @@ function renderItems(items, tab) {
       var allEffects = (data.effects || []).concat(data.layerStyles || []);
       card.addEventListener("click", makeTextStyleHandler(data.font, data.size, data.color, JSON.stringify(allEffects)));
     } else if (tab === "effects") {
-      var badge = data.type === "ffx" ? "\u2605 FFX" : "props";
+      var badge = data.type === "ffx" ? "\u2605 FFX Preset" : "Effect";
       card.innerHTML =
         '<div class="cardInfo"><div class="cardTitle">' + data.name + '</div>' +
         '<div class="cardSub">' + badge + ' \u00b7 ' + data.client + '</div></div>';
@@ -525,7 +397,6 @@ function getLocalVersion() {
   try { return JSON.parse(nodeFs.readFileSync(localVersionPath, "utf8")).version || "0.0.0"; }
   catch (e) { return "0.0.0"; }
 }
-
 function setLocalVersion(version) {
   try { nodeFs.writeFileSync(localVersionPath, JSON.stringify({ version: version }), "utf8"); }
   catch (e) {}
@@ -569,7 +440,7 @@ function performUpdate(newVersion) {
         completed++;
         if (completed + failed.length === filesToUpdate.length) finishUpdate(newVersion, banner, failed);
       })
-      .catch(function (err) {
+      .catch(function () {
         failed.push(file.local);
         completed++;
         if (completed + failed.length === filesToUpdate.length) finishUpdate(newVersion, banner, failed);
@@ -587,6 +458,7 @@ function finishUpdate(newVersion, banner, failed) {
 }
 
 window.addEventListener("DOMContentLoaded", function () {
+  updateTabUI();
   setTimeout(checkForUpdate, 1000);
   setTimeout(function () { loadLibrary(currentTab); }, 300);
 });
