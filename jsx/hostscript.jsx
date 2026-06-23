@@ -108,7 +108,6 @@ function applyFont(fontName) {
   }
 }
 
-// Capture all properties of an effect recursively
 function captureEffectProps(effectProp) {
   var props = [];
   try {
@@ -148,29 +147,47 @@ function captureEffectProps(effectProp) {
   return props;
 }
 
-// Restore all properties of an effect recursively
 function restoreEffectProps(effectProp, props) {
   if (!props || props.length === 0) return;
   for (var i = 0; i < props.length; i++) {
     try {
       var propData = props[i];
-      var prop = effectProp.property(propData.name);
+      if (!propData.matchName) continue;
+
+      var prop = null;
+      try { prop = effectProp.property(propData.matchName); } catch (e) {}
+      if (!prop) {
+        try { prop = effectProp.property(propData.name); } catch (e) {}
+      }
       if (!prop) continue;
+
       if (propData.children && prop.numProperties > 0) {
         restoreEffectProps(prop, propData.children);
-      } else if (propData.value !== undefined && prop.canSetValue) {
-        try {
-          if (propData.valueType === "array2") {
-            prop.setValue([propData.value[0], propData.value[1]]);
-          } else if (propData.valueType === "array3") {
-            prop.setValue([propData.value[0], propData.value[1], propData.value[2]]);
-          } else if (propData.valueType === "array4") {
-            prop.setValue([propData.value[0], propData.value[1], propData.value[2], propData.value[3]]);
-          } else {
-            prop.setValue(propData.value);
-          }
-        } catch (e) {}
+        continue;
       }
+
+      if (propData.value === undefined || propData.value === null) continue;
+
+      try {
+        if (!prop.canSetValue) continue;
+
+        if (propData.valueType === "array2") {
+          var v = propData.value;
+          prop.setValue([parseFloat(v[0]), parseFloat(v[1])]);
+        } else if (propData.valueType === "array3") {
+          var v = propData.value;
+          prop.setValue([parseFloat(v[0]), parseFloat(v[1]), parseFloat(v[2])]);
+        } else if (propData.valueType === "array4") {
+          var v = propData.value;
+          prop.setValue([parseFloat(v[0]), parseFloat(v[1]), parseFloat(v[2]), parseFloat(v[3])]);
+        } else if (propData.valueType === "number") {
+          prop.setValue(parseFloat(propData.value));
+        } else if (propData.valueType === "boolean") {
+          prop.setValue(Boolean(propData.value));
+        } else if (propData.valueType === "string") {
+          prop.setValue(String(propData.value));
+        }
+      } catch (e) {}
     } catch (e) {}
   }
 }
@@ -181,15 +198,12 @@ function applyTextStyle(fontName, size, hex, effectsJsonStr) {
     if (!comp || !(comp instanceof CompItem)) return "No active composition.";
     var selectedLayers = comp.selectedLayers;
     if (selectedLayers.length === 0) return "No layer selected.";
-
     var result = hexToRgb(hex);
     var guesses = resolveFontName(fontName);
     var appliedCount = 0;
     var effects = [];
     try { effects = JSON.parse(effectsJsonStr); } catch (e) {}
-
     app.beginUndoGroup("DopeTool Apply Text Style");
-
     for (var i = 0; i < selectedLayers.length; i++) {
       var layer = selectedLayers[i];
       if (layer instanceof TextLayer) {
@@ -201,23 +215,17 @@ function applyTextStyle(fontName, size, hex, effectsJsonStr) {
         textDocument.fontSize = parseFloat(size);
         textDocument.fillColor = result.rgb;
         textProp.setValue(textDocument);
-
-        // Apply effects with full property restore
         if (effects && effects.length > 0) {
           for (var ef = 0; ef < effects.length; ef++) {
             try {
               var newEffect = layer.property("Effects").addProperty(effects[ef].matchName);
-              if (newEffect && effects[ef].props) {
-                restoreEffectProps(newEffect, effects[ef].props);
-              }
+              if (newEffect && effects[ef].props) restoreEffectProps(newEffect, effects[ef].props);
             } catch (e) {}
           }
         }
-
         appliedCount++;
       }
     }
-
     app.endUndoGroup();
     if (appliedCount === 0) return "No text layer selected.";
     return "Text style applied to " + appliedCount + " layer(s).";
@@ -233,23 +241,19 @@ function applyEffect(matchName) {
     var selectedLayers = comp.selectedLayers;
     if (selectedLayers.length === 0) return "No layer selected.";
     var appliedCount = 0;
-    var lastError = "";
     app.beginUndoGroup("DopeTool Apply Effect");
     for (var i = 0; i < selectedLayers.length; i++) {
-      try {
-        selectedLayers[i].property("Effects").addProperty(matchName);
-        appliedCount++;
-      } catch (e) { lastError = e.toString(); }
+      try { selectedLayers[i].property("Effects").addProperty(matchName); appliedCount++; }
+      catch (e) {}
     }
     app.endUndoGroup();
-    if (appliedCount === 0) return "Could not apply effect. Error: " + lastError;
+    if (appliedCount === 0) return "Could not apply effect.";
     return "Effect applied to " + appliedCount + " layer(s).";
   } catch (e) {
     return "JSX ERROR: " + e.toString();
   }
 }
 
-// Apply a saved effect entry (with full props) to selected layer
 function applyEffectWithProps(effectJsonStr) {
   try {
     var comp = app.project.activeItem;
@@ -258,19 +262,27 @@ function applyEffectWithProps(effectJsonStr) {
     if (selectedLayers.length === 0) return "No layer selected.";
     var effectData = JSON.parse(effectJsonStr);
     var appliedCount = 0;
+    var debugInfo = "";
     app.beginUndoGroup("DopeTool Apply Effect With Props");
     for (var i = 0; i < selectedLayers.length; i++) {
       try {
-        var newEffect = selectedLayers[i].property("Effects").addProperty(effectData.matchName);
-        if (newEffect && effectData.props) {
+        var matchName = effectData.matchName || effectData.type;
+        var newEffect = selectedLayers[i].property("Effects").addProperty(matchName);
+        if (!newEffect) { debugInfo += "addProperty returned null. "; continue; }
+        if (effectData.props && effectData.props.length > 0) {
           restoreEffectProps(newEffect, effectData.props);
+          debugInfo += "Restored " + effectData.props.length + " props. ";
+        } else {
+          debugInfo += "No props to restore. ";
         }
         appliedCount++;
-      } catch (e) {}
+      } catch (e) {
+        debugInfo += "Error: " + e.toString() + ". ";
+      }
     }
     app.endUndoGroup();
-    if (appliedCount === 0) return "Could not apply effect.";
-    return "Effect applied to " + appliedCount + " layer(s).";
+    if (appliedCount === 0) return "Could not apply effect. " + debugInfo;
+    return "Effect applied to " + appliedCount + " layer(s). " + debugInfo;
   } catch (e) {
     return "JSX ERROR: " + e.toString();
   }
@@ -307,26 +319,17 @@ function captureTextStyle() {
     if (selectedLayers.length === 0) return JSON.stringify({ error: "No layer selected." });
     var layer = selectedLayers[0];
     if (!(layer instanceof TextLayer)) return JSON.stringify({ error: "Select a Text layer." });
-
     var textDocument = layer.property("Source Text").value;
-
-    // Capture all effects with full property values
     var effects = [];
     var effectsProp = layer.property("Effects");
     if (effectsProp) {
       for (var i = 1; i <= effectsProp.numProperties; i++) {
         try {
           var fx = effectsProp.property(i);
-          effects.push({
-            name: fx.name,
-            matchName: fx.matchName,
-            props: captureEffectProps(fx)
-          });
+          effects.push({ name: fx.name, matchName: fx.matchName, props: captureEffectProps(fx) });
         } catch (e) {}
       }
     }
-
-    // Capture layer styles
     var layerStyles = [];
     try {
       var stylesProp = layer.property("Layer Styles");
@@ -335,17 +338,12 @@ function captureTextStyle() {
           try {
             var style = stylesProp.property(s);
             if (style.enabled) {
-              layerStyles.push({
-                name: style.name,
-                matchName: style.matchName,
-                props: captureEffectProps(style)
-              });
+              layerStyles.push({ name: style.name, matchName: style.matchName, props: captureEffectProps(style) });
             }
           } catch (e) {}
         }
       }
     } catch (e) {}
-
     return JSON.stringify({
       font: textDocument.font,
       size: Math.round(textDocument.fontSize) + "px",
@@ -373,7 +371,6 @@ function captureFont() {
   }
 }
 
-// Capture effect with full property values
 function captureEffects() {
   try {
     var comp = app.project.activeItem;
