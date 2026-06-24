@@ -5,76 +5,106 @@
   <link rel="stylesheet" href="css/style.css"/>
 </head>
 <body>
-  <div class="header">
-    <h2>DopeTool</h2>
-    <button id="testBtn">Test AE Connection</button>
-    <p id="output">Waiting...</p>
-  </div>
 
-  <div class="tabs">
-    <button class="tabBtn active" data-tab="colors">Colors</button>
-    <button class="tabBtn" data-tab="fonts">Fonts</button>
-    <button class="tabBtn" data-tab="textstyles">Text Styles</button>
-    <button class="tabBtn" data-tab="effects">Effects</button>
-  </div>
-
-  <div class="filterRow">
-    <input type="text" id="searchBox" placeholder="Search library..." />
-    <select id="clientFilter">
-      <option value="">All Clients</option>
-    </select>
-  </div>
-
-  <!-- Add button — shows capture for colors/fonts/textstyles, ffx toggle for effects -->
-  <button id="captureBtn" class="captureBtn">+ Add Selected Layer to Library</button>
-  <button id="ffxToggleBtn" class="captureBtn hidden">+ Add FFX Preset</button>
-
-  <!-- Capture form (colors / fonts / textstyles) -->
-  <div id="addForm" class="addForm hidden">
-    <div id="capturePreview" class="capturePreview"></div>
-    <input type="text" id="newName" placeholder="Name (e.g. Headline Green)" />
-    <input type="text" id="newClient" placeholder="Client (e.g. Fasset)" />
-    <div class="formButtons">
-      <button id="saveBtn">Save to Library</button>
-      <button id="cancelBtn" class="cancelBtn">Cancel</button>
+  <!-- HOME VIEW -->
+  <div id="homeView">
+    <div class="topbar">
+      <span class="logo">DOPE<span class="logo-accent">TOOL</span></span>
+      <input type="text" id="clientSearch" placeholder="Search clients..." />
     </div>
+    <div id="clientGrid" class="clientGrid">Loading...</div>
   </div>
 
-  <!-- FFX form (effects tab only) -->
-  <div id="ffxForm" class="addForm hidden">
-    <div class="cardTitle" style="margin-bottom:4px; font-size:12px;">Add FFX Preset</div>
-    <div style="font-size:10px; color:#8b8b99; line-height:1.6; margin-bottom:6px;">
-      1. In AE: <b>Animation → Save Animation Preset</b><br>
-      2. Save .ffx into <b>DopeTool/presets/</b> folder<br>
-      3. Run: <b>git add . &amp;&amp; git commit -m "preset" &amp;&amp; git push</b><br>
-      4. Fill in details below
-    </div>
-    <input type="text" id="ffxName" placeholder="Preset display name" />
-    <input type="text" id="ffxClient" placeholder="Client (e.g. Fasset)" />
-    <input type="text" id="ffxFilename" placeholder="filename.ffx" />
-    <div class="formButtons">
-      <button id="ffxSaveBtn">Save to Library</button>
-      <button id="ffxCancelBtn" class="cancelBtn">Cancel</button>
-    </div>
-  </div>
+  <!-- CLIENT VIEW -->
+  <div id="clientView" class="hidden">
 
-  <div id="libraryContent">Loading...</div>
+    <div class="clientHeader">
+      <button id="backBtn" class="backBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <div class="clientHeaderInfo">
+        <div id="clientViewName" class="clientViewName">Client</div>
+        <div id="clientViewCount" class="clientViewCount">0 items</div>
+      </div>
+      <div id="clientViewInitial" class="clientViewInitial">C</div>
+    </div>
+
+    <div class="tabs">
+      <button class="tabBtn active" data-tab="colors">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg>
+        Colors
+      </button>
+      <button class="tabBtn" data-tab="fonts">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="4" x2="12" y2="20"/><line x1="4" y1="8" x2="20" y2="8"/></svg>
+        Fonts
+      </button>
+      <button class="tabBtn" data-tab="textstyles">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+        Styles
+      </button>
+      <button class="tabBtn" data-tab="effects">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        FX
+      </button>
+      <button class="tabBtn" data-tab="animations">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        Anim
+      </button>
+    </div>
+
+    <div id="output" class="statusBar">Ready</div>
+
+    <div class="addRow">
+      <button id="captureBtn" class="addBtn">+ Capture Layer</button>
+      <button id="ffxToggleBtn" class="addBtn hidden">+ Add FFX</button>
+      <button id="quickCaptureBtn" class="addBtn hidden">+ Quick Capture</button>
+    </div>
+
+    <!-- Capture form -->
+    <div id="addForm" class="form hidden">
+      <div id="capturePreview" class="capturePreview"></div>
+      <input type="text" id="newName" placeholder="Name" />
+      <div class="formRow">
+        <button id="saveBtn">Save</button>
+        <button id="cancelBtn" class="btnSecondary">Cancel</button>
+      </div>
+    </div>
+
+    <!-- FFX form -->
+    <div id="ffxForm" class="form hidden">
+      <div class="formHint">
+        1. <b>Animation → Save Animation Preset</b><br>
+        2. Save .ffx to <b>DopeTool/presets/</b><br>
+        3. <b>git add presets/ &amp;&amp; git commit -m "preset" &amp;&amp; git push</b><br>
+        4. Fill in below
+      </div>
+      <input type="text" id="ffxName" placeholder="Preset name" />
+      <input type="text" id="ffxFilename" placeholder="filename.ffx" />
+      <div class="formRow">
+        <button id="ffxSaveBtn">Save</button>
+        <button id="ffxCancelBtn" class="btnSecondary">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Edit form -->
+    <div id="editForm" class="form hidden">
+      <div class="formLabel">Edit Item</div>
+      <input type="text" id="editName" placeholder="Name" />
+      <div class="formRow">
+        <button id="editSaveBtn">Save</button>
+        <button id="editCancelBtn" class="btnSecondary">Cancel</button>
+      </div>
+    </div>
+
+    <div id="libraryContent" class="library">Loading...</div>
+
+    <div id="shiftHint" class="shiftHint hidden">Click = Fill · Shift+Click = Stroke</div>
+  </div>
 
   <!-- Context menu -->
   <div id="contextMenu" class="contextMenu hidden">
-    <div id="ctxEdit" class="ctxItem">Edit</div>
-    <div id="ctxDelete" class="ctxItem ctxDelete">Delete</div>
-  </div>
-
-  <!-- Edit modal -->
-  <div id="editForm" class="addForm hidden">
-    <div class="cardTitle" style="margin-bottom:4px;">Edit Item</div>
-    <input type="text" id="editName" placeholder="Name" />
-    <input type="text" id="editClient" placeholder="Client" />
-    <div class="formButtons">
-      <button id="editSaveBtn">Save Changes</button>
-      <button id="editCancelBtn" class="cancelBtn">Cancel</button>
-    </div>
+    <div id="ctxEdit" class="ctxItem">✏️ Edit</div>
+    <div id="ctxDelete" class="ctxItem ctxDelete">🗑 Delete</div>
   </div>
 
   <script type="text/javascript" src="js/CSInterface.js"></script>

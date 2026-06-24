@@ -410,16 +410,383 @@ function applyFfxPreset(presetPath) {
 
 function getPresetsFolder() {
   try {
-    var appPathStr = app.path.fsName;
-    var presetsFolder = new Folder(appPathStr + "/Presets");
-    if (!presetsFolder.exists) {
-      presetsFolder = new Folder(
-        Folder.userData + "/Adobe/After Effects/" + app.version.split(".")[0] + ".x/User Presets"
-      );
-      if (!presetsFolder.exists) presetsFolder.create();
-    }
-    return presetsFolder.fsName;
+    var appFolder = Folder(app.path);
+
+    // Try app path directly
+    var presetsFolder = Folder(appFolder.fsName + "/Presets");
+    if (presetsFolder.exists) return presetsFolder.fsName;
+
+    // Try parent folder
+    var parentPresets = Folder(appFolder.parent.fsName + "/Presets");
+    if (parentPresets.exists) return parentPresets.fsName;
+
+    // Try hardcoded AE 2024
+    var ae2024 = Folder("/Applications/Adobe After Effects 2024/Presets");
+    if (ae2024.exists) return ae2024.fsName;
+
+    // Try hardcoded AE 2025
+    var ae2025 = Folder("/Applications/Adobe After Effects 2025/Presets");
+    if (ae2025.exists) return ae2025.fsName;
+
+    // Create in app folder as fallback
+    var fallback = Folder(appFolder.fsName + "/Presets");
+    fallback.create();
+    return fallback.fsName;
+
   } catch (e) {
     return "ERROR: " + e.toString();
+  }
+}
+
+function debugPresetsFolder() {
+  try {
+    var appPath = app.path;
+    var guess1 = Folder(app.path + "/Presets/");
+    var guess2 = Folder(app.path + "/../Presets/");
+    return JSON.stringify({
+      appPath: appPath.toString(),
+      guess1: guess1.fsName,
+      guess1exists: guess1.exists,
+      guess2: guess2.fsName,
+      guess2exists: guess2.exists
+    });
+  } catch (e) {
+    return "ERROR: " + e.toString();
+  }
+}
+
+// Apply stroke color — shift+click from panel
+function applyStrokeColor(hex) {
+  try {
+    var comp = app.project.activeItem;
+    if (!comp || !(comp instanceof CompItem)) return "No active composition.";
+    var selectedLayers = comp.selectedLayers;
+    if (selectedLayers.length === 0) return "No layer selected.";
+    var result = hexToRgb(hex);
+    var rgb = result.rgb;
+    var appliedCount = 0;
+    app.beginUndoGroup("DopeTool Apply Stroke Color");
+    for (var i = 0; i < selectedLayers.length; i++) {
+      var layer = selectedLayers[i];
+      if (layer instanceof TextLayer) {
+        var textProp = layer.property("Source Text");
+        var textDocument = textProp.value;
+        textDocument.strokeColor = rgb;
+        textDocument.strokeOverFill = true;
+        if (textDocument.strokeWidth === 0) textDocument.strokeWidth = 2;
+        textProp.setValue(textDocument);
+        appliedCount++;
+      } else if (layer instanceof ShapeLayer) {
+        var contents = layer.property("Contents");
+        for (var j = 1; j <= contents.numProperties; j++) {
+          try {
+            var group = contents.property(j);
+            var groupContents = group.property("Contents");
+            if (groupContents) {
+              for (var k = 1; k <= groupContents.numProperties; k++) {
+                var item = groupContents.property(k);
+                if (item.matchName === "ADBE Vector Graphic - Stroke") {
+                  item.property("Color").setValue(rgb);
+                  appliedCount++;
+                }
+              }
+            }
+          } catch (e) {}
+        }
+      }
+    }
+    app.endUndoGroup();
+    if (appliedCount === 0) return "No stroke found. Add a stroke first, or select a text/shape layer.";
+    return "Stroke color applied to " + appliedCount + " layer(s).";
+  } catch (e) {
+    return "JSX ERROR: " + e.toString();
+  }
+}
+
+// Apply fill effect to non-text/shape layers (solids, footage, etc)
+function applyFillEffect(hex) {
+  try {
+    var comp = app.project.activeItem;
+    if (!comp || !(comp instanceof CompItem)) return "No active composition.";
+    var selectedLayers = comp.selectedLayers;
+    if (selectedLayers.length === 0) return "No layer selected.";
+    var result = hexToRgb(hex);
+    var rgb = result.rgb;
+    var appliedCount = 0;
+    app.beginUndoGroup("DopeTool Apply Fill Effect");
+    for (var i = 0; i < selectedLayers.length; i++) {
+      try {
+        var fillEffect = selectedLayers[i].property("Effects").addProperty("ADBE Fill");
+        fillEffect.property("Color").setValue(rgb);
+        appliedCount++;
+      } catch (e) {}
+    }
+    app.endUndoGroup();
+    if (appliedCount === 0) return "Could not apply fill effect.";
+    return "Fill effect applied to " + appliedCount + " layer(s).";
+  } catch (e) {
+    return "JSX ERROR: " + e.toString();
+  }
+}
+
+// Smart color apply — detects layer type automatically
+// For text/shape: applies fill. For other layers: applies Fill effect.
+// Stroke is handled separately via applyStrokeColor (shift+click from JS)
+function applyColorSmart(hex) {
+  try {
+    var comp = app.project.activeItem;
+    if (!comp || !(comp instanceof CompItem)) return "No active composition.";
+    var selectedLayers = comp.selectedLayers;
+    if (selectedLayers.length === 0) return "No layer selected.";
+    var result = hexToRgb(hex);
+    var rgb = result.rgb;
+    var appliedCount = 0;
+    app.beginUndoGroup("DopeTool Apply Color Smart");
+    for (var i = 0; i < selectedLayers.length; i++) {
+      var layer = selectedLayers[i];
+      if (layer instanceof TextLayer) {
+        var textProp = layer.property("Source Text");
+        var textDocument = textProp.value;
+        textDocument.fillColor = rgb;
+        textProp.setValue(textDocument);
+        appliedCount++;
+      } else if (layer instanceof ShapeLayer) {
+        var contents = layer.property("Contents");
+        var found = false;
+        for (var j = 1; j <= contents.numProperties; j++) {
+          var fillProp = findFillInGroup(contents.property(j));
+          if (fillProp) { fillProp.setValue(rgb); found = true; }
+        }
+        if (found) appliedCount++;
+      } else {
+        // Any other layer — add Fill effect
+        try {
+          var fillEffect = layer.property("Effects").addProperty("ADBE Fill");
+          fillEffect.property("Color").setValue(rgb);
+          appliedCount++;
+        } catch (e) {}
+      }
+    }
+    app.endUndoGroup();
+    if (appliedCount === 0) return "Could not apply color.";
+    return "Color applied to " + appliedCount + " layer(s).";
+  } catch (e) {
+    return "JSX ERROR: " + e.toString();
+  }
+}
+
+// Apply stroke color — shift+click from panel
+function applyStrokeColor(hex) {
+  try {
+    var comp = app.project.activeItem;
+    if (!comp || !(comp instanceof CompItem)) return "No active composition.";
+    var selectedLayers = comp.selectedLayers;
+    if (selectedLayers.length === 0) return "No layer selected.";
+    var result = hexToRgb(hex);
+    var rgb = result.rgb;
+    var appliedCount = 0;
+    app.beginUndoGroup("DopeTool Apply Stroke Color");
+    for (var i = 0; i < selectedLayers.length; i++) {
+      var layer = selectedLayers[i];
+      if (layer instanceof TextLayer) {
+        var textProp = layer.property("Source Text");
+        var textDocument = textProp.value;
+        textDocument.strokeColor = rgb;
+        textDocument.strokeOverFill = true;
+        if (textDocument.strokeWidth === 0) textDocument.strokeWidth = 2;
+        textProp.setValue(textDocument);
+        appliedCount++;
+      } else if (layer instanceof ShapeLayer) {
+        var contents = layer.property("Contents");
+        for (var j = 1; j <= contents.numProperties; j++) {
+          try {
+            var group = contents.property(j);
+            var groupContents = group.property("Contents");
+            if (groupContents) {
+              for (var k = 1; k <= groupContents.numProperties; k++) {
+                var item = groupContents.property(k);
+                if (item.matchName === "ADBE Vector Graphic - Stroke") {
+                  item.property("Color").setValue(rgb);
+                  appliedCount++;
+                }
+              }
+            }
+          } catch (e) {}
+        }
+      }
+    }
+    app.endUndoGroup();
+    if (appliedCount === 0) return "No stroke found. Add a stroke first, or select a text/shape layer.";
+    return "Stroke color applied to " + appliedCount + " layer(s).";
+  } catch (e) {
+    return "JSX ERROR: " + e.toString();
+  }
+}
+
+// Apply fill effect to non-text/shape layers (solids, footage, etc)
+function applyFillEffect(hex) {
+  try {
+    var comp = app.project.activeItem;
+    if (!comp || !(comp instanceof CompItem)) return "No active composition.";
+    var selectedLayers = comp.selectedLayers;
+    if (selectedLayers.length === 0) return "No layer selected.";
+    var result = hexToRgb(hex);
+    var rgb = result.rgb;
+    var appliedCount = 0;
+    app.beginUndoGroup("DopeTool Apply Fill Effect");
+    for (var i = 0; i < selectedLayers.length; i++) {
+      try {
+        var fillEffect = selectedLayers[i].property("Effects").addProperty("ADBE Fill");
+        fillEffect.property("Color").setValue(rgb);
+        appliedCount++;
+      } catch (e) {}
+    }
+    app.endUndoGroup();
+    if (appliedCount === 0) return "Could not apply fill effect.";
+    return "Fill effect applied to " + appliedCount + " layer(s).";
+  } catch (e) {
+    return "JSX ERROR: " + e.toString();
+  }
+}
+
+// Smart color apply — detects layer type automatically
+// For text/shape: applies fill. For other layers: applies Fill effect.
+// Stroke is handled separately via applyStrokeColor (shift+click from JS)
+function applyColorSmart(hex) {
+  try {
+    var comp = app.project.activeItem;
+    if (!comp || !(comp instanceof CompItem)) return "No active composition.";
+    var selectedLayers = comp.selectedLayers;
+    if (selectedLayers.length === 0) return "No layer selected.";
+    var result = hexToRgb(hex);
+    var rgb = result.rgb;
+    var appliedCount = 0;
+    app.beginUndoGroup("DopeTool Apply Color Smart");
+    for (var i = 0; i < selectedLayers.length; i++) {
+      var layer = selectedLayers[i];
+      if (layer instanceof TextLayer) {
+        var textProp = layer.property("Source Text");
+        var textDocument = textProp.value;
+        textDocument.fillColor = rgb;
+        textProp.setValue(textDocument);
+        appliedCount++;
+      } else if (layer instanceof ShapeLayer) {
+        var contents = layer.property("Contents");
+        var found = false;
+        for (var j = 1; j <= contents.numProperties; j++) {
+          var fillProp = findFillInGroup(contents.property(j));
+          if (fillProp) { fillProp.setValue(rgb); found = true; }
+        }
+        if (found) appliedCount++;
+      } else {
+        // Any other layer — add Fill effect
+        try {
+          var fillEffect = layer.property("Effects").addProperty("ADBE Fill");
+          fillEffect.property("Color").setValue(rgb);
+          appliedCount++;
+        } catch (e) {}
+      }
+    }
+    app.endUndoGroup();
+    if (appliedCount === 0) return "Could not apply color.";
+    return "Color applied to " + appliedCount + " layer(s).";
+  } catch (e) {
+    return "JSX ERROR: " + e.toString();
+  }
+}
+
+// Smart color — text fill, shape fill, solid color, or fill effect
+function applyColorSmart(hex) {
+  try {
+    var comp = app.project.activeItem;
+    if (!comp || !(comp instanceof CompItem)) return "No active composition.";
+    var selectedLayers = comp.selectedLayers;
+    if (selectedLayers.length === 0) return "No layer selected.";
+    var result = hexToRgb(hex);
+    var rgb = result.rgb;
+    var appliedCount = 0;
+    app.beginUndoGroup("DopeTool Apply Color");
+    for (var i = 0; i < selectedLayers.length; i++) {
+      var layer = selectedLayers[i];
+      if (layer instanceof TextLayer) {
+        var textProp = layer.property("Source Text");
+        var textDocument = textProp.value;
+        textDocument.fillColor = rgb;
+        textProp.setValue(textDocument);
+        appliedCount++;
+      } else if (layer instanceof ShapeLayer) {
+        var contents = layer.property("Contents");
+        var found = false;
+        for (var j = 1; j <= contents.numProperties; j++) {
+          var fillProp = findFillInGroup(contents.property(j));
+          if (fillProp) { fillProp.setValue(rgb); found = true; }
+        }
+        if (found) appliedCount++;
+      } else if (layer.source && layer.source instanceof SolidSource) {
+        // Solid color layer — change the solid color directly
+        layer.source.mainSource.color = rgb;
+        appliedCount++;
+      } else {
+        // Footage, video, image, adjustment, null — add Fill effect
+        try {
+          var fillEffect = layer.property("Effects").addProperty("ADBE Fill");
+          fillEffect.property("Color").setValue(rgb);
+          appliedCount++;
+        } catch (e) {}
+      }
+    }
+    app.endUndoGroup();
+    if (appliedCount === 0) return "Could not apply color.";
+    return "Color applied to " + appliedCount + " layer(s).";
+  } catch (e) {
+    return "JSX ERROR: " + e.toString();
+  }
+}
+
+// Stroke color — shift+click
+function applyStrokeColor(hex) {
+  try {
+    var comp = app.project.activeItem;
+    if (!comp || !(comp instanceof CompItem)) return "No active composition.";
+    var selectedLayers = comp.selectedLayers;
+    if (selectedLayers.length === 0) return "No layer selected.";
+    var result = hexToRgb(hex);
+    var rgb = result.rgb;
+    var appliedCount = 0;
+    app.beginUndoGroup("DopeTool Apply Stroke");
+    for (var i = 0; i < selectedLayers.length; i++) {
+      var layer = selectedLayers[i];
+      if (layer instanceof TextLayer) {
+        var textProp = layer.property("Source Text");
+        var textDocument = textProp.value;
+        textDocument.strokeColor = rgb;
+        textDocument.strokeOverFill = true;
+        if (textDocument.strokeWidth === 0) textDocument.strokeWidth = 2;
+        textProp.setValue(textDocument);
+        appliedCount++;
+      } else if (layer instanceof ShapeLayer) {
+        var contents = layer.property("Contents");
+        for (var j = 1; j <= contents.numProperties; j++) {
+          try {
+            var group = contents.property(j);
+            var groupContents = group.property("Contents");
+            if (groupContents) {
+              for (var k = 1; k <= groupContents.numProperties; k++) {
+                var item = groupContents.property(k);
+                if (item.matchName === "ADBE Vector Graphic - Stroke") {
+                  item.property("Color").setValue(rgb);
+                  appliedCount++;
+                }
+              }
+            }
+          } catch (e) {}
+        }
+      }
+    }
+    app.endUndoGroup();
+    if (appliedCount === 0) return "No stroke found. Add a stroke to your layer first.";
+    return "Stroke applied to " + appliedCount + " layer(s).";
+  } catch (e) {
+    return "JSX ERROR: " + e.toString();
   }
 }
