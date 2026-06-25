@@ -1,0 +1,115 @@
+DopeTool — Style Library for After Effects
+By DopaMeme
+
+What is DopeTool?
+
+DopeTool is DopaMeme's internal After Effects plugin. It gives every editor instant access to the agency's full style library — client colors, fonts, text styles, effects, and animations — all synced live from the cloud. One click applies any style directly to your selected layer.
+
+Installation
+
+Mac
+1. Download the DopeTool folder from the team drive/link shared by your lead
+2. Open Terminal (search it with Cmd+Space)
+3. Drag the install_mac.sh file into Terminal and press Enter
+4. Enter your Mac password when prompted (nothing shows as you type — that's normal)
+5. Open After Effects → Window → Extensions → DopeTool
+
+Windows
+1. Download the DopeTool folder from the team drive/link shared by your lead
+2. Right-click install_windows.bat → Run as Administrator
+3. Follow the on-screen instructions
+4. Open After Effects → Window → Extensions → DopeTool
+Note: You only need to install once. Future updates happen automatically inside the panel.
+
+How to Use DopeTool
+
+Home Screen
+
+When you open DopeTool, you'll see a list of all clients. Click any client to enter their style workspace.
+Use the search bar at the top to quickly find a client by name.
+
+Inside a Client Workspace
+You'll see 5 tabs across the top:
+
+Colors
+Brand colors — click to apply fill, Shift+click for stroke
+
+Fonts
+Brand fonts — click to apply to selected text layer
+
+Styles
+Full text styles (font + size + color + effects)
+
+FX
+Effects and presets
+
+Anim
+Text animations and motion presets
+
+The back arrow (top left) returns you to the client list.
+
+
+Applying Styles
+
+Select your layer in AE first, then click the card in DopeTool.
+
+Colors:
+• Click → applies fill color to text or shape layer
+• Shift+Click → applies stroke color
+• On any other layer (footage, solid, etc.) → adds a Fill effect with that color
+
+Fonts: Select a text layer → click a font card → font changes instantly.
+
+Text Styles: Select a text layer → click a style → applies font, size, color, and any saved effects all at once.
+
+FX / Animations: Select any layer → click a card → the preset downloads and applies automatically. Cards marked FFX use full preset files (perfect for gradients, animations, complex effects).
+
+
+Adding to the Library
+
+You can add items to the library directly from your AE comp.
+For Colors, Fonts, and Text Styles:
+1. Select the layer in AE
+2. Inside the client workspace, click "+ Capture Layer"
+3. DopeTool reads the layer's properties automatically
+4. Enter a name and click Save
+
+For Effects (simple):
+1. Select a layer with your effect applied
+2. Go to the FX tab → click "+ Quick Capture"
+3. Enter a name → Save
+
+For Effects and Animations with gradients or complex settings:
+1. Select the layer in AE
+2. Go to Animation → Save Animation Preset
+3. Save the .ffx file into the DopeTool/presets/ folder (ask your lead for the path)
+4. Your lead pushes it to GitHub
+5. In DopeTool FX or Anim tab → "+ Add FFX" → enter name and filename → Save
+
+Updates
+
+When a new version of DopeTool is available, a blue banner appears at the top of the panel saying "Update v2.x.x available".
+
+Click Update — the panel downloads and installs the new version automatically. When it's done, close and reopen DopeTool from Window → Extensions.
+You don't need to download anything manually. Ever.
+
+Troubleshooting
+DopeTool doesn't appear in Window → Extensions
+• Make sure After Effects is fully closed and reopened after installation
+• On Mac: re-run the installer script
+• On Windows: re-run the .bat file as Administrator
+
+"No layer selected" error
+• Click on your layer in the AE timeline first, then click the DopeTool card
+
+Color applied but it's white
+• The hex value might be missing from the Firebase entry. Right-click the card → Edit, and check if the hex field looks correct
+
+Effect says "Not found on GitHub"
+• The .ffx file hasn't been pushed to GitHub yet. Ask your lead to push it.
+
+Panel goes blank
+• Close DopeTool from Window → Extensions → DopeTool and reopen it
+
+Contact
+For issues, new style requests, or client setup — contact your lead at DopaMeme.

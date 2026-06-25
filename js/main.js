@@ -1,4 +1,4 @@
-// DopeTool main.js — v2.1.0
+// DopeTool main.js — v2.1.1
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -22,8 +22,18 @@ var captureFunctionMap = {
 var GITHUB_RAW_BASE = "https://raw.githubusercontent.com/itsusmanelahi01/dopetool/main";
 var nodeFs = require("fs");
 var nodeOs = require("os");
+var nodePath = require("path");
 var extensionPath = csInterface.getSystemPath(SystemPath.EXTENSION);
-var localVersionPath = extensionPath + "/local_version.json";
+var localVersionPath = nodePath.join(extensionPath, "local_version.json");
+
+// ---- PATH UTILITIES ----
+function toForwardSlashes(p) {
+  return p.replace(/\\/g, "/");
+}
+
+function getPresetsDir() {
+  return nodePath.join(nodeOs.homedir(), "Documents", "DopeTool_Presets");
+}
 
 // ---- CLIENT COLOR + INITIAL ----
 function clientColor(name) {
@@ -47,7 +57,7 @@ function loadAllClients() {
       .then(function (snapshot) {
         snapshot.forEach(function (doc) {
           var data = doc.data();
-          if (data.placeholder) return; // skip placeholder docs
+          if (data.placeholder) return;
           var client = data.client || "General";
           if (!clientMap[client]) clientMap[client] = { total: 0, types: {} };
           clientMap[client].total++;
@@ -96,7 +106,6 @@ function renderClientGrid(clientMap) {
     card.addEventListener("click", function () { openClient(client, color); });
     grid.appendChild(card);
   });
-
   allClientsData = clientMap;
 }
 
@@ -127,7 +136,6 @@ document.getElementById("backBtn").addEventListener("click", function () {
   loadAllClients();
 });
 
-// ---- CLIENT SEARCH ----
 document.getElementById("clientSearch").addEventListener("input", loadAllClients);
 
 // ---- ADD NEW CLIENT ----
@@ -146,7 +154,6 @@ document.getElementById("addClientSaveBtn").addEventListener("click", function (
   var name = document.getElementById("newClientName").value.trim();
   if (!name) { document.getElementById("newClientName").style.borderColor = "#ff5566"; return; }
   document.getElementById("newClientName").style.borderColor = "";
-  // Create a placeholder doc to register the client
   db.collection("colors").add({ name: "__placeholder", hex: "#4c72ff", client: name, placeholder: true })
     .then(function () {
       document.getElementById("addClientForm").classList.add("hidden");
@@ -191,7 +198,7 @@ function loadClientLibrary(tab) {
       currentData = [];
       snapshot.forEach(function (doc) {
         var data = doc.data();
-        if (data.placeholder) return; // skip placeholders
+        if (data.placeholder) return;
         currentData.push({ id: doc.id, data: data });
       });
       document.getElementById("clientViewCount").innerText = currentData.length + " " + tab;
@@ -202,11 +209,11 @@ function loadClientLibrary(tab) {
       renderItems(currentData, tab);
     })
     .catch(function (err) {
-      contentEl.innerHTML = '<div style="color:#ff5566;padding:12px;font-size:11px;">Error loading: ' + err.message + '</div>';
+      contentEl.innerHTML = '<div style="color:#ff5566;padding:12px;font-size:11px;">Error: ' + err.message + '</div>';
     });
 }
 
-// ---- CAPTURE BUTTON ----
+// ---- CAPTURE ----
 document.getElementById("captureBtn").addEventListener("click", function () {
   var form = document.getElementById("addForm");
   if (!form.classList.contains("hidden")) { form.classList.add("hidden"); pendingCapture = null; return; }
@@ -223,7 +230,6 @@ document.getElementById("captureBtn").addEventListener("click", function () {
   });
 });
 
-// ---- QUICK CAPTURE (effects) ----
 document.getElementById("quickCaptureBtn").addEventListener("click", function () {
   var form = document.getElementById("addForm");
   if (!form.classList.contains("hidden")) { form.classList.add("hidden"); pendingCapture = null; return; }
@@ -238,7 +244,6 @@ document.getElementById("quickCaptureBtn").addEventListener("click", function ()
   });
 });
 
-// ---- FFX TOGGLE ----
 document.getElementById("ffxToggleBtn").addEventListener("click", function () {
   document.getElementById("ffxForm").classList.toggle("hidden");
   document.getElementById("addForm").classList.add("hidden");
@@ -301,7 +306,7 @@ document.getElementById("ffxSaveBtn").addEventListener("click", function () {
     url: GITHUB_RAW_BASE + "/presets/" + encodeURIComponent(filename)
   })
     .then(function () {
-      document.getElementById("output").innerText = "Saved! Push " + filename + " to GitHub.";
+      document.getElementById("output").innerText = "Saved! Push " + filename + " to GitHub presets/.";
       document.getElementById("ffxForm").classList.add("hidden");
       document.getElementById("ffxName").value = "";
       document.getElementById("ffxFilename").value = "";
@@ -310,7 +315,6 @@ document.getElementById("ffxSaveBtn").addEventListener("click", function () {
     .catch(function (err) { document.getElementById("output").innerText = "Save failed: " + err.message; });
 });
 
-// ---- EDIT FORM ----
 document.getElementById("editCancelBtn").addEventListener("click", function () {
   document.getElementById("editForm").classList.add("hidden");
 });
@@ -357,27 +361,67 @@ function makeTextStyleHandler(fontValue, sizeValue, colorValue, effectsJson) {
   };
 }
 
+// ---- FFX HANDLER — fully automatic download + apply ----
 function makeFfxHandler(url, filename) {
   return function () {
     var outputEl = document.getElementById("output");
-    outputEl.innerText = "Downloading...";
+
+    // Check if already cached locally
+    var presetsDir = getPresetsDir();
+    var localPath = nodePath.join(presetsDir, filename);
+
+    if (nodeFs.existsSync(localPath)) {
+      // Already downloaded — apply directly
+      outputEl.innerText = "Applying preset...";
+      var escapedPath = toForwardSlashes(localPath);
+      csInterface.evalScript('applyFfxPreset("' + escapedPath + '")', function (result) {
+        outputEl.innerText = result;
+      });
+      return;
+    }
+
+    // Not cached — download first
+    outputEl.innerText = "Downloading preset...";
     fetch(url + "?t=" + Date.now())
       .then(function (res) {
-        if (!res.ok) throw new Error("Not on GitHub yet — push " + filename + " to presets/");
+        if (!res.ok) throw new Error("Preset not found on GitHub (HTTP " + res.status + "). Make sure " + filename + " is pushed to presets/ folder.");
         return res.arrayBuffer();
       })
       .then(function (buffer) {
-        var presetsTemp = nodeOs.homedir() + "/Documents/DopeTool_Presets";
-        if (!nodeFs.existsSync(presetsTemp)) nodeFs.mkdirSync(presetsTemp, { recursive: true });
-        var localPath = presetsTemp + "/" + filename;
-        try { nodeFs.writeFileSync(localPath, Buffer.from(new Uint8Array(buffer))); }
-        catch (e) { outputEl.innerText = "Write failed: " + e.message; return; }
-        var escapedPath = localPath.replace(/ /g, "\\ ");
+        // Create presets folder if it doesn't exist
+        try {
+          if (!nodeFs.existsSync(presetsDir)) {
+            nodeFs.mkdirSync(presetsDir, { recursive: true });
+          }
+        } catch (mkErr) {
+          outputEl.innerText = "Could not create presets folder: " + mkErr.message;
+          return;
+        }
+
+        // Write file using Node Buffer — works on both Mac and Windows
+        try {
+          nodeFs.writeFileSync(localPath, Buffer.from(new Uint8Array(buffer)));
+        } catch (writeErr) {
+          outputEl.innerText = "Write failed: " + writeErr.message;
+          return;
+        }
+
+        // Verify file exists
+        if (!nodeFs.existsSync(localPath)) {
+          outputEl.innerText = "Write failed: file not found after write.";
+          return;
+        }
+
+        // Apply preset — use forward slashes for ExtendScript File() constructor
+        outputEl.innerText = "Applying preset...";
+        var escapedPath = toForwardSlashes(localPath);
         csInterface.evalScript('applyFfxPreset("' + escapedPath + '")', function (result) {
           outputEl.innerText = result;
         });
       })
-      .catch(function (err) { outputEl.innerText = "Download failed: " + err.message; });
+      .catch(function (err) {
+        outputEl.innerText = "Download failed: " + err.message;
+      });
   };
 }
 
@@ -444,7 +488,7 @@ function renderItems(items, tab) {
   }
 }
 
-// ---- LONG PRESS + CONTEXT MENU ----
+// ---- LONG PRESS ----
 function addLongPressHandler(element, entryRef) {
   var timer = null;
   var didLongPress = false;
@@ -513,7 +557,9 @@ function checkForUpdate() {
   var localVersion = getLocalVersion();
   fetch(GITHUB_RAW_BASE + "/version.json?t=" + Date.now())
     .then(function (res) { return res.json(); })
-    .then(function (data) { if (data.version && data.version !== localVersion) showUpdateBanner(data.version); })
+    .then(function (data) {
+      if (data.version && data.version !== localVersion) showUpdateBanner(data.version);
+    })
     .catch(function () {});
 }
 
@@ -540,7 +586,7 @@ function performUpdate(newVersion) {
     fetch(GITHUB_RAW_BASE + file.remote + "?t=" + Date.now())
       .then(function (res) { return res.text(); })
       .then(function (content) {
-        nodeFs.writeFileSync(extensionPath + file.local, content, "utf8");
+        nodeFs.writeFileSync(nodePath.join(extensionPath, file.local), content, "utf8");
         done++;
         if (done + failed.length === files.length) finishUpdate(newVersion, banner, failed);
       })
