@@ -512,3 +512,32 @@ body {
 .clientGrid {
   padding-bottom: 56px !important;
 }
+
+/* ---- VERSION TAG ---- */
+.versionTag {
+  position: fixed;
+  bottom: 3px;
+  right: 8px;
+  font-size: 9px;
+  color: #252535;
+  letter-spacing: 0.5px;
+  pointer-events: none;
+  z-index: 10;
+  font-weight: 600;
+}
+
+.versionTag.updated {
+  color: #33cc88;
+}
+
+/* ---- VERSION TAG ---- */
+.versionTag {
+  display: block;
+  text-align: right;
+  padding: 4px 10px 6px;
+  font-size: 9px;
+  color: #252535;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+  user-select: none;
+}

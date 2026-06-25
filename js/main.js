@@ -1,4 +1,4 @@
-// DopeTool main.js — v2.1.1
+// DopeTool main.js — v2.2.0
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -27,12 +27,26 @@ var extensionPath = csInterface.getSystemPath(SystemPath.EXTENSION);
 var localVersionPath = nodePath.join(extensionPath, "local_version.json");
 
 // ---- PATH UTILITIES ----
-function toForwardSlashes(p) {
-  return p.replace(/\\/g, "/");
+// Always use forward slashes for ExtendScript File() — works on both Mac and Windows
+function toJsxPath(p) {
+  return p.split("\\").join("/");
 }
 
 function getPresetsDir() {
   return nodePath.join(nodeOs.homedir(), "Documents", "DopeTool_Presets");
+}
+
+// ---- VERSION ----
+function getLocalVersion() {
+  try { return JSON.parse(nodeFs.readFileSync(localVersionPath, "utf8")).version || "0.0.0"; }
+  catch (e) { return "0.0.0"; }
+}
+function setLocalVersion(v) {
+  try { nodeFs.writeFileSync(localVersionPath, JSON.stringify({ version: v }), "utf8"); } catch (e) {}
+}
+function showVersion() {
+  var tag = document.getElementById("versionTag");
+  if (tag) tag.innerText = "v" + getLocalVersion();
 }
 
 // ---- CLIENT COLOR + INITIAL ----
@@ -361,61 +375,56 @@ function makeTextStyleHandler(fontValue, sizeValue, colorValue, effectsJson) {
   };
 }
 
-// ---- FFX HANDLER — fully automatic download + apply ----
+// ---- FFX HANDLER ----
 function makeFfxHandler(url, filename) {
   return function () {
     var outputEl = document.getElementById("output");
-
-    // Check if already cached locally
     var presetsDir = getPresetsDir();
     var localPath = nodePath.join(presetsDir, filename);
+    var jsxPath = toJsxPath(localPath);
 
+    // Already cached — apply directly
     if (nodeFs.existsSync(localPath)) {
-      // Already downloaded — apply directly
-      outputEl.innerText = "Applying preset...";
-      var escapedPath = toForwardSlashes(localPath);
-      csInterface.evalScript('applyFfxPreset("' + escapedPath + '")', function (result) {
+      outputEl.innerText = "Applying...";
+      csInterface.evalScript('applyFfxPreset("' + jsxPath + '")', function (result) {
         outputEl.innerText = result;
       });
       return;
     }
 
-    // Not cached — download first
+    // Download from GitHub
     outputEl.innerText = "Downloading preset...";
     fetch(url + "?t=" + Date.now())
       .then(function (res) {
-        if (!res.ok) throw new Error("Preset not found on GitHub (HTTP " + res.status + "). Make sure " + filename + " is pushed to presets/ folder.");
+        if (!res.ok) throw new Error("Not on GitHub yet (HTTP " + res.status + "). Push " + filename + " to presets/ folder first.");
         return res.arrayBuffer();
       })
       .then(function (buffer) {
-        // Create presets folder if it doesn't exist
+        // Create folder
         try {
-          if (!nodeFs.existsSync(presetsDir)) {
-            nodeFs.mkdirSync(presetsDir, { recursive: true });
-          }
-        } catch (mkErr) {
-          outputEl.innerText = "Could not create presets folder: " + mkErr.message;
+          if (!nodeFs.existsSync(presetsDir)) nodeFs.mkdirSync(presetsDir, { recursive: true });
+        } catch (e) {
+          outputEl.innerText = "Could not create presets folder: " + e.message;
           return;
         }
 
-        // Write file using Node Buffer — works on both Mac and Windows
+        // Write file
         try {
           nodeFs.writeFileSync(localPath, Buffer.from(new Uint8Array(buffer)));
-        } catch (writeErr) {
-          outputEl.innerText = "Write failed: " + writeErr.message;
+        } catch (e) {
+          outputEl.innerText = "Write failed: " + e.message;
           return;
         }
 
-        // Verify file exists
+        // Verify
         if (!nodeFs.existsSync(localPath)) {
-          outputEl.innerText = "Write failed: file not found after write.";
+          outputEl.innerText = "File not found after write — contact your lead.";
           return;
         }
 
-        // Apply preset — use forward slashes for ExtendScript File() constructor
-        outputEl.innerText = "Applying preset...";
-        var escapedPath = toForwardSlashes(localPath);
-        csInterface.evalScript('applyFfxPreset("' + escapedPath + '")', function (result) {
+        // Apply
+        outputEl.innerText = "Applying...";
+        csInterface.evalScript('applyFfxPreset("' + jsxPath + '")', function (result) {
           outputEl.innerText = result;
         });
       })
@@ -545,14 +554,6 @@ document.getElementById("ctxEdit").addEventListener("click", function (e) {
 });
 
 // ---- AUTO UPDATE ----
-function getLocalVersion() {
-  try { return JSON.parse(nodeFs.readFileSync(localVersionPath, "utf8")).version || "0.0.0"; }
-  catch (e) { return "0.0.0"; }
-}
-function setLocalVersion(v) {
-  try { nodeFs.writeFileSync(localVersionPath, JSON.stringify({ version: v }), "utf8"); } catch (e) {}
-}
-
 function checkForUpdate() {
   var localVersion = getLocalVersion();
   fetch(GITHUB_RAW_BASE + "/version.json?t=" + Date.now())
@@ -602,12 +603,14 @@ function finishUpdate(newVersion, banner, failed) {
     banner.innerHTML = '<span>Update partially failed: ' + failed.join(", ") + '</span>';
   } else {
     setLocalVersion(newVersion);
+    showVersion();
     banner.innerHTML = '<span>✓ Updated to v' + newVersion + ' — reopen DopeTool</span>';
   }
 }
 
 // ---- INIT ----
 window.addEventListener("DOMContentLoaded", function () {
+  showVersion();
   setTimeout(checkForUpdate, 1000);
   setTimeout(loadAllClients, 300);
 });
