@@ -617,3 +617,42 @@ window.addEventListener("DOMContentLoaded", function () {
   setTimeout(checkForUpdate, 1000);
   setTimeout(loadAllClients, 300);
 });
+
+// ---- ADD NEW CLIENT ----
+document.getElementById("addClientBtn").addEventListener("click", function () {
+  var form = document.getElementById("addClientForm");
+  form.classList.toggle("hidden");
+  if (!form.classList.contains("hidden")) {
+    document.getElementById("newClientName").focus();
+  }
+});
+
+document.getElementById("addClientCancelBtn").addEventListener("click", function () {
+  document.getElementById("addClientForm").classList.add("hidden");
+  document.getElementById("newClientName").value = "";
+});
+
+document.getElementById("addClientSaveBtn").addEventListener("click", function () {
+  var name = document.getElementById("newClientName").value.trim();
+  if (!name) {
+    document.getElementById("addClientForm").querySelector("input").style.borderColor = "#ff5566";
+    return;
+  }
+  // Create a placeholder document in colors collection to register the client
+  db.collection("colors").add({
+    name: "__ Client Placeholder",
+    hex: "#4c72ff",
+    client: name,
+    placeholder: true
+  }).then(function () {
+    document.getElementById("addClientForm").classList.add("hidden");
+    document.getElementById("newClientName").value = "";
+    loadAllClients();
+    // Auto-open the new client
+    setTimeout(function () {
+      openClient(name, clientColor(name));
+    }, 500);
+  }).catch(function (err) {
+    document.getElementById("output") && (document.getElementById("output").innerText = "Error: " + err.message);
+  });
+});

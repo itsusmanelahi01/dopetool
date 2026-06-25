@@ -13,11 +13,20 @@
       <input type="text" id="clientSearch" placeholder="Search clients..." />
     </div>
     <div id="clientGrid" class="clientGrid">Loading...</div>
+    <div class="homeFooter">
+      <button id="addClientBtn" class="addClientBtn">+ Add New Client</button>
+    </div>
+    <div id="addClientForm" class="addClientFormWrap hidden">
+      <input type="text" id="newClientName" placeholder="Client name (e.g. Fasset)" />
+      <div class="formRow">
+        <button id="addClientSaveBtn">Create Client</button>
+        <button id="addClientCancelBtn" class="btnSecondary">Cancel</button>
+      </div>
+    </div>
   </div>
 
   <!-- CLIENT VIEW -->
   <div id="clientView" class="hidden">
-
     <div class="clientHeader">
       <button id="backBtn" class="backBtn">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
@@ -60,7 +69,6 @@
       <button id="quickCaptureBtn" class="addBtn hidden">+ Quick Capture</button>
     </div>
 
-    <!-- Capture form -->
     <div id="addForm" class="form hidden">
       <div id="capturePreview" class="capturePreview"></div>
       <input type="text" id="newName" placeholder="Name" />
@@ -70,7 +78,6 @@
       </div>
     </div>
 
-    <!-- FFX form -->
     <div id="ffxForm" class="form hidden">
       <div class="formHint">
         1. <b>Animation → Save Animation Preset</b><br>
@@ -86,7 +93,6 @@
       </div>
     </div>
 
-    <!-- Edit form -->
     <div id="editForm" class="form hidden">
       <div class="formLabel">Edit Item</div>
       <input type="text" id="editName" placeholder="Name" />
@@ -97,11 +103,9 @@
     </div>
 
     <div id="libraryContent" class="library">Loading...</div>
-
     <div id="shiftHint" class="shiftHint hidden">Click = Fill · Shift+Click = Stroke</div>
   </div>
 
-  <!-- Context menu -->
   <div id="contextMenu" class="contextMenu hidden">
     <div id="ctxEdit" class="ctxItem">✏️ Edit</div>
     <div id="ctxDelete" class="ctxItem ctxDelete">🗑 Delete</div>

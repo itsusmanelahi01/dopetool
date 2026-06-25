@@ -436,3 +436,79 @@ body {
   font-weight: 700;
   cursor: pointer;
 }
+
+/* ---- HOME FOOTER ---- */
+.homeFooter {
+  padding: 8px 10px;
+  border-top: 1px solid #1a1a26;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #111118;
+}
+
+.addClientBtn {
+  width: 100%;
+  padding: 8px;
+  background: transparent;
+  border: 1px dashed #2a2a40;
+  border-radius: 9px;
+  color: #5566cc;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+
+.addClientBtn:hover {
+  background: #141428;
+  border-color: #4c72ff;
+  color: #7788ff;
+}
+
+.addClientFormWrap {
+  position: fixed;
+  bottom: 44px;
+  left: 0;
+  right: 0;
+  background: #13131e;
+  border-top: 1px solid #1a1a26;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  z-index: 100;
+}
+
+.addClientFormWrap input[type="text"] {
+  width: 100%;
+  padding: 7px 10px;
+  background: #1a1a28;
+  border: 1px solid #252538;
+  border-radius: 7px;
+  color: #e8e8f0;
+  font-size: 11px;
+  outline: none;
+}
+
+.addClientFormWrap input[type="text"]:focus { border-color: #4c72ff; }
+
+.addClientFormWrap .formRow { display: flex; gap: 6px; }
+.addClientFormWrap .formRow button {
+  flex: 1;
+  padding: 7px;
+  border: none;
+  border-radius: 7px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  background: #4c72ff;
+  color: #fff;
+}
+.addClientFormWrap .formRow button:hover { background: #5d80ff; }
+
+/* Fix client grid to not overlap footer */
+.clientGrid {
+  padding-bottom: 56px !important;
+}
