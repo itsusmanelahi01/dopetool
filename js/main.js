@@ -1,4 +1,4 @@
-// DopeTool main.js — v2.2.0
+// DopeTool main.js — v2.2.1
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -26,8 +26,6 @@ var nodePath = require("path");
 var extensionPath = csInterface.getSystemPath(SystemPath.EXTENSION);
 var localVersionPath = nodePath.join(extensionPath, "local_version.json");
 
-// ---- PATH UTILITIES ----
-// Always use forward slashes for ExtendScript File() — works on both Mac and Windows
 function toJsxPath(p) {
   return p.split("\\").join("/");
 }
@@ -36,7 +34,6 @@ function getPresetsDir() {
   return nodePath.join(nodeOs.homedir(), "Documents", "DopeTool_Presets");
 }
 
-// ---- VERSION ----
 function getLocalVersion() {
   try { return JSON.parse(nodeFs.readFileSync(localVersionPath, "utf8")).version || "0.0.0"; }
   catch (e) { return "0.0.0"; }
@@ -49,7 +46,6 @@ function showVersion() {
   if (tag) tag.innerText = "v" + getLocalVersion();
 }
 
-// ---- CLIENT COLOR + INITIAL ----
 function clientColor(name) {
   var colors = ["#4c72ff","#ff5577","#33cc88","#ff9944","#aa55ff","#00cccc","#ff4488","#66bb33","#ff6644","#4499ff","#cc44aa","#88cc00"];
   var hash = 0;
@@ -139,13 +135,13 @@ function openClient(clientName, color) {
   loadClientLibrary("colors");
 }
 
-// ---- BACK BUTTON ----
 document.getElementById("backBtn").addEventListener("click", function () {
   currentClient = null;
   document.getElementById("clientView").classList.add("hidden");
   document.getElementById("homeView").classList.remove("hidden");
   document.getElementById("addForm").classList.add("hidden");
   document.getElementById("ffxForm").classList.add("hidden");
+  document.getElementById("ffxStyleForm").classList.add("hidden");
   document.getElementById("editForm").classList.add("hidden");
   loadAllClients();
 });
@@ -186,6 +182,7 @@ document.querySelectorAll(".tabBtn").forEach(function (btn) {
     currentTab = btn.getAttribute("data-tab");
     document.getElementById("addForm").classList.add("hidden");
     document.getElementById("ffxForm").classList.add("hidden");
+    document.getElementById("ffxStyleForm").classList.add("hidden");
     hideContextMenu();
     updateTabUI();
     loadClientLibrary(currentTab);
@@ -194,10 +191,15 @@ document.querySelectorAll(".tabBtn").forEach(function (btn) {
 
 function updateTabUI() {
   var isEffects = currentTab === "effects";
-  var isFfxTab = isEffects || currentTab === "animations";
+  var isAnimations = currentTab === "animations";
+  var isTextStyles = currentTab === "textstyles";
+  var isFfxTab = isEffects || isAnimations;
+
   document.getElementById("captureBtn").classList.toggle("hidden", isFfxTab);
   document.getElementById("ffxToggleBtn").classList.toggle("hidden", !isFfxTab);
   document.getElementById("quickCaptureBtn").classList.toggle("hidden", !isEffects);
+  document.getElementById("ffxStyleToggleBtn").classList.toggle("hidden", !isTextStyles);
+
   var hint = document.getElementById("shiftHint");
   if (currentTab === "colors") hint.classList.remove("hidden");
   else hint.classList.add("hidden");
@@ -217,7 +219,7 @@ function loadClientLibrary(tab) {
       });
       document.getElementById("clientViewCount").innerText = currentData.length + " " + tab;
       if (currentData.length === 0) {
-        contentEl.innerHTML = '<div style="color:#333348;padding:20px;text-align:center;font-size:11px;">No ' + tab + ' saved yet.<br>Use "+ Capture Layer" to add.</div>';
+        contentEl.innerHTML = '<div style="color:#333348;padding:20px;text-align:center;font-size:11px;">No ' + tab + ' saved yet.<br>Use the buttons above to add.</div>';
         return;
       }
       renderItems(currentData, tab);
@@ -258,9 +260,47 @@ document.getElementById("quickCaptureBtn").addEventListener("click", function ()
   });
 });
 
+// ---- FFX TOGGLE (effects/animations) ----
 document.getElementById("ffxToggleBtn").addEventListener("click", function () {
   document.getElementById("ffxForm").classList.toggle("hidden");
   document.getElementById("addForm").classList.add("hidden");
+  document.getElementById("ffxStyleForm").classList.add("hidden");
+});
+
+// ---- FFX STYLE TOGGLE (textstyles) ----
+document.getElementById("ffxStyleToggleBtn").addEventListener("click", function () {
+  document.getElementById("ffxStyleForm").classList.toggle("hidden");
+  document.getElementById("addForm").classList.add("hidden");
+  document.getElementById("ffxForm").classList.add("hidden");
+});
+
+document.getElementById("ffxStyleCancelBtn").addEventListener("click", function () {
+  document.getElementById("ffxStyleForm").classList.add("hidden");
+  document.getElementById("ffxStyleName").value = "";
+  document.getElementById("ffxStyleFilename").value = "";
+});
+
+document.getElementById("ffxStyleSaveBtn").addEventListener("click", function () {
+  var name = document.getElementById("ffxStyleName").value.trim();
+  var filename = document.getElementById("ffxStyleFilename").value.trim();
+  if (!name) { document.getElementById("output").innerText = "Please enter a name."; return; }
+  if (!filename) { document.getElementById("output").innerText = "Please enter filename."; return; }
+  if (filename.indexOf(".ffx") === -1) filename = filename + ".ffx";
+  db.collection("textstyles").add({
+    name: name,
+    client: currentClient,
+    filename: filename,
+    type: "ffx",
+    url: GITHUB_RAW_BASE + "/presets/" + encodeURIComponent(filename)
+  })
+    .then(function () {
+      document.getElementById("output").innerText = "Saved! Push " + filename + " to GitHub presets/.";
+      document.getElementById("ffxStyleForm").classList.add("hidden");
+      document.getElementById("ffxStyleName").value = "";
+      document.getElementById("ffxStyleFilename").value = "";
+      loadClientLibrary(currentTab);
+    })
+    .catch(function (err) { document.getElementById("output").innerText = "Save failed: " + err.message; });
 });
 
 function showCaptureForm(captured) {
@@ -268,6 +308,7 @@ function showCaptureForm(captured) {
   var preview = document.getElementById("capturePreview");
   form.classList.remove("hidden");
   document.getElementById("ffxForm").classList.add("hidden");
+  document.getElementById("ffxStyleForm").classList.add("hidden");
   if (currentTab === "colors") {
     preview.innerHTML = '<div class="swatch" style="background-color:' + captured.hex + '"></div><span>' + captured.hex + '</span>';
   } else if (currentTab === "fonts") {
@@ -375,7 +416,6 @@ function makeTextStyleHandler(fontValue, sizeValue, colorValue, effectsJson) {
   };
 }
 
-// ---- FFX HANDLER ----
 function makeFfxHandler(url, filename) {
   return function () {
     var outputEl = document.getElementById("output");
@@ -383,7 +423,6 @@ function makeFfxHandler(url, filename) {
     var localPath = nodePath.join(presetsDir, filename);
     var jsxPath = toJsxPath(localPath);
 
-    // Already cached — apply directly
     if (nodeFs.existsSync(localPath)) {
       outputEl.innerText = "Applying...";
       csInterface.evalScript('applyFfxPreset("' + jsxPath + '")', function (result) {
@@ -392,45 +431,29 @@ function makeFfxHandler(url, filename) {
       return;
     }
 
-    // Download from GitHub
-    outputEl.innerText = "Downloading preset...";
+    outputEl.innerText = "Downloading...";
     fetch(url + "?t=" + Date.now())
       .then(function (res) {
-        if (!res.ok) throw new Error("Not on GitHub yet (HTTP " + res.status + "). Push " + filename + " to presets/ folder first.");
+        if (!res.ok) throw new Error("Not on GitHub yet (HTTP " + res.status + "). Push " + filename + " to presets/ first.");
         return res.arrayBuffer();
       })
       .then(function (buffer) {
-        // Create folder
         try {
           if (!nodeFs.existsSync(presetsDir)) nodeFs.mkdirSync(presetsDir, { recursive: true });
-        } catch (e) {
-          outputEl.innerText = "Could not create presets folder: " + e.message;
-          return;
-        }
+        } catch (e) { outputEl.innerText = "Could not create folder: " + e.message; return; }
 
-        // Write file
         try {
           nodeFs.writeFileSync(localPath, Buffer.from(new Uint8Array(buffer)));
-        } catch (e) {
-          outputEl.innerText = "Write failed: " + e.message;
-          return;
-        }
+        } catch (e) { outputEl.innerText = "Write failed: " + e.message; return; }
 
-        // Verify
-        if (!nodeFs.existsSync(localPath)) {
-          outputEl.innerText = "File not found after write — contact your lead.";
-          return;
-        }
+        if (!nodeFs.existsSync(localPath)) { outputEl.innerText = "File not found after write."; return; }
 
-        // Apply
         outputEl.innerText = "Applying...";
         csInterface.evalScript('applyFfxPreset("' + jsxPath + '")', function (result) {
           outputEl.innerText = result;
         });
       })
-      .catch(function (err) {
-        outputEl.innerText = "Download failed: " + err.message;
-      });
+      .catch(function (err) { outputEl.innerText = "Download failed: " + err.message; });
   };
 }
 
@@ -463,19 +486,30 @@ function renderItems(items, tab) {
         '<div class="cardInfo"><div class="cardTitle">' + data.name + '</div>' +
         '<div class="cardSub">' + data.hex + '</div></div>';
       card.addEventListener("click", makeColorHandler(data.hex));
+
     } else if (tab === "fonts") {
       card.innerHTML =
         '<div class="cardInfo"><div class="cardTitle">' + data.name + '</div>' +
         '<div class="cardSub">' + (data.weight || "Regular") + '</div></div>';
       card.addEventListener("click", makeFontHandler(data.name));
+
     } else if (tab === "textstyles") {
-      var ec = (data.effects ? data.effects.length : 0) + (data.layerStyles ? data.layerStyles.length : 0);
-      card.innerHTML =
-        '<div class="swatch" style="background-color:' + (data.color || "#888") + '"></div>' +
-        '<div class="cardInfo"><div class="cardTitle">' + data.name + '</div>' +
-        '<div class="cardSub">' + (data.font || "") + ' · ' + (data.size || "") + (ec > 0 ? ' · ' + ec + ' fx' : '') + '</div></div>';
-      var allFx = (data.effects || []).concat(data.layerStyles || []);
-      card.addEventListener("click", makeTextStyleHandler(data.font, data.size, data.color, JSON.stringify(allFx)));
+      if (data.type === "ffx") {
+        card.innerHTML =
+          '<div class="cardInfo"><div class="cardTitle">' + data.name + '</div>' +
+          '<div class="cardSub">FFX Style · gradient / layer style</div></div>' +
+          '<span class="badge ffx">FFX</span>';
+        card.addEventListener("click", makeFfxHandler(data.url, data.filename));
+      } else {
+        var ec = (data.effects ? data.effects.length : 0) + (data.layerStyles ? data.layerStyles.length : 0);
+        card.innerHTML =
+          '<div class="swatch" style="background-color:' + (data.color || "#888") + '"></div>' +
+          '<div class="cardInfo"><div class="cardTitle">' + data.name + '</div>' +
+          '<div class="cardSub">' + (data.font || "") + ' · ' + (data.size || "") + (ec > 0 ? ' · ' + ec + ' fx' : '') + '</div></div>';
+        var allFx = (data.effects || []).concat(data.layerStyles || []);
+        card.addEventListener("click", makeTextStyleHandler(data.font, data.size, data.color, JSON.stringify(allFx)));
+      }
+
     } else if (tab === "effects") {
       var isFFX = data.type === "ffx";
       card.innerHTML =
@@ -484,6 +518,7 @@ function renderItems(items, tab) {
         '<span class="badge' + (isFFX ? " ffx" : "") + '">' + (isFFX ? "FFX" : "FX") + '</span>';
       if (isFFX) card.addEventListener("click", makeFfxHandler(data.url, data.filename));
       else card.addEventListener("click", makeEffectWithPropsHandler({ matchName: data.matchName || data.type, props: data.props || [] }));
+
     } else if (tab === "animations") {
       card.innerHTML =
         '<div class="cardInfo"><div class="cardTitle">' + data.name + '</div>' +

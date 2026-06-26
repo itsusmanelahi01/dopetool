@@ -66,10 +66,12 @@
 
     <div class="addRow">
       <button id="captureBtn" class="addBtn">+ Capture Layer</button>
+      <button id="ffxStyleToggleBtn" class="addBtn hidden">+ Add FFX Style</button>
       <button id="ffxToggleBtn" class="addBtn hidden">+ Add FFX</button>
       <button id="quickCaptureBtn" class="addBtn hidden">+ Quick Capture</button>
     </div>
 
+    <!-- Capture form -->
     <div id="addForm" class="form hidden">
       <div id="capturePreview" class="capturePreview"></div>
       <input type="text" id="newName" placeholder="Name" />
@@ -79,6 +81,25 @@
       </div>
     </div>
 
+    <!-- FFX Style form (text styles tab) -->
+    <div id="ffxStyleForm" class="form hidden">
+      <div class="formHint">
+        For text with gradient overlay or complex layer styles:<br>
+        1. Select your styled text layer in AE<br>
+        2. <b>Animation → Save Animation Preset</b><br>
+        3. Save .ffx to <b>DopeTool/presets/</b><br>
+        4. git add presets/ &amp;&amp; git commit &amp;&amp; git push<br>
+        5. Fill in below
+      </div>
+      <input type="text" id="ffxStyleName" placeholder="Style name (e.g. Fasset Gradient Title)" />
+      <input type="text" id="ffxStyleFilename" placeholder="filename.ffx" />
+      <div class="formRow">
+        <button id="ffxStyleSaveBtn">Save</button>
+        <button id="ffxStyleCancelBtn" class="btnSecondary">Cancel</button>
+      </div>
+    </div>
+
+    <!-- FFX form (effects + animations tabs) -->
     <div id="ffxForm" class="form hidden">
       <div class="formHint">
         1. <b>Animation → Save Animation Preset</b><br>
@@ -94,6 +115,7 @@
       </div>
     </div>
 
+    <!-- Edit form -->
     <div id="editForm" class="form hidden">
       <div class="formLabel">Edit Item</div>
       <input type="text" id="editName" placeholder="Name" />
