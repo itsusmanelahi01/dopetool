@@ -1,4 +1,4 @@
-// DopeTool main.js — v2.3.0
+// DopeTool main.js — v2.3.1
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -29,9 +29,22 @@ var nodePath = require("path");
 var extensionPath = csInterface.getSystemPath(SystemPath.EXTENSION);
 var localVersionPath = nodePath.join(extensionPath, "local_version.json");
 
-function toJsxPath(p) { return p.split("\\").join("/"); }
-function getPresetsDir() { return nodePath.join(nodeOs.homedir(), "Documents", "DopeTool_Presets"); }
+// ---- PATH UTILITIES ----
+// Always convert to forward slashes for ExtendScript File() — works on Mac and Windows
+function toJsxPath(p) {
+  // On Windows, CEP returns paths like /C/Users/... — convert to C:/Users/...
+  p = p.replace(/\\/g, "/");
+  if (/^\/[A-Za-z]\//.test(p)) {
+    p = p.charAt(1).toUpperCase() + ":" + p.slice(2);
+  }
+  return p;
+}
 
+function getPresetsDir() {
+  return nodePath.join(nodeOs.homedir(), "Documents", "DopeTool_Presets");
+}
+
+// ---- VERSION ----
 function getLocalVersion() {
   try { return JSON.parse(nodeFs.readFileSync(localVersionPath, "utf8")).version || "0.0.0"; }
   catch (e) { return "0.0.0"; }
@@ -74,13 +87,8 @@ document.getElementById("openCaptionBtn").addEventListener("click", function () 
   loadCaptionStyles();
 });
 
-document.getElementById("backToHubBtn").addEventListener("click", function () {
-  showView("hubView");
-});
-
-document.getElementById("backToCaptionHubBtn").addEventListener("click", function () {
-  showView("hubView");
-});
+document.getElementById("backToHubBtn").addEventListener("click", function () { showView("hubView"); });
+document.getElementById("backToCaptionHubBtn").addEventListener("click", function () { showView("hubView"); });
 
 // ---- LOAD ALL CLIENTS ----
 function loadAllClients() {
@@ -149,11 +157,10 @@ function renderClientGrid(clientMap) {
   allClientsData = clientMap;
 }
 
-// ---- CLIENT LONG PRESS (edit/delete) ----
+// ---- CLIENT LONG PRESS ----
 function addClientLongPress(element, clientName) {
   var timer = null;
   var didLongPress = false;
-
   element.addEventListener("mousedown", function (e) {
     didLongPress = false;
     timer = setTimeout(function () {
@@ -205,11 +212,9 @@ document.getElementById("clientRenameSaveBtn").addEventListener("click", functio
   var newName = document.getElementById("clientRenameName").value.trim();
   if (!newName || !activeClientName) return;
   if (newName === activeClientName) { document.getElementById("clientRenameForm").classList.add("hidden"); return; }
-
   var collections = ["colors","fonts","textstyles","effects","animations"];
   var pending = collections.length;
   var oldName = activeClientName;
-
   collections.forEach(function (col) {
     db.collection(col).where("client", "==", oldName).get()
       .then(function (snapshot) {
@@ -225,9 +230,7 @@ document.getElementById("clientRenameSaveBtn").addEventListener("click", functio
           loadAllClients();
         }
       })
-      .catch(function (err) {
-        document.getElementById("clientRenameForm").classList.add("hidden");
-      });
+      .catch(function () { pending--; });
   });
 });
 
@@ -235,14 +238,11 @@ document.getElementById("ctxClientDelete").addEventListener("click", function (e
   e.stopPropagation();
   if (!activeClientName) return;
   document.getElementById("clientContextMenu").classList.add("hidden");
-
   var confirmed = confirm("Delete client \"" + activeClientName + "\" and ALL their items? This cannot be undone.");
   if (!confirmed) return;
-
   var collections = ["colors","fonts","textstyles","effects","animations"];
   var pending = collections.length;
   var clientToDelete = activeClientName;
-
   collections.forEach(function (col) {
     db.collection(col).where("client", "==", clientToDelete).get()
       .then(function (snapshot) {
@@ -250,10 +250,7 @@ document.getElementById("ctxClientDelete").addEventListener("click", function (e
         snapshot.forEach(function (doc) { batch.delete(doc.ref); });
         return batch.commit();
       })
-      .then(function () {
-        pending--;
-        if (pending === 0) { activeClientName = null; loadAllClients(); }
-      })
+      .then(function () { pending--; if (pending === 0) { activeClientName = null; loadAllClients(); } })
       .catch(function () { pending--; });
   });
 });
@@ -331,12 +328,10 @@ function updateTabUI() {
   var isAnimations = currentTab === "animations";
   var isTextStyles = currentTab === "textstyles";
   var isFfxTab = isEffects || isAnimations;
-
   document.getElementById("captureBtn").classList.toggle("hidden", isFfxTab);
   document.getElementById("ffxToggleBtn").classList.toggle("hidden", !isFfxTab);
   document.getElementById("quickCaptureBtn").classList.toggle("hidden", !isEffects);
   document.getElementById("ffxStyleToggleBtn").classList.toggle("hidden", !isTextStyles);
-
   var hint = document.getElementById("shiftHint");
   if (currentTab === "colors") hint.classList.remove("hidden");
   else hint.classList.add("hidden");
@@ -447,7 +442,11 @@ function showCaptureForm(captured) {
     preview.innerHTML = '<span style="color:#e0e0f0;font-size:13px;font-weight:600;">' + captured.name + '</span>';
   } else if (currentTab === "textstyles") {
     var ec = (captured.effects ? captured.effects.length : 0) + (captured.layerStyles ? captured.layerStyles.length : 0);
-    preview.innerHTML = '<div class="swatch" style="background-color:' + (captured.color || "#888") + '"></div><span>' + (captured.font || "") + ' ' + (captured.size || "") + (ec > 0 ? ' · ' + ec + ' fx' : '') + '</span>';
+    preview.innerHTML =
+      '<div class="swatch" style="background-color:' + (captured.color || "#888") + '"></div>' +
+      '<span>' + (captured.font || "") + ' ' + (captured.fontSize || "") + 'px' +
+      (captured.tracking ? ' · tr:' + captured.tracking : '') +
+      (ec > 0 ? ' · ' + ec + ' fx' : '') + '</span>';
   } else if (currentTab === "effects") {
     preview.innerHTML = '<span style="color:#9966ff;">⚡ ' + (captured.name || "Effect") + '</span>';
   }
@@ -548,14 +547,14 @@ function loadCaptionStyles() {
           '<div class="captionSwatch" style="background-color:' + (style.color || "#888") + '"></div>' +
           '<div class="captionStyleInfo">' +
             '<div class="captionStyleName">' + style.name + '</div>' +
-            '<div class="captionStyleMeta">' + (style.font || "") + ' · ' + (style.size || "") + ' · ' + (style.client || "") + '</div>' +
+            '<div class="captionStyleMeta">' + (style.font || "") + ' · ' + (style.fontSize || "") + 'px · ' + (style.client || "") + '</div>' +
           '</div>';
 
         card.addEventListener("click", function () {
           document.querySelectorAll(".captionStyleCard").forEach(function (c) { c.classList.remove("selected"); });
           card.classList.add("selected");
           selectedCaptionStyle = style;
-          document.getElementById("captionStatus").innerText = "Style selected: " + style.name;
+          document.getElementById("captionStatus").innerText = "Style: " + style.name;
         });
 
         grid.appendChild(card);
@@ -573,7 +572,7 @@ document.getElementById("browseSrtBtn").addEventListener("click", function () {
       var parts = result.split(/[\/\\]/);
       document.getElementById("srtFilePath").innerText = parts[parts.length - 1];
       document.getElementById("srtFilePath").title = result;
-      document.getElementById("captionStatus").innerText = "File selected: " + parts[parts.length - 1];
+      document.getElementById("captionStatus").innerText = "File: " + parts[parts.length - 1];
     } else {
       document.getElementById("captionStatus").innerText = "No file selected.";
     }
@@ -581,36 +580,31 @@ document.getElementById("browseSrtBtn").addEventListener("click", function () {
 });
 
 document.getElementById("importCaptionsBtn").addEventListener("click", function () {
-  if (!currentSrtPath) {
-    document.getElementById("captionStatus").innerText = "Please select an SRT file first.";
-    return;
-  }
-  if (!selectedCaptionStyle) {
-    document.getElementById("captionStatus").innerText = "Please select a text style first.";
-    return;
-  }
+  if (!currentSrtPath) { document.getElementById("captionStatus").innerText = "Please select an SRT file first."; return; }
+  if (!selectedCaptionStyle) { document.getElementById("captionStatus").innerText = "Please select a text style first."; return; }
 
   document.getElementById("captionStatus").innerText = "Importing...";
 
   var cfg = {
     srtPath: toJsxPath(currentSrtPath),
     font: selectedCaptionStyle.font || "Arial",
-    fontSize: parseFloat((selectedCaptionStyle.size || "72px").replace("px", "")),
+    fontSize: selectedCaptionStyle.fontSize || 72,
     textColor: (selectedCaptionStyle.color || "#FFFFFF").replace("#", ""),
-    strokeColor: "000000",
-    strokeWidth: 0,
-    tracking: 0,
-    leading: 0,
+    strokeColor: selectedCaptionStyle.strokeColor || "000000",
+    strokeWidth: selectedCaptionStyle.strokeWidth || 0,
+    tracking: selectedCaptionStyle.tracking || 0,
+    autoLeading: selectedCaptionStyle.autoLeading !== false,
+    leading: selectedCaptionStyle.leading || 0,
     verticalOffset: parseFloat(document.getElementById("captionVOffset").value) || 200,
     fadeFrames: parseInt(document.getElementById("captionFade").value) || 0,
     useNull: document.getElementById("captionUseNull").checked
   };
 
-  var cfgJson = JSON.stringify(cfg).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-  csInterface.evalScript('importCaptions("' + cfgJson + '")', function (result) {
+  var cfgEscaped = JSON.stringify(cfg).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  csInterface.evalScript('importCaptions("' + cfgEscaped + '")', function (result) {
     if (result && result.indexOf("ok:") === 0) {
       var count = result.split(":")[1];
-      document.getElementById("captionStatus").innerText = "✓ " + count + " captions imported successfully!";
+      document.getElementById("captionStatus").innerText = "✓ " + count + " captions imported!";
     } else {
       document.getElementById("captionStatus").innerText = result || "Import failed.";
     }
@@ -621,25 +615,22 @@ document.getElementById("importCaptionsBtn").addEventListener("click", function 
 function makeColorHandler(hexValue) {
   return function (e) {
     var script = e.shiftKey ? 'applyStrokeColor("' + hexValue + '")' : 'applyColorSmart("' + hexValue + '")';
-    csInterface.evalScript(script, function (result) {
-      document.getElementById("output").innerText = result;
-    });
+    csInterface.evalScript(script, function (result) { document.getElementById("output").innerText = result; });
   };
 }
 
 function makeFontHandler(fontValue) {
   return function () {
-    csInterface.evalScript('applyFont("' + fontValue + '")', function (result) {
-      document.getElementById("output").innerText = result;
-    });
+    csInterface.evalScript('applyFont("' + fontValue + '")', function (result) { document.getElementById("output").innerText = result; });
   };
 }
 
-function makeTextStyleHandler(fontValue, sizeValue, colorValue, effectsJson) {
+// Text style now passes full JSON so all properties are applied
+function makeTextStyleHandler(styleData) {
   return function () {
-    var sizeNum = sizeValue.toString().replace("px", "");
-    var escaped = effectsJson.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-    csInterface.evalScript('applyTextStyle("' + fontValue + '", ' + sizeNum + ', "' + colorValue + '", "' + escaped + '")', function (result) {
+    var json = JSON.stringify(styleData);
+    var escaped = json.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+    csInterface.evalScript('applyTextStyle("' + escaped + '")', function (result) {
       document.getElementById("output").innerText = result;
     });
   };
@@ -680,9 +671,7 @@ function makeFfxHandler(url, filename) {
 function makeEffectWithPropsHandler(effectData) {
   return function () {
     var escaped = JSON.stringify(effectData).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-    csInterface.evalScript('applyEffectWithProps("' + escaped + '")', function (result) {
-      document.getElementById("output").innerText = result;
-    });
+    csInterface.evalScript('applyEffectWithProps("' + escaped + '")', function (result) { document.getElementById("output").innerText = result; });
   };
 }
 
@@ -715,17 +704,21 @@ function renderItems(items, tab) {
       if (data.type === "ffx") {
         card.innerHTML =
           '<div class="cardInfo"><div class="cardTitle">' + data.name + '</div>' +
-          '<div class="cardSub">FFX Style · gradient / layer style</div></div>' +
+          '<div class="cardSub">FFX Style</div></div>' +
           '<span class="badge ffx">FFX</span>';
         card.addEventListener("click", makeFfxHandler(data.url, data.filename));
       } else {
         var ec = (data.effects ? data.effects.length : 0) + (data.layerStyles ? data.layerStyles.length : 0);
+        var meta = [];
+        if (data.font) meta.push(data.font);
+        if (data.fontSize) meta.push(data.fontSize + "px");
+        if (data.tracking) meta.push("tr:" + data.tracking);
+        if (ec > 0) meta.push(ec + " fx");
         card.innerHTML =
           '<div class="swatch" style="background-color:' + (data.color || "#888") + '"></div>' +
           '<div class="cardInfo"><div class="cardTitle">' + data.name + '</div>' +
-          '<div class="cardSub">' + (data.font || "") + ' · ' + (data.size || "") + (ec > 0 ? ' · ' + ec + ' fx' : '') + '</div></div>';
-        var allFx = (data.effects || []).concat(data.layerStyles || []);
-        card.addEventListener("click", makeTextStyleHandler(data.font, data.size, data.color, JSON.stringify(allFx)));
+          '<div class="cardSub">' + meta.join(" · ") + '</div></div>';
+        card.addEventListener("click", makeTextStyleHandler(data));
       }
     } else if (tab === "effects") {
       var isFFX = data.type === "ffx";
@@ -748,7 +741,7 @@ function renderItems(items, tab) {
   }
 }
 
-// ---- LONG PRESS (library cards) ----
+// ---- LONG PRESS (cards) ----
 function addLongPressHandler(element, entryRef) {
   var timer = null;
   var didLongPress = false;
@@ -809,9 +802,7 @@ function checkForUpdate() {
   var localVersion = getLocalVersion();
   fetch(GITHUB_RAW_BASE + "/version.json?t=" + Date.now())
     .then(function (res) { return res.json(); })
-    .then(function (data) {
-      if (data.version && data.version !== localVersion) showUpdateBanner(data.version);
-    })
+    .then(function (data) { if (data.version && data.version !== localVersion) showUpdateBanner(data.version); })
     .catch(function () {});
 }
 
