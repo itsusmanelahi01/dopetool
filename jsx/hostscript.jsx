@@ -1,5 +1,4 @@
-// DopeTool hostscript.jsx — v2.1.0
-// ExtendScript bridge between DopeTool panel and After Effects
+// DopeTool hostscript.jsx — v2.3.1
 
 function testConnection() {
   return "Connected: AE " + app.version;
@@ -8,12 +7,12 @@ function testConnection() {
 // ---- COLOR UTILITIES ----
 function hexToRgb(hex) {
   hex = hex.toString().replace(/#/g, "").replace(/\s/g, "");
-  if (hex.length !== 6) return { rgb: [1, 1, 1], debug: "BAD HEX" };
+  if (hex.length !== 6) return { rgb: [1, 1, 1] };
   var r = parseInt(hex.substr(0, 2), 16) / 255;
   var g = parseInt(hex.substr(2, 2), 16) / 255;
   var b = parseInt(hex.substr(4, 2), 16) / 255;
-  if (isNaN(r) || isNaN(g) || isNaN(b)) return { rgb: [1, 1, 1], debug: "NaN" };
-  return { rgb: [r, g, b], debug: "OK" };
+  if (isNaN(r) || isNaN(g) || isNaN(b)) return { rgb: [1, 1, 1] };
+  return { rgb: [r, g, b] };
 }
 
 function rgbToHexUpper(rgb) {
@@ -50,7 +49,7 @@ function resolveFontName(displayName) {
   ];
 }
 
-// ---- APPLY COLOR (smart — detects layer type) ----
+// ---- APPLY COLOR (smart) ----
 function applyColorSmart(hex) {
   try {
     var comp = app.project.activeItem;
@@ -77,11 +76,9 @@ function applyColorSmart(hex) {
         }
         if (found) count++;
       } else if (layer.source && layer.source.mainSource && layer.source.mainSource.color !== undefined) {
-        // Solid layer
         layer.source.mainSource.color = rgb;
         count++;
       } else {
-        // Any other layer — add Fill effect
         try {
           var fx = layer.property("Effects").addProperty("ADBE Fill");
           fx.property("Color").setValue(rgb);
@@ -95,7 +92,7 @@ function applyColorSmart(hex) {
   } catch (e) { return "Error: " + e.toString(); }
 }
 
-// ---- APPLY STROKE COLOR (shift+click) ----
+// ---- APPLY STROKE COLOR ----
 function applyStrokeColor(hex) {
   try {
     var comp = app.project.activeItem;
@@ -169,39 +166,101 @@ function applyFont(fontName) {
   } catch (e) { return "Error: " + e.toString(); }
 }
 
-// ---- APPLY TEXT STYLE ----
-function applyTextStyle(fontName, size, hex, effectsJsonStr) {
+// ---- APPLY TEXT STYLE (full — all properties) ----
+function applyTextStyle(styleJson) {
   try {
     var comp = app.project.activeItem;
     if (!comp || !(comp instanceof CompItem)) return "No active composition.";
     var layers = comp.selectedLayers;
     if (layers.length === 0) return "No layer selected.";
-    var rgb = hexToRgb(hex).rgb;
-    var guesses = resolveFontName(fontName);
-    var effects = [];
-    try { effects = JSON.parse(effectsJsonStr); } catch (e) {}
+
+    var s = JSON.parse(styleJson);
+    var guesses = resolveFontName(s.font || "Arial");
+    var fillRgb = hexToRgb(s.color || "#FFFFFF").rgb;
+    var effects = s.effects || [];
+    var layerStyles = s.layerStyles || [];
     var count = 0;
+
     app.beginUndoGroup("DopeTool: Apply Text Style");
+
     for (var i = 0; i < layers.length; i++) {
       var layer = layers[i];
-      if (layer instanceof TextLayer) {
-        var tp = layer.property("Source Text");
-        var td = tp.value;
-        for (var g = 0; g < guesses.length; g++) {
-          try { td.font = guesses[g]; break; } catch (e) {}
-        }
-        td.fontSize = parseFloat(size);
-        td.fillColor = rgb;
-        tp.setValue(td);
-        for (var ef = 0; ef < effects.length; ef++) {
-          try {
-            var newFx = layer.property("Effects").addProperty(effects[ef].matchName);
-            if (newFx && effects[ef].props) restoreEffectProps(newFx, effects[ef].props);
-          } catch (e) {}
-        }
-        count++;
+      if (!(layer instanceof TextLayer)) continue;
+
+      var tp = layer.property("Source Text");
+      var td = tp.value;
+
+      // Font
+      for (var g = 0; g < guesses.length; g++) {
+        try { td.font = guesses[g]; break; } catch (e) {}
       }
+
+      // Size
+      if (s.fontSize) td.fontSize = parseFloat(s.fontSize);
+
+      // Fill color
+      td.applyFill = true;
+      td.fillColor = fillRgb;
+
+      // Stroke
+      if (s.strokeWidth && s.strokeWidth > 0) {
+        td.applyStroke = true;
+        td.strokeColor = hexToRgb(s.strokeColor || "#000000").rgb;
+        td.strokeWidth = parseFloat(s.strokeWidth);
+        td.strokeOverFill = true;
+      } else {
+        td.applyStroke = false;
+      }
+
+      // Tracking
+      if (s.tracking !== undefined && s.tracking !== null) {
+        td.tracking = parseFloat(s.tracking);
+      }
+
+      // Leading / Line height
+      if (s.autoLeading !== undefined) {
+        td.autoLeading = s.autoLeading;
+      }
+      if (!s.autoLeading && s.leading) {
+        td.leading = parseFloat(s.leading);
+      }
+
+      // Justification
+      if (s.justification) {
+        try {
+          if (s.justification === "CENTER") td.justification = ParagraphJustification.CENTER_JUSTIFY;
+          else if (s.justification === "RIGHT") td.justification = ParagraphJustification.RIGHT_JUSTIFY;
+          else if (s.justification === "LEFT") td.justification = ParagraphJustification.LEFT_JUSTIFY;
+          else if (s.justification === "FULL") td.justification = ParagraphJustification.FULL_JUSTIFY_LASTLINE_LEFT;
+        } catch (e) {}
+      }
+
+      // Baseline shift
+      if (s.baselineShift !== undefined && s.baselineShift !== null) {
+        try { td.baselineShift = parseFloat(s.baselineShift); } catch (e) {}
+      }
+
+      // Fauxbold / Fauxitalic
+      if (s.fauxBold !== undefined) { try { td.fauxBold = s.fauxBold; } catch (e) {} }
+      if (s.fauxItalic !== undefined) { try { td.fauxItalic = s.fauxItalic; } catch (e) {} }
+
+      // All caps / small caps
+      if (s.allCaps !== undefined) { try { td.allCaps = s.allCaps; } catch (e) {} }
+      if (s.smallCaps !== undefined) { try { td.smallCaps = s.smallCaps; } catch (e) {} }
+
+      tp.setValue(td);
+
+      // Apply effects
+      for (var ef = 0; ef < effects.length; ef++) {
+        try {
+          var newFx = layer.property("Effects").addProperty(effects[ef].matchName);
+          if (newFx && effects[ef].props) restoreEffectProps(newFx, effects[ef].props);
+        } catch (e) {}
+      }
+
+      count++;
     }
+
     app.endUndoGroup();
     if (count === 0) return "No text layer selected.";
     return "Text style applied to " + count + " layer(s).";
@@ -222,9 +281,8 @@ function captureEffectProps(effectProp) {
           try {
             var val = prop.value;
             var vt = typeof val;
-            if (vt === "number" || vt === "boolean" || vt === "string") {
-              pd.value = val; pd.valueType = vt;
-            } else if (val && val.length === 2) { pd.value = [val[0], val[1]]; pd.valueType = "array2"; }
+            if (vt === "number" || vt === "boolean" || vt === "string") { pd.value = val; pd.valueType = vt; }
+            else if (val && val.length === 2) { pd.value = [val[0], val[1]]; pd.valueType = "array2"; }
             else if (val && val.length === 3) { pd.value = [val[0], val[1], val[2]]; pd.valueType = "array3"; }
             else if (val && val.length === 4) { pd.value = [val[0], val[1], val[2], val[3]]; pd.valueType = "array4"; }
           } catch (e) {}
@@ -303,22 +361,6 @@ function applyFfxPreset(presetPath) {
   } catch (e) { return "Error: " + e.toString(); }
 }
 
-// ---- GET PRESETS FOLDER ----
-function getPresetsFolder() {
-  try {
-    var ae2024 = Folder("/Applications/Adobe After Effects 2024/Presets");
-    if (ae2024.exists) return ae2024.fsName;
-    var ae2025 = Folder("/Applications/Adobe After Effects 2025/Presets");
-    if (ae2025.exists) return ae2025.fsName;
-    var appFolder = Folder(app.path);
-    var direct = Folder(appFolder.fsName + "/Presets");
-    if (direct.exists) return direct.fsName;
-    var parent = Folder(appFolder.parent.fsName + "/Presets");
-    if (parent.exists) return parent.fsName;
-    return "ERROR: Presets folder not found";
-  } catch (e) { return "ERROR: " + e.toString(); }
-}
-
 // ---- CAPTURE COLOR ----
 function captureColor() {
   try {
@@ -355,7 +397,7 @@ function captureFont() {
   } catch (e) { return JSON.stringify({ error: e.toString() }); }
 }
 
-// ---- CAPTURE TEXT STYLE ----
+// ---- CAPTURE TEXT STYLE (full — all properties) ----
 function captureTextStyle() {
   try {
     var comp = app.project.activeItem;
@@ -364,7 +406,52 @@ function captureTextStyle() {
     if (layers.length === 0) return JSON.stringify({ error: "No layer selected." });
     var layer = layers[0];
     if (!(layer instanceof TextLayer)) return JSON.stringify({ error: "Select a Text layer." });
+
     var td = layer.property("Source Text").value;
+
+    // Justification
+    var justStr = "LEFT";
+    try {
+      var j = td.justification;
+      if (j === ParagraphJustification.CENTER_JUSTIFY) justStr = "CENTER";
+      else if (j === ParagraphJustification.RIGHT_JUSTIFY) justStr = "RIGHT";
+      else if (j === ParagraphJustification.FULL_JUSTIFY_LASTLINE_LEFT) justStr = "FULL";
+      else justStr = "LEFT";
+    } catch (e) {}
+
+    // Stroke
+    var strokeColor = "000000";
+    var strokeWidth = 0;
+    try {
+      if (td.applyStroke) {
+        strokeColor = rgbToHexUpper(td.strokeColor).replace("#", "");
+        strokeWidth = td.strokeWidth;
+      }
+    } catch (e) {}
+
+    // Leading
+    var autoLeading = true;
+    var leading = 0;
+    try { autoLeading = td.autoLeading; } catch (e) {}
+    try { leading = td.leading; } catch (e) {}
+
+    // Baseline shift
+    var baselineShift = 0;
+    try { baselineShift = td.baselineShift; } catch (e) {}
+
+    // Faux bold/italic
+    var fauxBold = false;
+    var fauxItalic = false;
+    try { fauxBold = td.fauxBold; } catch (e) {}
+    try { fauxItalic = td.fauxItalic; } catch (e) {}
+
+    // All caps / small caps
+    var allCaps = false;
+    var smallCaps = false;
+    try { allCaps = td.allCaps; } catch (e) {}
+    try { smallCaps = td.smallCaps; } catch (e) {}
+
+    // Effects
     var effects = [];
     var effectsProp = layer.property("Effects");
     if (effectsProp) {
@@ -375,6 +462,8 @@ function captureTextStyle() {
         } catch (e) {}
       }
     }
+
+    // Layer styles
     var layerStyles = [];
     try {
       var stylesProp = layer.property("Layer Styles");
@@ -382,15 +471,30 @@ function captureTextStyle() {
         for (var s = 1; s <= stylesProp.numProperties; s++) {
           try {
             var style = stylesProp.property(s);
-            if (style.enabled) layerStyles.push({ name: style.name, matchName: style.matchName, props: captureEffectProps(style) });
+            if (style.enabled) {
+              layerStyles.push({ name: style.name, matchName: style.matchName, props: captureEffectProps(style) });
+            }
           } catch (e) {}
         }
       }
     } catch (e) {}
+
     return JSON.stringify({
       font: td.font,
+      fontSize: Math.round(td.fontSize),
       size: Math.round(td.fontSize) + "px",
       color: rgbToHexUpper(td.fillColor),
+      strokeColor: strokeColor,
+      strokeWidth: strokeWidth,
+      tracking: td.tracking,
+      autoLeading: autoLeading,
+      leading: leading,
+      justification: justStr,
+      baselineShift: baselineShift,
+      fauxBold: fauxBold,
+      fauxItalic: fauxItalic,
+      allCaps: allCaps,
+      smallCaps: smallCaps,
       effects: effects,
       layerStyles: layerStyles
     });
@@ -412,10 +516,7 @@ function captureEffects() {
   } catch (e) { return JSON.stringify({ error: e.toString() }); }
 }
 
-// ============================================================
-//  SRT CAPTION IMPORTER — ported from SRT_Caption_Importer v4
-// ============================================================
-
+// ---- SRT CAPTION IMPORTER ----
 function parseSRT(raw) {
   var out = [];
   var text = raw.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
@@ -452,110 +553,68 @@ function lname(t) {
   return n.length > 60 ? n.substr(0, 60) + "\u2026" : n;
 }
 
-// cfgJson: JSON string with font, fontSize, textColor, strokeColor,
-//          strokeWidth, tracking, leading, verticalOffset, fadeFrames,
-//          useNull, srtPath
 function importCaptions(cfgJson) {
   try {
     var cfg = JSON.parse(cfgJson);
     var comp = app.project.activeItem;
     if (!(comp && comp instanceof CompItem)) return "Error: Make a composition active first.";
-
     var srtFile = new File(cfg.srtPath);
     if (!srtFile.exists) return "Error: SRT file not found at: " + cfg.srtPath;
-
     srtFile.open("r");
     var raw = srtFile.read();
     srtFile.close();
-
     var entries = parseSRT(raw);
-    if (!entries.length) return "Error: No valid SRT entries found in file.";
-
-    var fps = comp.frameRate;
-    var W = comp.width;
-    var H = comp.height;
-    var dur = comp.duration;
-
+    if (!entries.length) return "Error: No valid SRT entries found.";
+    var fps = comp.frameRate, W = comp.width, H = comp.height, dur = comp.duration;
     var fc = h2f(cfg.textColor || "FFFFFF");
     var sc = h2f(cfg.strokeColor || "000000");
-
     app.beginUndoGroup("DopeTool: Import Captions");
-
     var nl = null;
-    if (cfg.useNull) {
-      nl = comp.layers.addNull(dur);
-      nl.name = "CAPTIONS_CTRL";
-      nl.label = 14;
-    }
-
+    if (cfg.useNull) { nl = comp.layers.addNull(dur); nl.name = "CAPTIONS_CTRL"; nl.label = 14; }
     for (var i = 0; i < entries.length; i++) {
       var e = entries[i];
       var iF = Math.round(e.inSec * fps);
       var oF = Math.min(Math.round(e.outSec * fps), Math.round(dur * fps) - 1);
       if (oF <= iF) oF = iF + 1;
-
       var tl = comp.layers.addBoxText([W * 0.9, H * 0.25], e.text);
       tl.name = lname(e.text);
       tl.startTime = iF / fps;
       tl.outPoint = oF / fps;
-
       var doc = tl.property("Source Text").value;
-      doc.resetCharStyle();
-      doc.resetParagraphStyle();
+      doc.resetCharStyle(); doc.resetParagraphStyle();
       doc.font = cfg.font || "Arial";
       doc.fontSize = cfg.fontSize || 72;
       doc.applyFill = true;
       doc.fillColor = fc;
-
       if (cfg.strokeWidth > 0) {
-        doc.applyStroke = true;
-        doc.strokeColor = sc;
-        doc.strokeWidth = cfg.strokeWidth;
-        doc.strokeOverFill = true;
-      } else {
-        doc.applyStroke = false;
-      }
-
-      doc.tracking = cfg.tracking || 0;
-      doc.autoLeading = false;
-      doc.leading = cfg.leading > 0 ? cfg.leading : (cfg.fontSize || 72) * 1.2;
+        doc.applyStroke = true; doc.strokeColor = sc;
+        doc.strokeWidth = cfg.strokeWidth; doc.strokeOverFill = true;
+      } else { doc.applyStroke = false; }
+      if (cfg.tracking !== undefined) doc.tracking = cfg.tracking;
+      doc.autoLeading = cfg.autoLeading !== false;
+      if (!doc.autoLeading && cfg.leading) doc.leading = cfg.leading;
       doc.justification = ParagraphJustification.CENTER_JUSTIFY;
       tl.property("Source Text").setValue(doc);
-
       var tr = tl.property("Transform");
       tr.property("Anchor Point").setValue([0, 0]);
       tr.property("Position").setValue([W / 2, H / 2 + (cfg.verticalOffset || 200)]);
-
       if (cfg.fadeFrames > 0) {
-        var op = tr.property("Opacity");
-        var fd = cfg.fadeFrames / fps;
-        op.setValueAtTime(iF/fps, 0);
-        op.setValueAtTime(iF/fps + fd, 100);
-        op.setValueAtTime(oF/fps - fd, 100);
-        op.setValueAtTime(oF/fps, 0);
-        for (var k = 1; k <= op.numKeys; k++) {
-          op.setTemporalEaseAtKey(k, [new KeyframeEase(0,33)], [new KeyframeEase(0,33)]);
-        }
+        var op = tr.property("Opacity"), fd = cfg.fadeFrames / fps;
+        op.setValueAtTime(iF/fps, 0); op.setValueAtTime(iF/fps + fd, 100);
+        op.setValueAtTime(oF/fps - fd, 100); op.setValueAtTime(oF/fps, 0);
+        for (var k = 1; k <= op.numKeys; k++) op.setTemporalEaseAtKey(k, [new KeyframeEase(0,33)], [new KeyframeEase(0,33)]);
       }
-
       if (nl) tl.parent = nl;
     }
-
     app.endUndoGroup();
     return "ok:" + entries.length;
-
-  } catch (e) {
-    return "Error: " + e.toString();
-  }
+  } catch (e) { return "Error: " + e.toString(); }
 }
 
-// Open file picker and return chosen SRT path
 function pickSrtFile() {
   try {
     var f = File.openDialog("Select SRT file", "SRT Files:*.srt,All Files:*.*");
     if (f) return f.fsName;
     return "";
-  } catch (e) {
-    return "";
-  }
+  } catch (e) { return ""; }
 }
