@@ -1,4 +1,4 @@
-// DopeTool main.js — v2.2.1
+// DopeTool main.js — v2.3.0
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -8,6 +8,9 @@ var allClientsData = {};
 var pendingCapture = null;
 var activeContextId = null;
 var activeContextItem = null;
+var activeClientName = null;
+var selectedCaptionStyle = null;
+var currentSrtPath = "";
 
 var collectionMap = {
   colors: "colors", fonts: "fonts", textstyles: "textstyles",
@@ -26,13 +29,8 @@ var nodePath = require("path");
 var extensionPath = csInterface.getSystemPath(SystemPath.EXTENSION);
 var localVersionPath = nodePath.join(extensionPath, "local_version.json");
 
-function toJsxPath(p) {
-  return p.split("\\").join("/");
-}
-
-function getPresetsDir() {
-  return nodePath.join(nodeOs.homedir(), "Documents", "DopeTool_Presets");
-}
+function toJsxPath(p) { return p.split("\\").join("/"); }
+function getPresetsDir() { return nodePath.join(nodeOs.homedir(), "Documents", "DopeTool_Presets"); }
 
 function getLocalVersion() {
   try { return JSON.parse(nodeFs.readFileSync(localVersionPath, "utf8")).version || "0.0.0"; }
@@ -42,8 +40,11 @@ function setLocalVersion(v) {
   try { nodeFs.writeFileSync(localVersionPath, JSON.stringify({ version: v }), "utf8"); } catch (e) {}
 }
 function showVersion() {
+  var v = getLocalVersion();
   var tag = document.getElementById("versionTag");
-  if (tag) tag.innerText = "v" + getLocalVersion();
+  if (tag) tag.innerText = "v" + v;
+  var hubTag = document.getElementById("hubVersion");
+  if (hubTag) hubTag.innerText = "v" + v;
 }
 
 function clientColor(name) {
@@ -53,6 +54,33 @@ function clientColor(name) {
   return colors[Math.abs(hash) % colors.length];
 }
 function clientInitial(name) { return name.trim().charAt(0).toUpperCase(); }
+
+// ---- VIEW NAVIGATION ----
+function showView(viewId) {
+  var views = ["hubView","homeView","clientView","captionView"];
+  views.forEach(function (v) {
+    document.getElementById(v).classList.toggle("hidden", v !== viewId);
+  });
+}
+
+// ---- TOOL HUB ----
+document.getElementById("openLibraryBtn").addEventListener("click", function () {
+  showView("homeView");
+  loadAllClients();
+});
+
+document.getElementById("openCaptionBtn").addEventListener("click", function () {
+  showView("captionView");
+  loadCaptionStyles();
+});
+
+document.getElementById("backToHubBtn").addEventListener("click", function () {
+  showView("hubView");
+});
+
+document.getElementById("backToCaptionHubBtn").addEventListener("click", function () {
+  showView("hubView");
+});
 
 // ---- LOAD ALL CLIENTS ----
 function loadAllClients() {
@@ -113,17 +141,127 @@ function renderClientGrid(clientMap) {
         '<div class="clientCardMeta">' + data.total + ' items · ' + (typeSummary.join(", ") || "empty") + '</div>' +
       '</div>' +
       '<div class="clientCardArrow">›</div>';
+
     card.addEventListener("click", function () { openClient(client, color); });
+    addClientLongPress(card, client);
     grid.appendChild(card);
   });
   allClientsData = clientMap;
 }
 
+// ---- CLIENT LONG PRESS (edit/delete) ----
+function addClientLongPress(element, clientName) {
+  var timer = null;
+  var didLongPress = false;
+
+  element.addEventListener("mousedown", function (e) {
+    didLongPress = false;
+    timer = setTimeout(function () {
+      didLongPress = true;
+      activeClientName = clientName;
+      showClientContextMenu(e.pageX, e.pageY);
+    }, 600);
+  });
+  element.addEventListener("mouseup", function () { clearTimeout(timer); });
+  element.addEventListener("mouseleave", function () { clearTimeout(timer); });
+  element.addEventListener("contextmenu", function (e) {
+    e.preventDefault();
+    activeClientName = clientName;
+    showClientContextMenu(e.pageX, e.pageY);
+  });
+  element.addEventListener("click", function (e) {
+    if (didLongPress) { e.stopImmediatePropagation(); didLongPress = false; }
+  }, true);
+}
+
+function showClientContextMenu(x, y) {
+  hideContextMenu();
+  var menu = document.getElementById("clientContextMenu");
+  menu.style.left = x + "px";
+  menu.style.top = y + "px";
+  menu.classList.remove("hidden");
+}
+
+document.addEventListener("click", function () {
+  hideContextMenu();
+  document.getElementById("clientContextMenu").classList.add("hidden");
+});
+
+document.getElementById("ctxClientRename").addEventListener("click", function (e) {
+  e.stopPropagation();
+  if (!activeClientName) return;
+  document.getElementById("clientContextMenu").classList.add("hidden");
+  document.getElementById("clientRenameName").value = activeClientName;
+  document.getElementById("clientRenameForm").classList.remove("hidden");
+  document.getElementById("clientRenameName").focus();
+});
+
+document.getElementById("clientRenameCancelBtn").addEventListener("click", function () {
+  document.getElementById("clientRenameForm").classList.add("hidden");
+  activeClientName = null;
+});
+
+document.getElementById("clientRenameSaveBtn").addEventListener("click", function () {
+  var newName = document.getElementById("clientRenameName").value.trim();
+  if (!newName || !activeClientName) return;
+  if (newName === activeClientName) { document.getElementById("clientRenameForm").classList.add("hidden"); return; }
+
+  var collections = ["colors","fonts","textstyles","effects","animations"];
+  var pending = collections.length;
+  var oldName = activeClientName;
+
+  collections.forEach(function (col) {
+    db.collection(col).where("client", "==", oldName).get()
+      .then(function (snapshot) {
+        var batch = db.batch();
+        snapshot.forEach(function (doc) { batch.update(doc.ref, { client: newName }); });
+        return batch.commit();
+      })
+      .then(function () {
+        pending--;
+        if (pending === 0) {
+          document.getElementById("clientRenameForm").classList.add("hidden");
+          activeClientName = null;
+          loadAllClients();
+        }
+      })
+      .catch(function (err) {
+        document.getElementById("clientRenameForm").classList.add("hidden");
+      });
+  });
+});
+
+document.getElementById("ctxClientDelete").addEventListener("click", function (e) {
+  e.stopPropagation();
+  if (!activeClientName) return;
+  document.getElementById("clientContextMenu").classList.add("hidden");
+
+  var confirmed = confirm("Delete client \"" + activeClientName + "\" and ALL their items? This cannot be undone.");
+  if (!confirmed) return;
+
+  var collections = ["colors","fonts","textstyles","effects","animations"];
+  var pending = collections.length;
+  var clientToDelete = activeClientName;
+
+  collections.forEach(function (col) {
+    db.collection(col).where("client", "==", clientToDelete).get()
+      .then(function (snapshot) {
+        var batch = db.batch();
+        snapshot.forEach(function (doc) { batch.delete(doc.ref); });
+        return batch.commit();
+      })
+      .then(function () {
+        pending--;
+        if (pending === 0) { activeClientName = null; loadAllClients(); }
+      })
+      .catch(function () { pending--; });
+  });
+});
+
 // ---- OPEN CLIENT ----
 function openClient(clientName, color) {
   currentClient = clientName;
-  document.getElementById("homeView").classList.add("hidden");
-  document.getElementById("clientView").classList.remove("hidden");
+  showView("clientView");
   document.getElementById("clientViewName").innerText = clientName;
   document.getElementById("clientViewInitial").innerText = clientInitial(clientName);
   document.getElementById("clientViewInitial").style.background = color;
@@ -137,12 +275,11 @@ function openClient(clientName, color) {
 
 document.getElementById("backBtn").addEventListener("click", function () {
   currentClient = null;
-  document.getElementById("clientView").classList.add("hidden");
-  document.getElementById("homeView").classList.remove("hidden");
   document.getElementById("addForm").classList.add("hidden");
   document.getElementById("ffxForm").classList.add("hidden");
   document.getElementById("ffxStyleForm").classList.add("hidden");
   document.getElementById("editForm").classList.add("hidden");
+  showView("homeView");
   loadAllClients();
 });
 
@@ -260,14 +397,12 @@ document.getElementById("quickCaptureBtn").addEventListener("click", function ()
   });
 });
 
-// ---- FFX TOGGLE (effects/animations) ----
 document.getElementById("ffxToggleBtn").addEventListener("click", function () {
   document.getElementById("ffxForm").classList.toggle("hidden");
   document.getElementById("addForm").classList.add("hidden");
   document.getElementById("ffxStyleForm").classList.add("hidden");
 });
 
-// ---- FFX STYLE TOGGLE (textstyles) ----
 document.getElementById("ffxStyleToggleBtn").addEventListener("click", function () {
   document.getElementById("ffxStyleForm").classList.toggle("hidden");
   document.getElementById("addForm").classList.add("hidden");
@@ -287,10 +422,7 @@ document.getElementById("ffxStyleSaveBtn").addEventListener("click", function ()
   if (!filename) { document.getElementById("output").innerText = "Please enter filename."; return; }
   if (filename.indexOf(".ffx") === -1) filename = filename + ".ffx";
   db.collection("textstyles").add({
-    name: name,
-    client: currentClient,
-    filename: filename,
-    type: "ffx",
+    name: name, client: currentClient, filename: filename, type: "ffx",
     url: GITHUB_RAW_BASE + "/presets/" + encodeURIComponent(filename)
   })
     .then(function () {
@@ -388,6 +520,103 @@ document.getElementById("editSaveBtn").addEventListener("click", function () {
     .catch(function (err) { document.getElementById("output").innerText = "Update failed: " + err.message; });
 });
 
+// ---- CAPTION IMPORTER ----
+function loadCaptionStyles() {
+  var grid = document.getElementById("captionStyleGrid");
+  grid.innerHTML = '<div style="color:#333348;font-size:11px;padding:8px;">Loading styles...</div>';
+  selectedCaptionStyle = null;
+
+  db.collection("textstyles").get()
+    .then(function (snapshot) {
+      var styles = [];
+      snapshot.forEach(function (doc) {
+        var data = doc.data();
+        if (data.placeholder || data.type === "ffx") return;
+        styles.push(data);
+      });
+
+      if (styles.length === 0) {
+        grid.innerHTML = '<div style="color:#333348;font-size:11px;padding:8px;">No text styles saved yet.<br>Add styles in the Style Library first.</div>';
+        return;
+      }
+
+      grid.innerHTML = "";
+      styles.forEach(function (style) {
+        var card = document.createElement("div");
+        card.className = "captionStyleCard";
+        card.innerHTML =
+          '<div class="captionSwatch" style="background-color:' + (style.color || "#888") + '"></div>' +
+          '<div class="captionStyleInfo">' +
+            '<div class="captionStyleName">' + style.name + '</div>' +
+            '<div class="captionStyleMeta">' + (style.font || "") + ' · ' + (style.size || "") + ' · ' + (style.client || "") + '</div>' +
+          '</div>';
+
+        card.addEventListener("click", function () {
+          document.querySelectorAll(".captionStyleCard").forEach(function (c) { c.classList.remove("selected"); });
+          card.classList.add("selected");
+          selectedCaptionStyle = style;
+          document.getElementById("captionStatus").innerText = "Style selected: " + style.name;
+        });
+
+        grid.appendChild(card);
+      });
+    })
+    .catch(function (err) {
+      grid.innerHTML = '<div style="color:#ff5566;font-size:11px;padding:8px;">Error: ' + err.message + '</div>';
+    });
+}
+
+document.getElementById("browseSrtBtn").addEventListener("click", function () {
+  csInterface.evalScript("pickSrtFile()", function (result) {
+    if (result && result !== "" && result !== "undefined") {
+      currentSrtPath = result;
+      var parts = result.split(/[\/\\]/);
+      document.getElementById("srtFilePath").innerText = parts[parts.length - 1];
+      document.getElementById("srtFilePath").title = result;
+      document.getElementById("captionStatus").innerText = "File selected: " + parts[parts.length - 1];
+    } else {
+      document.getElementById("captionStatus").innerText = "No file selected.";
+    }
+  });
+});
+
+document.getElementById("importCaptionsBtn").addEventListener("click", function () {
+  if (!currentSrtPath) {
+    document.getElementById("captionStatus").innerText = "Please select an SRT file first.";
+    return;
+  }
+  if (!selectedCaptionStyle) {
+    document.getElementById("captionStatus").innerText = "Please select a text style first.";
+    return;
+  }
+
+  document.getElementById("captionStatus").innerText = "Importing...";
+
+  var cfg = {
+    srtPath: toJsxPath(currentSrtPath),
+    font: selectedCaptionStyle.font || "Arial",
+    fontSize: parseFloat((selectedCaptionStyle.size || "72px").replace("px", "")),
+    textColor: (selectedCaptionStyle.color || "#FFFFFF").replace("#", ""),
+    strokeColor: "000000",
+    strokeWidth: 0,
+    tracking: 0,
+    leading: 0,
+    verticalOffset: parseFloat(document.getElementById("captionVOffset").value) || 200,
+    fadeFrames: parseInt(document.getElementById("captionFade").value) || 0,
+    useNull: document.getElementById("captionUseNull").checked
+  };
+
+  var cfgJson = JSON.stringify(cfg).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  csInterface.evalScript('importCaptions("' + cfgJson + '")', function (result) {
+    if (result && result.indexOf("ok:") === 0) {
+      var count = result.split(":")[1];
+      document.getElementById("captionStatus").innerText = "✓ " + count + " captions imported successfully!";
+    } else {
+      document.getElementById("captionStatus").innerText = result || "Import failed.";
+    }
+  });
+});
+
 // ---- HANDLER FACTORIES ----
 function makeColorHandler(hexValue) {
   return function (e) {
@@ -425,9 +654,7 @@ function makeFfxHandler(url, filename) {
 
     if (nodeFs.existsSync(localPath)) {
       outputEl.innerText = "Applying...";
-      csInterface.evalScript('applyFfxPreset("' + jsxPath + '")', function (result) {
-        outputEl.innerText = result;
-      });
+      csInterface.evalScript('applyFfxPreset("' + jsxPath + '")', function (result) { outputEl.innerText = result; });
       return;
     }
 
@@ -438,20 +665,13 @@ function makeFfxHandler(url, filename) {
         return res.arrayBuffer();
       })
       .then(function (buffer) {
-        try {
-          if (!nodeFs.existsSync(presetsDir)) nodeFs.mkdirSync(presetsDir, { recursive: true });
-        } catch (e) { outputEl.innerText = "Could not create folder: " + e.message; return; }
-
-        try {
-          nodeFs.writeFileSync(localPath, Buffer.from(new Uint8Array(buffer)));
-        } catch (e) { outputEl.innerText = "Write failed: " + e.message; return; }
-
+        try { if (!nodeFs.existsSync(presetsDir)) nodeFs.mkdirSync(presetsDir, { recursive: true }); }
+        catch (e) { outputEl.innerText = "Could not create folder: " + e.message; return; }
+        try { nodeFs.writeFileSync(localPath, Buffer.from(new Uint8Array(buffer))); }
+        catch (e) { outputEl.innerText = "Write failed: " + e.message; return; }
         if (!nodeFs.existsSync(localPath)) { outputEl.innerText = "File not found after write."; return; }
-
         outputEl.innerText = "Applying...";
-        csInterface.evalScript('applyFfxPreset("' + jsxPath + '")', function (result) {
-          outputEl.innerText = result;
-        });
+        csInterface.evalScript('applyFfxPreset("' + jsxPath + '")', function (result) { outputEl.innerText = result; });
       })
       .catch(function (err) { outputEl.innerText = "Download failed: " + err.message; });
   };
@@ -486,13 +706,11 @@ function renderItems(items, tab) {
         '<div class="cardInfo"><div class="cardTitle">' + data.name + '</div>' +
         '<div class="cardSub">' + data.hex + '</div></div>';
       card.addEventListener("click", makeColorHandler(data.hex));
-
     } else if (tab === "fonts") {
       card.innerHTML =
         '<div class="cardInfo"><div class="cardTitle">' + data.name + '</div>' +
         '<div class="cardSub">' + (data.weight || "Regular") + '</div></div>';
       card.addEventListener("click", makeFontHandler(data.name));
-
     } else if (tab === "textstyles") {
       if (data.type === "ffx") {
         card.innerHTML =
@@ -509,7 +727,6 @@ function renderItems(items, tab) {
         var allFx = (data.effects || []).concat(data.layerStyles || []);
         card.addEventListener("click", makeTextStyleHandler(data.font, data.size, data.color, JSON.stringify(allFx)));
       }
-
     } else if (tab === "effects") {
       var isFFX = data.type === "ffx";
       card.innerHTML =
@@ -518,7 +735,6 @@ function renderItems(items, tab) {
         '<span class="badge' + (isFFX ? " ffx" : "") + '">' + (isFFX ? "FFX" : "FX") + '</span>';
       if (isFFX) card.addEventListener("click", makeFfxHandler(data.url, data.filename));
       else card.addEventListener("click", makeEffectWithPropsHandler({ matchName: data.matchName || data.type, props: data.props || [] }));
-
     } else if (tab === "animations") {
       card.innerHTML =
         '<div class="cardInfo"><div class="cardTitle">' + data.name + '</div>' +
@@ -532,7 +748,7 @@ function renderItems(items, tab) {
   }
 }
 
-// ---- LONG PRESS ----
+// ---- LONG PRESS (library cards) ----
 function addLongPressHandler(element, entryRef) {
   var timer = null;
   var didLongPress = false;
@@ -559,13 +775,13 @@ function addLongPressHandler(element, entryRef) {
 }
 
 function showContextMenu(x, y) {
+  document.getElementById("clientContextMenu").classList.add("hidden");
   var menu = document.getElementById("contextMenu");
   menu.style.left = x + "px";
   menu.style.top = y + "px";
   menu.classList.remove("hidden");
 }
 function hideContextMenu() { document.getElementById("contextMenu").classList.add("hidden"); }
-document.addEventListener("click", hideContextMenu);
 
 document.getElementById("ctxDelete").addEventListener("click", function (e) {
   e.stopPropagation();
@@ -647,5 +863,4 @@ function finishUpdate(newVersion, banner, failed) {
 window.addEventListener("DOMContentLoaded", function () {
   showVersion();
   setTimeout(checkForUpdate, 1000);
-  setTimeout(loadAllClients, 300);
 });

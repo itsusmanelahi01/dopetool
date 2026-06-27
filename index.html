@@ -6,10 +6,55 @@
 </head>
 <body>
 
-  <!-- HOME VIEW -->
-  <div id="homeView">
+  <!-- ═══════════════════════════════════════ -->
+  <!-- TOOL HUB HOME                          -->
+  <!-- ═══════════════════════════════════════ -->
+  <div id="hubView">
     <div class="topbar">
       <span class="logo">DOPE<span class="logo-accent">TOOL</span></span>
+      <span id="hubVersion" class="hubVersion">...</span>
+    </div>
+    <div class="toolGrid">
+      <div class="toolCard" id="openLibraryBtn">
+        <div class="toolIcon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 0 20"/><path d="M2 12h20"/></svg>
+        </div>
+        <div class="toolName">Style Library</div>
+        <div class="toolDesc">Colors, fonts, text styles, effects &amp; animations per client</div>
+      </div>
+      <div class="toolCard" id="openCaptionBtn">
+        <div class="toolIcon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 4 0v2"/><line x1="6" y1="11" x2="18" y2="11"/><line x1="6" y1="15" x2="14" y2="15"/></svg>
+        </div>
+        <div class="toolName">Caption Importer</div>
+        <div class="toolDesc">Import SRT files with your saved text styles</div>
+      </div>
+      <div class="toolCard toolCardSoon">
+        <div class="toolIcon" style="opacity:0.3;">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+        <div class="toolName" style="opacity:0.4;">Graph Tool</div>
+        <div class="toolDesc" style="opacity:0.3;">Coming soon</div>
+      </div>
+      <div class="toolCard toolCardSoon">
+        <div class="toolIcon" style="opacity:0.3;">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+        </div>
+        <div class="toolName" style="opacity:0.4;">More Tools</div>
+        <div class="toolDesc" style="opacity:0.3;">Coming soon</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- STYLE LIBRARY — CLIENT HOME            -->
+  <!-- ═══════════════════════════════════════ -->
+  <div id="homeView" class="hidden">
+    <div class="topbar">
+      <button class="backBtn" id="backToHubBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <span class="logo">Style <span class="logo-accent">Library</span></span>
       <input type="text" id="clientSearch" placeholder="Search clients..." />
     </div>
     <div id="clientGrid" class="clientGrid">Loading...</div>
@@ -25,9 +70,10 @@
     </div>
   </div>
 
-  <!-- CLIENT VIEW -->
+  <!-- ═══════════════════════════════════════ -->
+  <!-- CLIENT VIEW                            -->
+  <!-- ═══════════════════════════════════════ -->
   <div id="clientView" class="hidden">
-
     <div class="clientHeader">
       <button id="backBtn" class="backBtn">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
@@ -71,7 +117,6 @@
       <button id="quickCaptureBtn" class="addBtn hidden">+ Quick Capture</button>
     </div>
 
-    <!-- Capture form -->
     <div id="addForm" class="form hidden">
       <div id="capturePreview" class="capturePreview"></div>
       <input type="text" id="newName" placeholder="Name" />
@@ -81,7 +126,6 @@
       </div>
     </div>
 
-    <!-- FFX Style form (text styles tab) -->
     <div id="ffxStyleForm" class="form hidden">
       <div class="formHint">
         For text with gradient overlay or complex layer styles:<br>
@@ -91,7 +135,7 @@
         4. git add presets/ &amp;&amp; git commit &amp;&amp; git push<br>
         5. Fill in below
       </div>
-      <input type="text" id="ffxStyleName" placeholder="Style name (e.g. Fasset Gradient Title)" />
+      <input type="text" id="ffxStyleName" placeholder="Style name" />
       <input type="text" id="ffxStyleFilename" placeholder="filename.ffx" />
       <div class="formRow">
         <button id="ffxStyleSaveBtn">Save</button>
@@ -99,12 +143,11 @@
       </div>
     </div>
 
-    <!-- FFX form (effects + animations tabs) -->
     <div id="ffxForm" class="form hidden">
       <div class="formHint">
         1. <b>Animation → Save Animation Preset</b><br>
         2. Save .ffx to <b>DopeTool/presets/</b><br>
-        3. <b>git add presets/ &amp;&amp; git commit -m "preset" &amp;&amp; git push</b><br>
+        3. <b>git add presets/ &amp;&amp; git commit &amp;&amp; git push</b><br>
         4. Fill in below
       </div>
       <input type="text" id="ffxName" placeholder="Preset name" />
@@ -115,7 +158,6 @@
       </div>
     </div>
 
-    <!-- Edit form -->
     <div id="editForm" class="form hidden">
       <div class="formLabel">Edit Item</div>
       <input type="text" id="editName" placeholder="Name" />
@@ -127,13 +169,85 @@
 
     <div id="libraryContent" class="library">Loading...</div>
     <div id="shiftHint" class="shiftHint hidden">Click = Fill · Shift+Click = Stroke</div>
+  </div>
 
+  <!-- ═══════════════════════════════════════ -->
+  <!-- CAPTION IMPORTER VIEW                  -->
+  <!-- ═══════════════════════════════════════ -->
+  <div id="captionView" class="hidden">
+    <div class="clientHeader">
+      <button id="backToCaptionHubBtn" class="backBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <div class="clientHeaderInfo">
+        <div class="clientViewName">Caption Importer</div>
+        <div class="clientViewCount">Import SRT with your text styles</div>
+      </div>
+    </div>
+
+    <div class="captionBody">
+
+      <div class="captionSection">
+        <div class="captionLabel">SRT File</div>
+        <div class="srtRow">
+          <div id="srtFilePath" class="srtFilePath">No file selected</div>
+          <button id="browseSrtBtn" class="srtBrowseBtn">Browse</button>
+        </div>
+      </div>
+
+      <div class="captionSection">
+        <div class="captionLabel">Text Style <span style="color:#444458;font-weight:400;">— click to select</span></div>
+        <div id="captionStyleGrid" class="captionStyleGrid">Loading styles...</div>
+      </div>
+
+      <div class="captionSection">
+        <div class="captionLabel">Settings</div>
+        <div class="captionSettings">
+          <div class="settingRow">
+            <span class="settingLabel">Vertical Offset</span>
+            <input type="number" id="captionVOffset" value="200" class="settingInput" />
+            <span class="settingUnit">px</span>
+          </div>
+          <div class="settingRow">
+            <span class="settingLabel">Fade Frames</span>
+            <input type="number" id="captionFade" value="0" class="settingInput" />
+            <span class="settingUnit">fr</span>
+          </div>
+          <div class="settingRow">
+            <label class="settingLabel">
+              <input type="checkbox" id="captionUseNull" style="margin-right:6px;"/>
+              Group under Null (CAPTIONS_CTRL)
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <button id="importCaptionsBtn" class="importBtn">↓ Import Captions into Active Comp</button>
+      <div id="captionStatus" class="captionStatus">Ready</div>
+
+    </div>
   </div>
 
   <!-- Context menu -->
   <div id="contextMenu" class="contextMenu hidden">
     <div id="ctxEdit" class="ctxItem">✏️ Edit</div>
     <div id="ctxDelete" class="ctxItem ctxDelete">🗑 Delete</div>
+  </div>
+
+  <!-- Client context menu -->
+  <div id="clientContextMenu" class="contextMenu hidden">
+    <div id="ctxClientRename" class="ctxItem">✏️ Rename</div>
+    <div id="ctxClientDelete" class="ctxItem ctxDelete">🗑 Delete Client</div>
+  </div>
+
+  <!-- Client rename form -->
+  <div id="clientRenameForm" class="form hidden" style="position:fixed;bottom:0;left:0;right:0;z-index:200;border-top:1px solid #1a1a26;">
+    <div class="formLabel">Rename Client</div>
+    <input type="text" id="clientRenameName" placeholder="New name" />
+    <div class="formRow">
+      <button id="clientRenameSaveBtn">Save</button>
+      <button id="clientRenameCancelBtn" class="btnSecondary">Cancel</button>
+    </div>
   </div>
 
   <div id="versionTag" class="versionTag">...</div>

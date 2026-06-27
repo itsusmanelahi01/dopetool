@@ -558,3 +558,233 @@ body {
 .versionTag.updated {
   color: #33cc88;
 }
+
+/* ---- TOOL HUB ---- */
+#hubView {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.hubVersion {
+  font-size: 10px;
+  color: #2a2a40;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  margin-left: auto;
+}
+
+.toolGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 12px;
+  flex: 1;
+}
+
+.toolCard {
+  background: #15151f;
+  border: 1px solid #1e1e2c;
+  border-radius: 14px;
+  padding: 16px 12px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  transition: background 0.12s, border-color 0.12s, transform 0.1s;
+}
+
+.toolCard:hover {
+  background: #1a1a28;
+  border-color: #4c72ff;
+  transform: translateY(-2px);
+}
+
+.toolCard:active { transform: translateY(0px); }
+
+.toolCardSoon { cursor: default; }
+.toolCardSoon:hover { background: #15151f; border-color: #1e1e2c; transform: none; }
+
+.toolIcon { color: #4c72ff; }
+
+.toolName {
+  font-size: 12px;
+  font-weight: 800;
+  color: #e8e8f0;
+  letter-spacing: 0.3px;
+}
+
+.toolDesc {
+  font-size: 10px;
+  color: #444458;
+  line-height: 1.5;
+}
+
+/* ---- CAPTION IMPORTER ---- */
+.captionBody {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  height: calc(100vh - 60px);
+}
+
+.captionSection {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.captionLabel {
+  font-size: 10px;
+  font-weight: 700;
+  color: #8888aa;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.srtRow {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.srtFilePath {
+  flex: 1;
+  background: #1a1a28;
+  border: 1px solid #252538;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 11px;
+  color: #8888aa;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.srtBrowseBtn {
+  background: #4c72ff;
+  border: none;
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.srtBrowseBtn:hover { background: #5d80ff; }
+
+.captionStyleGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.captionStyleCard {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #13131e;
+  border: 1px solid #1c1c2a;
+  border-radius: 8px;
+  padding: 7px 10px;
+  cursor: pointer;
+  transition: background 0.1s, border-color 0.1s;
+}
+
+.captionStyleCard:hover { background: #181828; border-color: #4c72ff; }
+.captionStyleCard.selected { border-color: #4c72ff; background: #1a1a30; }
+
+.captionSwatch {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  border: 1px solid rgba(255,255,255,0.07);
+  flex-shrink: 0;
+}
+
+.captionStyleInfo { flex: 1; min-width: 0; }
+
+.captionStyleName {
+  font-size: 11px;
+  font-weight: 600;
+  color: #e0e0f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.captionStyleMeta {
+  font-size: 10px;
+  color: #404055;
+}
+
+.captionSettings {
+  background: #13131e;
+  border: 1px solid #1c1c2a;
+  border-radius: 8px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.settingRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+}
+
+.settingLabel {
+  flex: 1;
+  color: #8888aa;
+}
+
+.settingInput {
+  width: 52px;
+  padding: 4px 6px;
+  background: #1a1a28;
+  border: 1px solid #252538;
+  border-radius: 6px;
+  color: #e8e8f0;
+  font-size: 11px;
+  text-align: right;
+  outline: none;
+}
+
+.settingUnit {
+  color: #444458;
+  font-size: 10px;
+  width: 14px;
+}
+
+.importBtn {
+  width: 100%;
+  padding: 10px;
+  background: #4c72ff;
+  border: none;
+  border-radius: 10px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  letter-spacing: 0.3px;
+  transition: background 0.12s;
+}
+
+.importBtn:hover { background: #5d80ff; }
+
+.captionStatus {
+  text-align: center;
+  font-size: 11px;
+  color: #555568;
+  padding: 2px 0;
+}

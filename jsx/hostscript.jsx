@@ -411,3 +411,151 @@ function captureEffects() {
     return JSON.stringify({ name: fx.name, type: fx.matchName, matchName: fx.matchName, props: captureEffectProps(fx) });
   } catch (e) { return JSON.stringify({ error: e.toString() }); }
 }
+
+// ============================================================
+//  SRT CAPTION IMPORTER — ported from SRT_Caption_Importer v4
+// ============================================================
+
+function parseSRT(raw) {
+  var out = [];
+  var text = raw.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  var blocks = text.split(/\n\n+/);
+  for (var i = 0; i < blocks.length; i++) {
+    var bl = blocks[i].replace(/^\s+|\s+$/g, "");
+    if (!bl) continue;
+    var lines = bl.split("\n");
+    if (lines.length < 3) continue;
+    var m = lines[1].match(/(\d{2}):(\d{2}):(\d{2})[,.](\d{3})\s*-->\s*(\d{2}):(\d{2}):(\d{2})[,.](\d{3})/);
+    if (!m) continue;
+    var iS = +m[1]*3600 + +m[2]*60 + +m[3] + +m[4]/1e3;
+    var oS = +m[5]*3600 + +m[6]*60 + +m[7] + +m[8]/1e3;
+    var cl = [];
+    for (var j = 2; j < lines.length; j++) {
+      var l = lines[j].replace(/<[^>]+>/g, "").replace(/^\s+|\s+$/g, "");
+      if (l) cl.push(l);
+    }
+    var txt = cl.join("\n");
+    if (!txt) continue;
+    out.push({ inSec: iS, outSec: oS, text: txt });
+  }
+  return out;
+}
+
+function h2f(h) {
+  h = h.replace(/^#/, "");
+  if (h.length === 3) h = h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
+  return [parseInt(h.substr(0,2),16)/255, parseInt(h.substr(2,2),16)/255, parseInt(h.substr(4,2),16)/255];
+}
+
+function lname(t) {
+  var n = t.replace(/\n/g, " ").replace(/[\/\\:\*\?\"\<\>\|]/g, "_");
+  return n.length > 60 ? n.substr(0, 60) + "\u2026" : n;
+}
+
+// cfgJson: JSON string with font, fontSize, textColor, strokeColor,
+//          strokeWidth, tracking, leading, verticalOffset, fadeFrames,
+//          useNull, srtPath
+function importCaptions(cfgJson) {
+  try {
+    var cfg = JSON.parse(cfgJson);
+    var comp = app.project.activeItem;
+    if (!(comp && comp instanceof CompItem)) return "Error: Make a composition active first.";
+
+    var srtFile = new File(cfg.srtPath);
+    if (!srtFile.exists) return "Error: SRT file not found at: " + cfg.srtPath;
+
+    srtFile.open("r");
+    var raw = srtFile.read();
+    srtFile.close();
+
+    var entries = parseSRT(raw);
+    if (!entries.length) return "Error: No valid SRT entries found in file.";
+
+    var fps = comp.frameRate;
+    var W = comp.width;
+    var H = comp.height;
+    var dur = comp.duration;
+
+    var fc = h2f(cfg.textColor || "FFFFFF");
+    var sc = h2f(cfg.strokeColor || "000000");
+
+    app.beginUndoGroup("DopeTool: Import Captions");
+
+    var nl = null;
+    if (cfg.useNull) {
+      nl = comp.layers.addNull(dur);
+      nl.name = "CAPTIONS_CTRL";
+      nl.label = 14;
+    }
+
+    for (var i = 0; i < entries.length; i++) {
+      var e = entries[i];
+      var iF = Math.round(e.inSec * fps);
+      var oF = Math.min(Math.round(e.outSec * fps), Math.round(dur * fps) - 1);
+      if (oF <= iF) oF = iF + 1;
+
+      var tl = comp.layers.addBoxText([W * 0.9, H * 0.25], e.text);
+      tl.name = lname(e.text);
+      tl.startTime = iF / fps;
+      tl.outPoint = oF / fps;
+
+      var doc = tl.property("Source Text").value;
+      doc.resetCharStyle();
+      doc.resetParagraphStyle();
+      doc.font = cfg.font || "Arial";
+      doc.fontSize = cfg.fontSize || 72;
+      doc.applyFill = true;
+      doc.fillColor = fc;
+
+      if (cfg.strokeWidth > 0) {
+        doc.applyStroke = true;
+        doc.strokeColor = sc;
+        doc.strokeWidth = cfg.strokeWidth;
+        doc.strokeOverFill = true;
+      } else {
+        doc.applyStroke = false;
+      }
+
+      doc.tracking = cfg.tracking || 0;
+      doc.autoLeading = false;
+      doc.leading = cfg.leading > 0 ? cfg.leading : (cfg.fontSize || 72) * 1.2;
+      doc.justification = ParagraphJustification.CENTER_JUSTIFY;
+      tl.property("Source Text").setValue(doc);
+
+      var tr = tl.property("Transform");
+      tr.property("Anchor Point").setValue([0, 0]);
+      tr.property("Position").setValue([W / 2, H / 2 + (cfg.verticalOffset || 200)]);
+
+      if (cfg.fadeFrames > 0) {
+        var op = tr.property("Opacity");
+        var fd = cfg.fadeFrames / fps;
+        op.setValueAtTime(iF/fps, 0);
+        op.setValueAtTime(iF/fps + fd, 100);
+        op.setValueAtTime(oF/fps - fd, 100);
+        op.setValueAtTime(oF/fps, 0);
+        for (var k = 1; k <= op.numKeys; k++) {
+          op.setTemporalEaseAtKey(k, [new KeyframeEase(0,33)], [new KeyframeEase(0,33)]);
+        }
+      }
+
+      if (nl) tl.parent = nl;
+    }
+
+    app.endUndoGroup();
+    return "ok:" + entries.length;
+
+  } catch (e) {
+    return "Error: " + e.toString();
+  }
+}
+
+// Open file picker and return chosen SRT path
+function pickSrtFile() {
+  try {
+    var f = File.openDialog("Select SRT file", "SRT Files:*.srt,All Files:*.*");
+    if (f) return f.fsName;
+    return "";
+  } catch (e) {
+    return "";
+  }
+}
