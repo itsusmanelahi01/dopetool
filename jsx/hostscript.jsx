@@ -161,12 +161,26 @@ function applyFont(fontName) {
       }
     }
     app.endUndoGroup();
-    if (count === 0) return "Font not found on this system. Last error: " + lastErr;
+    if (count === 0) return "Font not found. Last error: " + lastErr;
     return "Font applied to " + count + " layer(s).";
   } catch (e) { return "Error: " + e.toString(); }
 }
 
-// ---- APPLY TEXT STYLE (full — all properties) ----
+// ---- CLEAR ALL EFFECTS FROM LAYER ----
+// Called before applying a new style so old effects don't stack
+function clearAllEffects(layer) {
+  try {
+    var effectsProp = layer.property("Effects");
+    if (effectsProp) {
+      // Remove from last to first to avoid index shifting
+      for (var i = effectsProp.numProperties; i >= 1; i--) {
+        try { effectsProp.property(i).remove(); } catch (e) {}
+      }
+    }
+  } catch (e) {}
+}
+
+// ---- APPLY TEXT STYLE (full — clears old effects first) ----
 function applyTextStyle(styleJson) {
   try {
     var comp = app.project.activeItem;
@@ -178,7 +192,6 @@ function applyTextStyle(styleJson) {
     var guesses = resolveFontName(s.font || "Arial");
     var fillRgb = hexToRgb(s.color || "#FFFFFF").rgb;
     var effects = s.effects || [];
-    var layerStyles = s.layerStyles || [];
     var count = 0;
 
     app.beginUndoGroup("DopeTool: Apply Text Style");
@@ -186,6 +199,9 @@ function applyTextStyle(styleJson) {
     for (var i = 0; i < layers.length; i++) {
       var layer = layers[i];
       if (!(layer instanceof TextLayer)) continue;
+
+      // ---- Clear existing effects before applying new ones ----
+      clearAllEffects(layer);
 
       var tp = layer.property("Source Text");
       var td = tp.value;
@@ -217,13 +233,9 @@ function applyTextStyle(styleJson) {
         td.tracking = parseFloat(s.tracking);
       }
 
-      // Leading / Line height
-      if (s.autoLeading !== undefined) {
-        td.autoLeading = s.autoLeading;
-      }
-      if (!s.autoLeading && s.leading) {
-        td.leading = parseFloat(s.leading);
-      }
+      // Leading
+      if (s.autoLeading !== undefined) td.autoLeading = s.autoLeading;
+      if (!s.autoLeading && s.leading) td.leading = parseFloat(s.leading);
 
       // Justification
       if (s.justification) {
@@ -236,11 +248,11 @@ function applyTextStyle(styleJson) {
       }
 
       // Baseline shift
-      if (s.baselineShift !== undefined && s.baselineShift !== null) {
+      if (s.baselineShift !== undefined) {
         try { td.baselineShift = parseFloat(s.baselineShift); } catch (e) {}
       }
 
-      // Fauxbold / Fauxitalic
+      // Faux bold/italic
       if (s.fauxBold !== undefined) { try { td.fauxBold = s.fauxBold; } catch (e) {} }
       if (s.fauxItalic !== undefined) { try { td.fauxItalic = s.fauxItalic; } catch (e) {} }
 
@@ -250,7 +262,7 @@ function applyTextStyle(styleJson) {
 
       tp.setValue(td);
 
-      // Apply effects
+      // Apply new effects
       for (var ef = 0; ef < effects.length; ef++) {
         try {
           var newFx = layer.property("Effects").addProperty(effects[ef].matchName);
@@ -397,7 +409,7 @@ function captureFont() {
   } catch (e) { return JSON.stringify({ error: e.toString() }); }
 }
 
-// ---- CAPTURE TEXT STYLE (full — all properties) ----
+// ---- CAPTURE TEXT STYLE (full) ----
 function captureTextStyle() {
   try {
     var comp = app.project.activeItem;
@@ -409,17 +421,14 @@ function captureTextStyle() {
 
     var td = layer.property("Source Text").value;
 
-    // Justification
     var justStr = "LEFT";
     try {
       var j = td.justification;
       if (j === ParagraphJustification.CENTER_JUSTIFY) justStr = "CENTER";
       else if (j === ParagraphJustification.RIGHT_JUSTIFY) justStr = "RIGHT";
       else if (j === ParagraphJustification.FULL_JUSTIFY_LASTLINE_LEFT) justStr = "FULL";
-      else justStr = "LEFT";
     } catch (e) {}
 
-    // Stroke
     var strokeColor = "000000";
     var strokeWidth = 0;
     try {
@@ -429,29 +438,24 @@ function captureTextStyle() {
       }
     } catch (e) {}
 
-    // Leading
     var autoLeading = true;
     var leading = 0;
     try { autoLeading = td.autoLeading; } catch (e) {}
     try { leading = td.leading; } catch (e) {}
 
-    // Baseline shift
     var baselineShift = 0;
     try { baselineShift = td.baselineShift; } catch (e) {}
 
-    // Faux bold/italic
     var fauxBold = false;
     var fauxItalic = false;
     try { fauxBold = td.fauxBold; } catch (e) {}
     try { fauxItalic = td.fauxItalic; } catch (e) {}
 
-    // All caps / small caps
     var allCaps = false;
     var smallCaps = false;
     try { allCaps = td.allCaps; } catch (e) {}
     try { smallCaps = td.smallCaps; } catch (e) {}
 
-    // Effects
     var effects = [];
     var effectsProp = layer.property("Effects");
     if (effectsProp) {
@@ -463,7 +467,6 @@ function captureTextStyle() {
       }
     }
 
-    // Layer styles
     var layerStyles = [];
     try {
       var stylesProp = layer.property("Layer Styles");
@@ -602,7 +605,9 @@ function importCaptions(cfgJson) {
         var op = tr.property("Opacity"), fd = cfg.fadeFrames / fps;
         op.setValueAtTime(iF/fps, 0); op.setValueAtTime(iF/fps + fd, 100);
         op.setValueAtTime(oF/fps - fd, 100); op.setValueAtTime(oF/fps, 0);
-        for (var k = 1; k <= op.numKeys; k++) op.setTemporalEaseAtKey(k, [new KeyframeEase(0,33)], [new KeyframeEase(0,33)]);
+        for (var k = 1; k <= op.numKeys; k++) {
+          op.setTemporalEaseAtKey(k, [new KeyframeEase(0,33)], [new KeyframeEase(0,33)]);
+        }
       }
       if (nl) tl.parent = nl;
     }

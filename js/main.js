@@ -27,7 +27,7 @@ var nodeFs = require("fs");
 var nodeOs = require("os");
 var nodePath = require("path");
 var extensionPath = csInterface.getSystemPath(SystemPath.EXTENSION);
-var localVersionPath = nodePath.join(extensionPath, "local_version.json");
+var localVersionPath = extensionPath + "/local_version.json";
 
 // ---- PATH UTILITIES ----
 // Always convert to forward slashes for ExtendScript File() — works on Mac and Windows
@@ -829,7 +829,7 @@ function performUpdate(newVersion) {
     fetch(GITHUB_RAW_BASE + file.remote + "?t=" + Date.now())
       .then(function (res) { return res.text(); })
       .then(function (content) {
-        nodeFs.writeFileSync(nodePath.join(extensionPath, file.local), content, "utf8");
+        nodeFs.writeFileSync(extensionPath + file.local, content, "utf8");
         done++;
         if (done + failed.length === files.length) finishUpdate(newVersion, banner, failed);
       })
