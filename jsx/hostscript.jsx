@@ -623,3 +623,42 @@ function pickSrtFile() {
     return "";
   } catch (e) { return ""; }
 }
+
+// ---- FONT INSTALLATION HELPER ----
+// Returns "installed" if font is found in AE, "missing" if not
+function checkFontInstalled(fontName) {
+  try {
+    var comp = app.project.activeItem;
+    var testComp = null;
+    var createdComp = false;
+
+    // Use active comp or create a temp one
+    if (comp && comp instanceof CompItem) {
+      testComp = comp;
+    } else {
+      testComp = app.project.items.addComp("_DT_FONT_TEST", 100, 100, 1, 1, 24);
+      createdComp = true;
+    }
+
+    var testLayer = testComp.layers.addText("test");
+    var td = testLayer.property("Source Text").value;
+    var guesses = resolveFontName(fontName);
+    var found = false;
+
+    for (var g = 0; g < guesses.length; g++) {
+      try {
+        td.font = guesses[g];
+        testLayer.property("Source Text").setValue(td);
+        found = true;
+        break;
+      } catch (e) {}
+    }
+
+    testLayer.remove();
+    if (createdComp) testComp.remove();
+
+    return found ? "installed" : "missing";
+  } catch (e) {
+    return "missing";
+  }
+}

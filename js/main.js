@@ -619,21 +619,33 @@ function makeColorHandler(hexValue) {
   };
 }
 
-function makeFontHandler(fontValue) {
+function makeFontHandler(fontValue, familyName) {
   return function () {
-    csInterface.evalScript('applyFont("' + fontValue + '")', function (result) { document.getElementById("output").innerText = result; });
+    ensureFontInstalled(fontValue, familyName || null, function (readyNow) {
+      if (!readyNow) return; // font was missing — installed, needs AE restart
+      csInterface.evalScript('applyFont("' + fontValue + '")', function (result) {
+        document.getElementById("output").innerText = result;
+      });
+    });
   };
 }
 
 // Text style now passes full JSON so all properties are applied
 function makeTextStyleHandler(styleData) {
   return function () {
-    var json = JSON.stringify(styleData);
-    var escaped = json.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-    csInterface.evalScript('applyTextStyle("' + escaped + '")', function (result) {
-      document.getElementById("output").innerText = result;
+    var fontName = styleData.font || "";
+    var familyName = styleData.family || null;
+    ensureFontInstalled(fontName, familyName, function (readyNow) {
+      if (!readyNow) return; // font was missing — installed, needs AE restart
+      var json = JSON.stringify(styleData);
+      var escaped = json.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+      csInterface.evalScript('applyTextStyle("' + escaped + '")', function (result) {
+        document.getElementById("output").innerText = result;
+      });
     });
   };
+}
+
 }
 
 function makeFfxHandler(url, filename) {
@@ -699,7 +711,7 @@ function renderItems(items, tab) {
       card.innerHTML =
         '<div class="cardInfo"><div class="cardTitle">' + data.name + '</div>' +
         '<div class="cardSub">' + (data.weight || "Regular") + '</div></div>';
-      card.addEventListener("click", makeFontHandler(data.name));
+      card.addEventListener("click", makeFontHandler(data.name, data.family || null));
     } else if (tab === "textstyles") {
       if (data.type === "ffx") {
         card.innerHTML =
@@ -855,3 +867,134 @@ window.addEventListener("DOMContentLoaded", function () {
   showVersion();
   setTimeout(checkForUpdate, 1000);
 });
+
+// ---- FONT AUTO-INSTALLATION ----
+var GITHUB_FONTS_BASE = "https://raw.githubusercontent.com/itsusmanelahi01/dopetool/main/fonts";
+var GITHUB_FONTS_API = "https://api.github.com/repos/itsusmanelahi01/dopetool/contents/fonts";
+
+function getFontsDir() {
+  var platform = navigator.platform || "";
+  if (platform.indexOf("Win") !== -1) {
+    // Windows user fonts folder — no admin required
+    return nodePath.join(nodeOs.homedir(), "AppData", "Local", "Microsoft", "Windows", "Fonts");
+  } else {
+    // Mac user fonts folder — no admin required
+    return nodePath.join(nodeOs.homedir(), "Library", "Fonts");
+  }
+}
+
+function isFontFileInstalled(filename) {
+  var fontsDir = getFontsDir();
+  return nodeFs.existsSync(nodePath.join(fontsDir, filename));
+}
+
+function installFontFamily(familyName, onDone) {
+  // familyName = folder name in GitHub fonts/ e.g. "BarlowCondensed"
+  var outputEl = document.getElementById("output");
+  if (outputEl) outputEl.innerText = "Checking font: " + familyName + "...";
+
+  var apiUrl = GITHUB_FONTS_API + "/" + encodeURIComponent(familyName);
+
+  fetch(apiUrl)
+    .then(function (res) {
+      if (!res.ok) throw new Error("Font family '" + familyName + "' not found in GitHub fonts/ folder.");
+      return res.json();
+    })
+    .then(function (files) {
+      if (!Array.isArray(files) || files.length === 0) throw new Error("No font files found for " + familyName);
+
+      var fontsDir = getFontsDir();
+      try {
+        if (!nodeFs.existsSync(fontsDir)) nodeFs.mkdirSync(fontsDir, { recursive: true });
+      } catch (e) {}
+
+      var pending = 0;
+      var installed = 0;
+      var skipped = 0;
+
+      // Only download font files
+      var fontFiles = files.filter(function (f) {
+        var name = (f.name || "").toLowerCase();
+        return name.indexOf(".ttf") !== -1 || name.indexOf(".otf") !== -1 || name.indexOf(".woff") !== -1;
+      });
+
+      if (fontFiles.length === 0) {
+        if (outputEl) outputEl.innerText = "No font files found in " + familyName + " folder.";
+        if (onDone) onDone(false);
+        return;
+      }
+
+      pending = fontFiles.length;
+
+      fontFiles.forEach(function (fontFile) {
+        var localPath = nodePath.join(fontsDir, fontFile.name);
+
+        // Skip if already installed
+        if (nodeFs.existsSync(localPath)) {
+          skipped++;
+          pending--;
+          if (pending === 0) finishFontInstall(familyName, installed, skipped, outputEl, onDone);
+          return;
+        }
+
+        // Download and install
+        fetch(fontFile.download_url)
+          .then(function (res) {
+            if (!res.ok) throw new Error("Failed to download " + fontFile.name);
+            return res.arrayBuffer();
+          })
+          .then(function (buffer) {
+            try {
+              nodeFs.writeFileSync(localPath, Buffer.from(new Uint8Array(buffer)));
+              installed++;
+            } catch (e) {
+              // write failed
+            }
+            pending--;
+            if (pending === 0) finishFontInstall(familyName, installed, skipped, outputEl, onDone);
+          })
+          .catch(function () {
+            pending--;
+            if (pending === 0) finishFontInstall(familyName, installed, skipped, outputEl, onDone);
+          });
+      });
+    })
+    .catch(function (err) {
+      if (outputEl) outputEl.innerText = "Font install failed: " + err.message;
+      if (onDone) onDone(false);
+    });
+}
+
+function finishFontInstall(familyName, installed, skipped, outputEl, onDone) {
+  if (installed > 0) {
+    if (outputEl) outputEl.innerText = "✓ " + familyName + " installed (" + installed + " files). Restart AE to use it.";
+  } else if (skipped > 0) {
+    if (outputEl) outputEl.innerText = "✓ " + familyName + " already installed.";
+  } else {
+    if (outputEl) outputEl.innerText = "Font install completed for " + familyName + ".";
+  }
+  if (onDone) onDone(installed > 0);
+}
+
+// Check if font is installed in AE, install if missing
+function ensureFontInstalled(fontName, familyName, onReady) {
+  var outputEl = document.getElementById("output");
+
+  csInterface.evalScript('checkFontInstalled("' + fontName + '")', function (result) {
+    if (result === "installed") {
+      // Font is available — proceed immediately
+      if (onReady) onReady(true);
+    } else {
+      // Font missing — install family then notify
+      if (familyName) {
+        if (outputEl) outputEl.innerText = "Font missing — installing " + familyName + "...";
+        installFontFamily(familyName, function (didInstall) {
+          if (onReady) onReady(false); // false = needs AE restart
+        });
+      } else {
+        if (outputEl) outputEl.innerText = "Font '" + fontName + "' not installed. Add it to GitHub fonts/ folder.";
+        if (onReady) onReady(false);
+      }
+    }
+  });
+}
