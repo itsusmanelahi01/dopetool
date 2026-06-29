@@ -1,4 +1,4 @@
-const firebaseConfig = {
+var firebaseConfig = {
   apiKey: "AIzaSyC-NxLFokWU63AwRi4Tyo8MiwIYTM8rSiY",
   authDomain: "dopetool.firebaseapp.com",
   databaseURL: "https://dopetool-default-rtdb.asia-southeast1.firebasedatabase.app",
@@ -9,4 +9,4 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+var db = firebase.firestore();
