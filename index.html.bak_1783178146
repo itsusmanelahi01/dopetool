@@ -7,18 +7,9 @@
 <body>
 
   <!-- ═══════════════════════════════════════ -->
-  <!-- PERSISTENT TOP TAB BAR                 -->
-  <!-- ═══════════════════════════════════════ -->
-  <div id="topTabBar" class="topTabBar">
-    <button class="topTabBtn active" data-toptab="library">Style Library</button>
-    <button class="topTabBtn" data-toptab="captions">Caption Importer</button>
-    <button class="topTabBtn topTabBtnSoon" data-toptab="graph">Graph Tool</button>
-  </div>
-
-  <!-- ═══════════════════════════════════════ -->
   <!-- TOOL HUB HOME                          -->
   <!-- ═══════════════════════════════════════ -->
-  <div id="hubView" class="hidden">
+  <div id="hubView">
     <div class="topbar">
       <span class="logo">DOPE<span class="logo-accent">TOOL</span></span>
       <span id="hubVersion" class="hubVersion">...</span>
@@ -58,8 +49,11 @@
   <!-- ═══════════════════════════════════════ -->
   <!-- STYLE LIBRARY — CLIENT HOME            -->
   <!-- ═══════════════════════════════════════ -->
-  <div id="homeView">
+  <div id="homeView" class="hidden">
     <div class="topbar">
+      <button class="backBtn" id="backToHubBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
       <span class="logo">Style <span class="logo-accent">Library</span></span>
       <input type="text" id="clientSearch" placeholder="Search clients..." />
     </div>
@@ -182,6 +176,9 @@
   <!-- ═══════════════════════════════════════ -->
   <div id="captionView" class="hidden">
     <div class="clientHeader">
+      <button id="backToCaptionHubBtn" class="backBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
       <div class="clientHeaderInfo">
         <div class="clientViewName">Caption Importer</div>
         <div class="clientViewCount">Import SRT with your text styles</div>
@@ -200,7 +197,6 @@
 
       <div class="captionSection">
         <div class="captionLabel">Text Style <span style="color:#444458;font-weight:400;">— click to select</span></div>
-        <div id="captionClientFilter" class="captionClientFilter"></div>
         <div id="captionStyleGrid" class="captionStyleGrid">Loading styles...</div>
       </div>
 

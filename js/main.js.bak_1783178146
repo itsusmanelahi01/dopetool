@@ -97,6 +97,8 @@ document.getElementById("openCaptionBtn").addEventListener("click", function () 
   loadCaptionStyles();
 });
 
+document.getElementById("backToHubBtn").addEventListener("click", function () { showView("hubView"); });
+document.getElementById("backToCaptionHubBtn").addEventListener("click", function () { showView("hubView"); });
 
 // ---- LOAD ALL CLIENTS ----
 function loadAllClients() {
@@ -547,66 +549,26 @@ function loadCaptionStyles() {
         return;
       }
 
-      var allCaptionStyles = styles;
-      var captionClients = [];
-      allCaptionStyles.forEach(function (s) {
-        var c = s.client || "Unassigned";
-        if (captionClients.indexOf(c) === -1) captionClients.push(c);
+      grid.innerHTML = "";
+      styles.forEach(function (style) {
+        var card = document.createElement("div");
+        card.className = "captionStyleCard";
+        card.innerHTML =
+          '<div class="captionSwatch" style="background-color:' + (style.color || "#888") + '"></div>' +
+          '<div class="captionStyleInfo">' +
+            '<div class="captionStyleName">' + style.name + '</div>' +
+            '<div class="captionStyleMeta">' + (style.font || "") + ' · ' + (style.fontSize || "") + 'px · ' + (style.client || "") + '</div>' +
+          '</div>';
+
+        card.addEventListener("click", function () {
+          document.querySelectorAll(".captionStyleCard").forEach(function (c) { c.classList.remove("selected"); });
+          card.classList.add("selected");
+          selectedCaptionStyle = style;
+          document.getElementById("captionStatus").innerText = "Style: " + style.name;
+        });
+
+        grid.appendChild(card);
       });
-      captionClients.sort();
-
-      var activeCaptionFilter = "All";
-
-      function renderCaptionPills() {
-        var filterBar = document.getElementById("captionClientFilter");
-        filterBar.innerHTML = "";
-        var allPill = document.createElement("div");
-        allPill.className = "captionClientPill" + (activeCaptionFilter === "All" ? " active" : "");
-        allPill.innerText = "All";
-        allPill.addEventListener("click", function () { activeCaptionFilter = "All"; renderCaptionPills(); renderCaptionGrid(); });
-        filterBar.appendChild(allPill);
-
-        captionClients.forEach(function (c) {
-          var pill = document.createElement("div");
-          pill.className = "captionClientPill" + (activeCaptionFilter === c ? " active" : "");
-          pill.innerText = c;
-          pill.addEventListener("click", function () { activeCaptionFilter = c; renderCaptionPills(); renderCaptionGrid(); });
-          filterBar.appendChild(pill);
-        });
-      }
-
-      function renderCaptionGrid() {
-        grid.innerHTML = "";
-        var filtered = activeCaptionFilter === "All" ? allCaptionStyles : allCaptionStyles.filter(function (s) { return (s.client || "Unassigned") === activeCaptionFilter; });
-
-        if (filtered.length === 0) {
-          grid.innerHTML = '<div style="color:#333348;font-size:11px;padding:8px;">No styles for this client.</div>';
-          return;
-        }
-
-        filtered.forEach(function (style) {
-          var card = document.createElement("div");
-          card.className = "captionStyleCard";
-          card.innerHTML =
-            '<div class="captionSwatch" style="background-color:' + (style.color || "#888") + '"></div>' +
-            '<div class="captionStyleInfo">' +
-              '<div class="captionStyleName">' + style.name + '</div>' +
-              '<div class="captionStyleMeta">' + (style.font || "") + ' · ' + (style.fontSize || "") + 'px · ' + (style.client || "") + '</div>' +
-            '</div>';
-
-          card.addEventListener("click", function () {
-            document.querySelectorAll(".captionStyleCard").forEach(function (c) { c.classList.remove("selected"); });
-            card.classList.add("selected");
-            selectedCaptionStyle = style;
-            document.getElementById("captionStatus").innerText = "Style: " + style.name;
-          });
-
-          grid.appendChild(card);
-        });
-      }
-
-      renderCaptionPills();
-      renderCaptionGrid();
     })
     .catch(function (err) {
       grid.innerHTML = '<div style="color:#ff5566;font-size:11px;padding:8px;">Error: ' + err.message + '</div>';
@@ -1046,57 +1008,3 @@ function ensureFontInstalled(fontName, familyName, onReady) {
     }
   });
 }
-
-// ---- PERSISTENT TOP TAB BAR NAVIGATION ----
-var topTabOrder = ["library", "captions", "graph"];
-
-function setActiveTopTab(tab) {
-  var btns = document.querySelectorAll(".topTabBtn");
-  for (var i = 0; i < btns.length; i++) {
-    if (btns[i].getAttribute("data-toptab") === tab) {
-      btns[i].classList.add("active");
-    } else {
-      btns[i].classList.remove("active");
-    }
-  }
-}
-
-function switchTopTab(tab) {
-  if (tab === "library") {
-    setActiveTopTab("library");
-    if (typeof activeClientName !== "undefined" && activeClientName) {
-      showView("clientView");
-    } else {
-      showView("homeView");
-      loadAllClients();
-    }
-  } else if (tab === "captions") {
-    setActiveTopTab("captions");
-    showView("captionView");
-    loadCaptionStyles();
-  }
-}
-
-(function () {
-  var btns = document.querySelectorAll(".topTabBtn");
-  for (var i = 0; i < btns.length; i++) {
-    btns[i].addEventListener("click", function () {
-      var tab = this.getAttribute("data-toptab");
-      if (tab === "graph") return;
-      switchTopTab(tab);
-    });
-  }
-
-  var bar = document.getElementById("topTabBar");
-  bar.addEventListener("wheel", function (e) {
-    e.preventDefault();
-    var activeBtn = document.querySelector(".topTabBtn.active");
-    var current = activeBtn ? activeBtn.getAttribute("data-toptab") : "library";
-    var idx = topTabOrder.indexOf(current);
-    if (e.deltaY > 0 && idx < topTabOrder.length - 1) idx++;
-    else if (e.deltaY < 0 && idx > 0) idx--;
-    var next = topTabOrder[idx];
-    if (next === "graph") return;
-    switchTopTab(next);
-  });
-})();
