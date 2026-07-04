@@ -1,3 +1,13 @@
+window.onerror = function(msg, url, line, col, error) {
+  var out = document.getElementById("output") || document.getElementById("hubVersion");
+  if (out) {
+    out.style.color = "#ff5566";
+    out.innerText = "JS ERROR line " + line + ": " + msg;
+  }
+  console.log("JS ERROR line " + line + ": " + msg);
+  return false;
+};
+
 // DopeTool main.js — v2.3.1
 
 var csInterface = new CSInterface();
@@ -646,7 +656,7 @@ function makeTextStyleHandler(styleData) {
   };
 }
 
-}
+
 
 function makeFfxHandler(url, filename) {
   return function () {

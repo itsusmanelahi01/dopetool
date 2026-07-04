@@ -266,7 +266,7 @@ function applyTextStyle(styleJson) {
       for (var ef = 0; ef < effects.length; ef++) {
         try {
           var newFx = layer.property("Effects").addProperty(effects[ef].matchName);
-          if (newFx && effects[ef].props) restoreEffectProps(newFx, effects[ef].props);
+          if (newFx && effects[ef].props) restoreEffectProps(newFx, effects[ef].props, layer.inPoint);
         } catch (e) {}
       }
 
@@ -280,7 +280,8 @@ function applyTextStyle(styleJson) {
 }
 
 // ---- EFFECT PROPERTY CAPTURE ----
-function captureEffectProps(effectProp) {
+function captureEffectProps(effectProp, timeOffset) {
+  if (timeOffset === undefined) timeOffset = 0;
   var props = [];
   try {
     for (var i = 1; i <= effectProp.numProperties; i++) {
@@ -288,15 +289,40 @@ function captureEffectProps(effectProp) {
         var prop = effectProp.property(i);
         var pd = { name: prop.name, matchName: prop.matchName, type: prop.propertyType.toString() };
         if (prop.numProperties > 0) {
-          pd.children = captureEffectProps(prop);
+          pd.children = captureEffectProps(prop, timeOffset);
         } else {
           try {
-            var val = prop.value;
-            var vt = typeof val;
-            if (vt === "number" || vt === "boolean" || vt === "string") { pd.value = val; pd.valueType = vt; }
-            else if (val && val.length === 2) { pd.value = [val[0], val[1]]; pd.valueType = "array2"; }
-            else if (val && val.length === 3) { pd.value = [val[0], val[1], val[2]]; pd.valueType = "array3"; }
-            else if (val && val.length === 4) { pd.value = [val[0], val[1], val[2], val[3]]; pd.valueType = "array4"; }
+            var hasKeys = false;
+            try { hasKeys = prop.numKeys && prop.numKeys > 0; } catch (e2) {}
+            if (hasKeys) {
+              var keys = [];
+              for (var k = 1; k <= prop.numKeys; k++) {
+                try {
+                  var kv = prop.keyValue(k);
+                  var kt = prop.keyTime(k);
+                  var kvt = typeof kv;
+                  var ke = { time: kt };
+                  if (kvt === "number" || kvt === "boolean" || kvt === "string") { ke.value = kv; ke.valueType = kvt; }
+                  else if (kv && kv.length === 2) { ke.value = [kv[0], kv[1]]; ke.valueType = "array2"; }
+                  else if (kv && kv.length === 3) { ke.value = [kv[0], kv[1], kv[2]]; ke.valueType = "array3"; }
+                  else if (kv && kv.length === 4) { ke.value = [kv[0], kv[1], kv[2], kv[3]]; ke.valueType = "array4"; }
+                  keys.push(ke);
+                } catch (e3) {}
+              }
+              if (keys.length > 0) {
+                var minTime = keys[0].time;
+                for (var mi = 1; mi < keys.length; mi++) { if (keys[mi].time < minTime) minTime = keys[mi].time; }
+                for (var mj = 0; mj < keys.length; mj++) { keys[mj].time = keys[mj].time - minTime; }
+              }
+              pd.keyframes = keys;
+            } else {
+              var val = prop.value;
+              var vt = typeof val;
+              if (vt === "number" || vt === "boolean" || vt === "string") { pd.value = val; pd.valueType = vt; }
+              else if (val && val.length === 2) { pd.value = [val[0], val[1]]; pd.valueType = "array2"; }
+              else if (val && val.length === 3) { pd.value = [val[0], val[1], val[2]]; pd.valueType = "array3"; }
+              else if (val && val.length === 4) { pd.value = [val[0], val[1], val[2], val[3]]; pd.valueType = "array4"; }
+            }
           } catch (e) {}
         }
         props.push(pd);
@@ -307,7 +333,8 @@ function captureEffectProps(effectProp) {
 }
 
 // ---- EFFECT PROPERTY RESTORE ----
-function restoreEffectProps(effectProp, props) {
+function restoreEffectProps(effectProp, props, timeOffset) {
+  if (timeOffset === undefined) timeOffset = 0;
   if (!props || props.length === 0) return;
   for (var i = 0; i < props.length; i++) {
     try {
@@ -317,9 +344,24 @@ function restoreEffectProps(effectProp, props) {
       try { prop = effectProp.property(pd.matchName); } catch (e) {}
       if (!prop) { try { prop = effectProp.property(pd.name); } catch (e) {} }
       if (!prop) continue;
-      if (pd.children && prop.numProperties > 0) { restoreEffectProps(prop, pd.children); continue; }
+      if (pd.children && prop.numProperties > 0) { restoreEffectProps(prop, pd.children, timeOffset); continue; }
+      if (pd.keyframes && pd.keyframes.length > 0) {
+        try {
+          for (var kk = 0; kk < pd.keyframes.length; kk++) {
+            var ke = pd.keyframes[kk];
+            var kval;
+            if (ke.valueType === "array2") kval = [parseFloat(ke.value[0]), parseFloat(ke.value[1])];
+            else if (ke.valueType === "array3") kval = [parseFloat(ke.value[0]), parseFloat(ke.value[1]), parseFloat(ke.value[2])];
+            else if (ke.valueType === "array4") kval = [parseFloat(ke.value[0]), parseFloat(ke.value[1]), parseFloat(ke.value[2]), parseFloat(ke.value[3])];
+            else if (ke.valueType === "number") kval = parseFloat(ke.value);
+            else if (ke.valueType === "boolean") kval = Boolean(ke.value);
+            else if (ke.valueType === "string") kval = String(ke.value);
+            try { prop.setValueAtTime(ke.time + timeOffset, kval); } catch (e4) {}
+          }
+        } catch (e) {}
+        continue;
+      }
       if (pd.value === undefined || pd.value === null) continue;
-      if (!prop.canSetValue) continue;
       try {
         if (pd.valueType === "array2") prop.setValue([parseFloat(pd.value[0]), parseFloat(pd.value[1])]);
         else if (pd.valueType === "array3") prop.setValue([parseFloat(pd.value[0]), parseFloat(pd.value[1]), parseFloat(pd.value[2])]);
@@ -462,7 +504,7 @@ function captureTextStyle() {
       for (var i = 1; i <= effectsProp.numProperties; i++) {
         try {
           var fx = effectsProp.property(i);
-          effects.push({ name: fx.name, matchName: fx.matchName, props: captureEffectProps(fx) });
+          effects.push({ name: fx.name, matchName: fx.matchName, props: captureEffectProps(fx, layer.inPoint) });
         } catch (e) {}
       }
     }
@@ -475,7 +517,7 @@ function captureTextStyle() {
           try {
             var style = stylesProp.property(s);
             if (style.enabled) {
-              layerStyles.push({ name: style.name, matchName: style.matchName, props: captureEffectProps(style) });
+              layerStyles.push({ name: style.name, matchName: style.matchName, props: captureEffectProps(style, layer.inPoint) });
             }
           } catch (e) {}
         }
@@ -628,17 +670,8 @@ function pickSrtFile() {
 // Returns "installed" if font is found in AE, "missing" if not
 function checkFontInstalled(fontName) {
   try {
-    var comp = app.project.activeItem;
-    var testComp = null;
-    var createdComp = false;
-
-    // Use active comp or create a temp one
-    if (comp && comp instanceof CompItem) {
-      testComp = comp;
-    } else {
-      testComp = app.project.items.addComp("_DT_FONT_TEST", 100, 100, 1, 1, 24);
-      createdComp = true;
-    }
+    var testComp = app.project.items.addComp("_DT_FONT_TEST", 100, 100, 1, 1, 24);
+    var createdComp = true;
 
     var testLayer = testComp.layers.addText("test");
     var td = testLayer.property("Source Text").value;
