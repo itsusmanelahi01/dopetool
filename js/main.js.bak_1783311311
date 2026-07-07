@@ -787,7 +787,7 @@ function renderItems(items, tab) {
         '<div class="cardSub">' + (isFFX ? "FFX Preset" : "Captured Effect") + '</div></div>' +
         '<span class="badge' + (isFFX ? " ffx" : "") + '">' + (isFFX ? "FFX" : "FX") + '</span>';
       if (isFFX) card.addEventListener("click", makeFfxHandler(data.url, data.filename));
-      else card.addEventListener("click", makeEffectWithPropsHandler(data.effects && data.effects.length > 0 ? { effects: data.effects } : { matchName: data.matchName || data.type, props: data.props || [] }));
+      else card.addEventListener("click", makeEffectWithPropsHandler({ matchName: data.matchName || data.type, props: data.props || [] }));
     } else if (tab === "animations") {
       card.innerHTML =
         '<div class="cardInfo"><div class="cardTitle">' + data.name + '</div>' +
@@ -900,37 +900,13 @@ function performUpdate(newVersion) {
   });
 }
 
-function showWhatsNew(version) {
-  fetch(GITHUB_RAW_BASE + "/changelog.json?t=" + Date.now())
-    .then(function (res) { return res.json(); })
-    .then(function (data) {
-      var items = data[version];
-      if (!items || items.length === 0) return;
-      var overlay = document.createElement("div");
-      overlay.className = "whatsNewOverlay";
-      var listHtml = items.map(function (i) { return "<li>" + i + "</li>"; }).join("");
-      overlay.innerHTML =
-        '<div class="whatsNewModal">' +
-          '<div class="whatsNewTitle">What\'s New</div>' +
-          '<div class="whatsNewVersion">Version ' + version + '</div>' +
-          '<ul class="whatsNewList">' + listHtml + '</ul>' +
-          '<button class="whatsNewCloseBtn">Got it</button>' +
-        '</div>';
-      document.body.appendChild(overlay);
-      overlay.querySelector(".whatsNewCloseBtn").addEventListener("click", function () { overlay.remove(); });
-    })
-    .catch(function () {});
-}
-
 function finishUpdate(newVersion, banner, failed) {
-
   if (failed.length > 0) {
     banner.innerHTML = '<span>Update partially failed: ' + failed.join(", ") + '</span>';
   } else {
     setLocalVersion(newVersion);
     showVersion();
-    banner.innerHTML = '<span>✓ Updated to v' + newVersion + '</span>';
-    showWhatsNew(newVersion);
+    banner.innerHTML = '<span>✓ Updated to v' + newVersion + ' — reopen DopeTool</span>';
   }
 }
 
@@ -938,7 +914,6 @@ function finishUpdate(newVersion, banner, failed) {
 window.addEventListener("DOMContentLoaded", function () {
   showVersion();
   setTimeout(checkForUpdate, 1000);
-  loadAllClients();
 });
 
 // ---- FONT AUTO-INSTALLATION ----

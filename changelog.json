@@ -1,0 +1,12 @@
+{
+  "2.3.5": [
+    "Quick Capture now saves ALL effects on a layer, not just the first one",
+    "Fixed empty dead space at the bottom of the Style Library panel"
+  ],
+  "2.3.4": [
+    "Added persistent top tab bar — Style Library, Captions, Graph Tool",
+    "Style Library now opens by default instead of the old tool hub",
+    "Caption Importer now has client filter pills for faster navigation",
+    "Removed unused back buttons now that tabs handle navigation"
+  ]
+}

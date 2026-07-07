@@ -303,7 +303,8 @@ body {
   flex-direction: column;
   gap: 4px;
   overflow-y: auto;
-  max-height: calc(100vh - 260px);
+  flex: 1;
+  max-height: none;
 }
 
 /* ---- CARDS ---- */
@@ -845,4 +846,76 @@ body {
   background: #7c5cff;
   border-color: #7c5cff;
   color: #ffffff;
+}
+
+/* ---- CLIENT VIEW LAYOUT FIX ---- */
+#clientView {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ---- WHATS NEW MODAL ---- */
+.whatsNewOverlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.65);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.whatsNewModal {
+  background: #15151f;
+  border: 1px solid #26263a;
+  border-radius: 12px;
+  padding: 18px;
+  width: 260px;
+  max-height: 70vh;
+  overflow-y: auto;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.7);
+}
+.whatsNewTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 4px;
+}
+.whatsNewVersion {
+  font-size: 10px;
+  color: #7c5cff;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+.whatsNewList {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-bottom: 14px;
+}
+.whatsNewList li {
+  font-size: 11px;
+  color: #b8b8c8;
+  line-height: 1.4;
+  padding-left: 12px;
+  position: relative;
+}
+.whatsNewList li:before {
+  content: "•";
+  color: #7c5cff;
+  position: absolute;
+  left: 0;
+}
+.whatsNewCloseBtn {
+  width: 100%;
+  padding: 8px;
+  background: #7c5cff;
+  border: none;
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
 }

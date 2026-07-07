@@ -382,24 +382,14 @@ function applyEffectWithProps(effectJsonStr) {
     var layers = comp.selectedLayers;
     if (layers.length === 0) return "No layer selected.";
     var effectData = JSON.parse(effectJsonStr);
-    var effectsToApply = [];
-    if (effectData.effects && effectData.effects.length > 0) {
-      effectsToApply = effectData.effects;
-    } else {
-      var matchName = effectData.matchName || effectData.type;
-      if (!matchName) return "Error: No effect matchName found.";
-      effectsToApply = [{ matchName: matchName, props: effectData.props || [] }];
-    }
+    var matchName = effectData.matchName || effectData.type;
+    if (!matchName) return "Error: No effect matchName found.";
     var count = 0;
     app.beginUndoGroup("DopeTool: Apply Effect");
     for (var i = 0; i < layers.length; i++) {
       try {
-        for (var e = 0; e < effectsToApply.length; e++) {
-          var mn = effectsToApply[e].matchName || effectsToApply[e].type;
-          if (!mn) continue;
-          var newFx = layers[i].property("Effects").addProperty(mn);
-          if (newFx && effectsToApply[e].props && effectsToApply[e].props.length > 0) restoreEffectProps(newFx, effectsToApply[e].props);
-        }
+        var newFx = layers[i].property("Effects").addProperty(matchName);
+        if (newFx && effectData.props && effectData.props.length > 0) restoreEffectProps(newFx, effectData.props);
         count++;
       } catch (e) {}
     }
@@ -408,7 +398,6 @@ function applyEffectWithProps(effectJsonStr) {
     return "Effect applied to " + count + " layer(s).";
   } catch (e) { return "Error: " + e.toString(); }
 }
-
 
 // ---- APPLY FFX PRESET ----
 function applyFfxPreset(presetPath) {
@@ -558,8 +547,6 @@ function captureTextStyle() {
 }
 
 // ---- CAPTURE EFFECT ----
-
-// ---- SRT CAPTION IMPORTER ----
 function captureEffects() {
   try {
     var comp = app.project.activeItem;
@@ -569,18 +556,12 @@ function captureEffects() {
     var layer = layers[0];
     var effectsProp = layer.property("Effects");
     if (!effectsProp || effectsProp.numProperties === 0) return JSON.stringify({ error: "No effects on this layer." });
-    var effectsArr = [];
-    for (var i = 1; i <= effectsProp.numProperties; i++) {
-      try {
-        var fx = effectsProp.property(i);
-        effectsArr.push({ name: fx.name, matchName: fx.matchName, props: captureEffectProps(fx) });
-      } catch (e) {}
-    }
-    if (effectsArr.length === 0) return JSON.stringify({ error: "No effects on this layer." });
-    return JSON.stringify({ name: effectsArr[0].name, effects: effectsArr });
+    var fx = effectsProp.property(1);
+    return JSON.stringify({ name: fx.name, type: fx.matchName, matchName: fx.matchName, props: captureEffectProps(fx) });
   } catch (e) { return JSON.stringify({ error: e.toString() }); }
 }
 
+// ---- SRT CAPTION IMPORTER ----
 function parseSRT(raw) {
   var out = [];
   var text = raw.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
