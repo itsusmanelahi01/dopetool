@@ -32,12 +32,28 @@ var captureFunctionMap = {
   textstyles: "captureTextStyle()", effects: null, animations: null
 };
 
-var GITHUB_RAW_BASE = "https://raw.githubusercontent.com/itsusmanelahi01/dopetool/main";
 var nodeFs = require("fs");
 var nodeOs = require("os");
 var nodePath = require("path");
 var extensionPath = csInterface.getSystemPath(SystemPath.EXTENSION);
 var localVersionPath = extensionPath + "/local_version.json";
+
+// ---- UPDATE CHANNEL ----
+// channel.json decides which GitHub branch this panel pulls its code, version,
+// changelog, presets and fonts from. Production ships {"branch":"main"}; the
+// tester panel ships {"branch":"dev"}. The auto-updater never overwrites
+// channel.json, so each installed panel keeps its own channel across updates.
+// If the file is missing (e.g. older installs), we safely default to main.
+var GITHUB_REPO = "itsusmanelahi01/dopetool";
+function getChannel() {
+  try {
+    var c = JSON.parse(nodeFs.readFileSync(extensionPath + "/channel.json", "utf8"));
+    return { branch: (c.branch || "main"), label: (c.label || "DopeTool") };
+  } catch (e) { return { branch: "main", label: "DopeTool" }; }
+}
+var CHANNEL = getChannel();
+var GITHUB_BRANCH = CHANNEL.branch;
+var GITHUB_RAW_BASE = "https://raw.githubusercontent.com/" + GITHUB_REPO + "/" + GITHUB_BRANCH;
 
 // ---- PATH UTILITIES ----
 // Always convert to forward slashes for ExtendScript File() — works on Mac and Windows
@@ -64,10 +80,13 @@ function setLocalVersion(v) {
 }
 function showVersion() {
   var v = getLocalVersion();
+  // On non-production channels, show the branch so you can tell the tester
+  // panel apart from the production one at a glance.
+  var suffix = (GITHUB_BRANCH !== "main") ? " · " + GITHUB_BRANCH : "";
   var tag = document.getElementById("versionTag");
-  if (tag) tag.innerText = "v" + v;
+  if (tag) tag.innerText = "v" + v + suffix;
   var hubTag = document.getElementById("hubVersion");
-  if (hubTag) hubTag.innerText = "v" + v;
+  if (hubTag) hubTag.innerText = "v" + v + suffix;
 }
 
 function clientColor(name) {
@@ -942,8 +961,8 @@ window.addEventListener("DOMContentLoaded", function () {
 });
 
 // ---- FONT AUTO-INSTALLATION ----
-var GITHUB_FONTS_BASE = "https://raw.githubusercontent.com/itsusmanelahi01/dopetool/main/fonts";
-var GITHUB_FONTS_API = "https://api.github.com/repos/itsusmanelahi01/dopetool/contents/fonts";
+var GITHUB_FONTS_BASE = GITHUB_RAW_BASE + "/fonts";
+var GITHUB_FONTS_API = "https://api.github.com/repos/" + GITHUB_REPO + "/contents/fonts";
 
 function isWindows() {
   // process.platform is the most reliable signal under Node-enabled CEP;
@@ -996,7 +1015,7 @@ function installFontFamily(familyName, onDone) {
   var outputEl = document.getElementById("output");
   if (outputEl) outputEl.innerText = "Checking font: " + familyName + "...";
 
-  var apiUrl = GITHUB_FONTS_API + "/" + encodeURIComponent(familyName);
+  var apiUrl = GITHUB_FONTS_API + "/" + encodeURIComponent(familyName) + "?ref=" + encodeURIComponent(GITHUB_BRANCH);
 
   fetch(apiUrl)
     .then(function (res) {

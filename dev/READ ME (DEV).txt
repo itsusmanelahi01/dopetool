@@ -1,0 +1,39 @@
+DopeTool Dev — Tester Panel
+===========================
+
+This folder installs a SECOND After Effects panel called "DopeTool Dev" that
+lives alongside your normal DopeTool panel. It pulls its updates from the
+'dev' branch on GitHub instead of 'main', so you can try changes before your
+whole team gets them.
+
+How the two panels differ
+-------------------------
+  DopeTool       -> updates from the 'main' branch   (production, everyone)
+  DopeTool Dev   -> updates from the 'dev' branch     (tester, just you)
+
+Both read the same Firebase style library. That means the tester is perfect
+for checking code / UI / behavior, but if you click Save or Delete on a
+color/style/client while testing, it changes the REAL shared library. Avoid
+adding or deleting library items from the tester unless you mean to.
+
+Install the tester
+------------------
+Mac:
+  1. In Terminal, drag dev/install_dev_mac.sh in and press Enter
+  2. Enter your Mac password if asked
+  3. After Effects -> Window -> Extensions -> DopeTool Dev
+
+Windows:
+  1. Right-click dev\install_dev_windows.bat -> Run as Administrator
+  2. After Effects -> Window -> Extensions -> DopeTool Dev
+
+The typical workflow
+--------------------
+  1. Make a change and push it to the 'dev' branch
+  2. Open DopeTool Dev in AE -> click Update when the banner appears
+  3. Close/reopen the panel and test it live
+  4. Happy with it? Merge 'dev' into 'main' -> everyone's DopeTool updates
+     Not happy? Fix it on 'dev' and repeat. 'main' was never touched.
+
+You can tell the panels apart by the version label: the tester shows the
+branch next to the version, e.g. "v2.3.6 · dev".
