@@ -1,4 +1,9 @@
 {
+  "2.3.6": [
+    "Fixed font detection that always reported fonts as installed — auto font install now actually triggers on both Mac and Windows",
+    "Windows: downloaded fonts are now registered with the system so After Effects can see them (previously they installed silently but never appeared)",
+    "Installer now enables CEP debug mode for newer After Effects versions"
+  ],
   "2.3.5": [
     "Quick Capture now saves ALL effects on a layer, not just the first one",
     "Fixed empty dead space at the bottom of the Style Library panel"

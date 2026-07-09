@@ -1,4 +1,4 @@
-// DopeTool hostscript.jsx — v2.3.1
+// DopeTool hostscript.jsx — v2.3.6
 
 function testConnection() {
   return "Connected: AE " + app.version;
@@ -686,31 +686,55 @@ function pickSrtFile() {
 }
 
 // ---- FONT INSTALLATION HELPER ----
-// Returns "installed" if font is found in AE, "missing" if not
+// Returns "installed" if font is found in AE, "missing" if not.
+// NOTE: Assigning a non-existent font name to TextDocument.font does NOT throw
+// in ExtendScript — AE silently keeps the previous font. So a try/catch around
+// the assignment can never detect a missing font. We instead set the font,
+// read it back, and confirm AE actually applied the requested name.
 function checkFontInstalled(fontName) {
+  var testComp = null;
   try {
-    var testComp = app.project.items.addComp("_DT_FONT_TEST", 100, 100, 1, 1, 24);
-    var createdComp = true;
+    // AE 24+ exposes a Fonts API — use it when available for an exact lookup
+    // that never touches the project.
+    try {
+      if (app.fonts && typeof app.fonts.getFontsByPostScriptName === "function") {
+        var guessesApi = resolveFontName(fontName);
+        for (var gi = 0; gi < guessesApi.length; gi++) {
+          try {
+            var matches = app.fonts.getFontsByPostScriptName(guessesApi[gi]);
+            if (matches && matches.length > 0) return "installed";
+          } catch (eApi) {}
+        }
+      }
+    } catch (eApiOuter) {}
 
+    // Fallback: apply-and-read-back detection.
+    testComp = app.project.items.addComp("_DT_FONT_TEST", 100, 100, 1, 1, 24);
     var testLayer = testComp.layers.addText("test");
-    var td = testLayer.property("Source Text").value;
+    var sourceTextProp = testLayer.property("Source Text");
     var guesses = resolveFontName(fontName);
     var found = false;
 
     for (var g = 0; g < guesses.length; g++) {
       try {
+        var td = sourceTextProp.value;
         td.font = guesses[g];
-        testLayer.property("Source Text").setValue(td);
-        found = true;
-        break;
+        sourceTextProp.setValue(td);
+        // Read back what AE actually applied. If the font is missing, AE keeps
+        // the default and the applied name will NOT match our guess.
+        var applied = sourceTextProp.value.font;
+        if (applied && (applied === guesses[g] ||
+            applied.replace(/\s/g, "") === guesses[g].replace(/\s/g, ""))) {
+          found = true;
+          break;
+        }
       } catch (e) {}
     }
-
-    testLayer.remove();
-    if (createdComp) testComp.remove();
 
     return found ? "installed" : "missing";
   } catch (e) {
     return "missing";
+  } finally {
+    try { if (testComp) testComp.remove(); } catch (eFin) {}
   }
 }

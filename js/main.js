@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.3.1
+// DopeTool main.js — v2.3.6
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -945,15 +945,45 @@ window.addEventListener("DOMContentLoaded", function () {
 var GITHUB_FONTS_BASE = "https://raw.githubusercontent.com/itsusmanelahi01/dopetool/main/fonts";
 var GITHUB_FONTS_API = "https://api.github.com/repos/itsusmanelahi01/dopetool/contents/fonts";
 
+function isWindows() {
+  // process.platform is the most reliable signal under Node-enabled CEP;
+  // fall back to navigator.platform if it is unavailable.
+  try {
+    if (typeof process !== "undefined" && process.platform) return process.platform === "win32";
+  } catch (e) {}
+  return (navigator.platform || "").indexOf("Win") !== -1;
+}
+
 function getFontsDir() {
-  var platform = navigator.platform || "";
-  if (platform.indexOf("Win") !== -1) {
+  if (isWindows()) {
     // Windows user fonts folder — no admin required
     return nodePath.join(nodeOs.homedir(), "AppData", "Local", "Microsoft", "Windows", "Fonts");
   } else {
     // Mac user fonts folder — no admin required
     return nodePath.join(nodeOs.homedir(), "Library", "Fonts");
   }
+}
+
+// On Windows, dropping a font file into the per-user Fonts folder is NOT enough —
+// the font must also be registered under HKCU so GDI apps (After Effects) can see
+// it. On Mac, writing to ~/Library/Fonts is sufficient, so this is a no-op there.
+function registerFontIfNeeded(localPath, filename) {
+  if (!isWindows()) return;
+  try {
+    var childProcess = require("child_process");
+    var lower = filename.toLowerCase();
+    var typeTag = (lower.indexOf(".otf") !== -1) ? " (OpenType)" : " (TrueType)";
+    var baseName = filename.replace(/\.[^.]+$/, "");
+    var valueName = baseName + typeTag;
+    var regKey = "HKCU\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Fonts";
+    // Store the full path as the value data so it resolves regardless of the
+    // per-user fonts directory being on the font search path.
+    childProcess.execFile(
+      "reg",
+      ["add", regKey, "/v", valueName, "/t", "REG_SZ", "/d", localPath, "/f"],
+      function () { /* best-effort; failure just means the user restarts AE / re-runs */ }
+    );
+  } catch (e) {}
 }
 
 function isFontFileInstalled(filename) {
@@ -1002,8 +1032,11 @@ function installFontFamily(familyName, onDone) {
       fontFiles.forEach(function (fontFile) {
         var localPath = nodePath.join(fontsDir, fontFile.name);
 
-        // Skip if already installed
+        // Skip re-downloading if already present, but still ensure it is
+        // registered on Windows (older versions wrote the file without
+        // registering it, which left the font invisible to After Effects).
         if (nodeFs.existsSync(localPath)) {
+          registerFontIfNeeded(localPath, fontFile.name);
           skipped++;
           pending--;
           if (pending === 0) finishFontInstall(familyName, installed, skipped, outputEl, onDone);
@@ -1019,6 +1052,7 @@ function installFontFamily(familyName, onDone) {
           .then(function (buffer) {
             try {
               nodeFs.writeFileSync(localPath, Buffer.from(new Uint8Array(buffer)));
+              registerFontIfNeeded(localPath, fontFile.name);
               installed++;
             } catch (e) {
               // write failed
