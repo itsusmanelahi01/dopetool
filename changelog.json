@@ -1,4 +1,7 @@
 {
+  "2.4.1": [
+    "Caption Importer now applies the selected text style's effects (drop shadow, glow, etc.) to every caption, matching the Styles tab"
+  ],
   "2.4.0": [
     "Design refresh — cleaner cards, focus rings, tidier scrollbars",
     "Colors now show as a compact swatch grid instead of a list",

@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.4.0
+// DopeTool main.js — v2.4.1
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -683,6 +683,7 @@ document.getElementById("importCaptionsBtn").addEventListener("click", function 
     tracking: selectedCaptionStyle.tracking || 0,
     autoLeading: selectedCaptionStyle.autoLeading !== false,
     leading: selectedCaptionStyle.leading || 0,
+    effects: selectedCaptionStyle.effects || [],
     verticalOffset: parseFloat(document.getElementById("captionVOffset").value) || 200,
     fadeFrames: parseInt(document.getElementById("captionFade").value) || 0,
     useNull: document.getElementById("captionUseNull").checked

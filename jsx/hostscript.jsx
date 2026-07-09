@@ -1,4 +1,4 @@
-// DopeTool hostscript.jsx — v2.3.6
+// DopeTool hostscript.jsx — v2.4.1
 
 function testConnection() {
   return "Connected: AE " + app.version;
@@ -659,6 +659,20 @@ function importCaptions(cfgJson) {
       if (!doc.autoLeading && cfg.leading) doc.leading = cfg.leading;
       doc.justification = ParagraphJustification.CENTER_JUSTIFY;
       tl.property("Source Text").setValue(doc);
+
+      // Apply the saved style's effects (drop shadow, glow, gradient, etc.) so
+      // captions match the picked text style — same behaviour as the Styles tab.
+      if (cfg.effects && cfg.effects.length) {
+        for (var ef = 0; ef < cfg.effects.length; ef++) {
+          try {
+            var mn = cfg.effects[ef].matchName;
+            if (!mn) continue;
+            var newFx = tl.property("Effects").addProperty(mn);
+            if (newFx && cfg.effects[ef].props) restoreEffectProps(newFx, cfg.effects[ef].props, tl.inPoint);
+          } catch (eFx) {}
+        }
+      }
+
       var tr = tl.property("Transform");
       tr.property("Anchor Point").setValue([0, 0]);
       tr.property("Position").setValue([W / 2, H / 2 + (cfg.verticalOffset || 200)]);
