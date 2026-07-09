@@ -118,9 +118,27 @@
 
     <div class="addRow">
       <button id="captureBtn" class="addBtn">+ Capture Layer</button>
+      <button id="manualColorBtn" class="addBtn hidden">+ Add Color</button>
       <button id="ffxStyleToggleBtn" class="addBtn hidden">+ Add FFX Style</button>
       <button id="ffxToggleBtn" class="addBtn hidden">+ Add FFX</button>
       <button id="quickCaptureBtn" class="addBtn hidden">+ Quick Capture</button>
+      <select id="sortSelect" class="sortSelect" title="Sort items">
+        <option value="name">A–Z</option>
+        <option value="recent">Recent</option>
+      </select>
+    </div>
+
+    <div id="manualColorForm" class="form hidden">
+      <div class="manualColorRow">
+        <div id="manualColorPreview" class="swatch manualColorSwatch"></div>
+        <input type="color" id="manualColorPicker" value="#4c72ff" />
+        <input type="text" id="manualColorHex" placeholder="#4C72FF" maxlength="7" />
+      </div>
+      <input type="text" id="manualColorName" placeholder="Color name" />
+      <div class="formRow">
+        <button id="manualColorSaveBtn">Save Color</button>
+        <button id="manualColorCancelBtn" class="btnSecondary">Cancel</button>
+      </div>
     </div>
 
     <div id="addForm" class="form hidden">
@@ -234,6 +252,7 @@
 
   <!-- Context menu -->
   <div id="contextMenu" class="contextMenu hidden">
+    <div id="ctxFavorite" class="ctxItem">⭐ Favorite</div>
     <div id="ctxEdit" class="ctxItem">✏️ Edit</div>
     <div id="ctxDelete" class="ctxItem ctxDelete">🗑 Delete</div>
   </div>

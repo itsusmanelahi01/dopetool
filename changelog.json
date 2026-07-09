@@ -1,4 +1,11 @@
 {
+  "2.4.0": [
+    "Design refresh — cleaner cards, focus rings, tidier scrollbars",
+    "Colors now show as a compact swatch grid instead of a list",
+    "Add a color manually by typing a hex — no layer needed (+ Add Color)",
+    "Favorite any item (right-click → Favorite) to pin it to the top",
+    "Sort items A–Z or by most recent"
+  ],
   "2.3.6": [
     "Fixed font detection that always reported fonts as installed — auto font install now actually triggers on both Mac and Windows",
     "Windows: downloaded fonts are now registered with the system so After Effects can see them (previously they installed silently but never appeared)",

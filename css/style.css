@@ -520,45 +520,14 @@ body {
   bottom: 3px;
   right: 8px;
   font-size: 9px;
-  color: #252535;
+  color: #33334a;
   letter-spacing: 0.5px;
   pointer-events: none;
   z-index: 10;
   font-weight: 600;
 }
 
-.versionTag.updated {
-  color: #33cc88;
-}
-
-/* ---- VERSION TAG ---- */
-.versionTag {
-  display: block;
-  text-align: right;
-  padding: 4px 10px 6px;
-  font-size: 9px;
-  color: #252535;
-  letter-spacing: 0.5px;
-  font-weight: 600;
-  user-select: none;
-}
-
-/* ---- VERSION TAG ---- */
-.versionTag {
-  position: fixed;
-  bottom: 3px;
-  right: 8px;
-  font-size: 9px;
-  color: #252535;
-  letter-spacing: 0.5px;
-  pointer-events: none;
-  z-index: 10;
-  font-weight: 600;
-}
-
-.versionTag.updated {
-  color: #33cc88;
-}
+.versionTag.updated { color: #33cc88; }
 
 /* ---- TOOL HUB ---- */
 #hubView {
@@ -919,3 +888,150 @@ body {
   font-weight: 600;
   cursor: pointer;
 }
+
+/* ═══════════════════════════════════════ */
+/* v2.4 — REFRESH: colors grid, favorites, */
+/* manual add, sort, polish                */
+/* ═══════════════════════════════════════ */
+
+/* ---- Shared empty state ---- */
+.emptyState {
+  color: #3a3a52;
+  padding: 26px 20px;
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.7;
+  grid-column: 1 / -1;
+}
+
+/* ---- Focus rings for inputs / selects ---- */
+.form input[type="text"]:focus,
+#clientSearch:focus,
+.settingInput:focus { box-shadow: 0 0 0 2px rgba(76,114,255,0.25); }
+
+/* ---- Sort control ---- */
+.sortSelect {
+  flex-shrink: 0;
+  width: 66px;
+  padding: 5px 6px;
+  background: #1a1a28;
+  border: 1px solid #252538;
+  border-radius: 7px;
+  color: #9999b8;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  text-align: center;
+}
+.sortSelect:hover { border-color: #3a3a5a; color: #c8c8e0; }
+
+/* ---- Colors: swatch grid ---- */
+.library--grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px;
+  align-content: start;
+}
+
+.colorTile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  background: #13131e;
+  border: 1px solid #1c1c2a;
+  border-radius: 11px;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, transform 0.08s;
+}
+.colorTile:hover {
+  background: #181828;
+  border-color: #4c72ff;
+  transform: translateY(-2px);
+}
+.colorTile:active { transform: translateY(0); }
+.colorTile.isFav { border-color: #f0b23233; }
+
+.colorTileSwatch {
+  position: relative;
+  width: 100%;
+  height: 46px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.15);
+}
+
+.colorTileName {
+  font-size: 10px;
+  font-weight: 700;
+  color: #d8d8ea;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.colorTileHex {
+  font-size: 9px;
+  color: #55556e;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+/* ---- Favorite star ---- */
+.favStar {
+  color: #f0b232;
+  font-size: 10px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+.colorTileSwatch .favStar {
+  position: absolute;
+  top: 4px;
+  right: 5px;
+}
+.card.isFav { border-color: #2a2740; }
+.card.isFav:hover { border-color: #4c72ff; }
+
+/* ---- Manual color add ---- */
+.manualColorRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.manualColorSwatch {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: #4c72ff;
+}
+.manualColorSwatch.invalid { box-shadow: 0 0 0 2px #ff556680; }
+#manualColorPicker {
+  width: 34px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid #252538;
+  border-radius: 8px;
+  background: #1a1a28;
+  cursor: pointer;
+}
+#manualColorHex {
+  flex: 1;
+  padding: 6px 10px;
+  background: #1a1a28;
+  border: 1px solid #252538;
+  border-radius: 7px;
+  color: #e8e8f0;
+  font-size: 12px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  outline: none;
+}
+#manualColorHex:focus { border-color: #4c72ff; box-shadow: 0 0 0 2px rgba(76,114,255,0.25); }
+
+/* ---- Small polish ---- */
+.card, .colorTile, .clientCard, .toolCard { will-change: transform; }
+::-webkit-scrollbar { width: 7px; height: 7px; }
+::-webkit-scrollbar-thumb { background: #22222e; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #2e2e40; }
+::-webkit-scrollbar-track { background: transparent; }

@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.3.6
+// DopeTool main.js — v2.4.0
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -21,6 +21,7 @@ var activeContextItem = null;
 var activeClientName = null;
 var selectedCaptionStyle = null;
 var currentSrtPath = "";
+var currentSort = "name";
 
 var collectionMap = {
   colors: "colors", fonts: "fonts", textstyles: "textstyles",
@@ -302,6 +303,7 @@ document.getElementById("backBtn").addEventListener("click", function () {
   document.getElementById("addForm").classList.add("hidden");
   document.getElementById("ffxForm").classList.add("hidden");
   document.getElementById("ffxStyleForm").classList.add("hidden");
+  document.getElementById("manualColorForm").classList.add("hidden");
   document.getElementById("editForm").classList.add("hidden");
   showView("homeView");
   loadAllClients();
@@ -344,6 +346,7 @@ document.querySelectorAll(".tabBtn").forEach(function (btn) {
     document.getElementById("addForm").classList.add("hidden");
     document.getElementById("ffxForm").classList.add("hidden");
     document.getElementById("ffxStyleForm").classList.add("hidden");
+    document.getElementById("manualColorForm").classList.add("hidden");
     hideContextMenu();
     updateTabUI();
     loadClientLibrary(currentTab);
@@ -359,6 +362,7 @@ function updateTabUI() {
   document.getElementById("ffxToggleBtn").classList.toggle("hidden", !isFfxTab);
   document.getElementById("quickCaptureBtn").classList.toggle("hidden", !isEffects);
   document.getElementById("ffxStyleToggleBtn").classList.toggle("hidden", !isTextStyles);
+  document.getElementById("manualColorBtn").classList.toggle("hidden", currentTab !== "colors");
   var hint = document.getElementById("shiftHint");
   if (currentTab === "colors") hint.classList.remove("hidden");
   else hint.classList.add("hidden");
@@ -378,14 +382,31 @@ function loadClientLibrary(tab) {
       });
       document.getElementById("clientViewCount").innerText = currentData.length + " " + tab;
       if (currentData.length === 0) {
-        contentEl.innerHTML = '<div style="color:#333348;padding:20px;text-align:center;font-size:11px;">No ' + tab + ' saved yet.<br>Use the buttons above to add.</div>';
+        contentEl.classList.remove("library--grid");
+        contentEl.innerHTML = '<div class="emptyState">No ' + tab + ' saved yet.<br>Use the buttons above to add.</div>';
         return;
       }
-      renderItems(currentData, tab);
+      renderCurrent();
     })
     .catch(function (err) {
+      contentEl.classList.remove("library--grid");
       contentEl.innerHTML = '<div style="color:#ff5566;padding:12px;font-size:11px;">Error: ' + err.message + '</div>';
     });
+}
+
+// Sort: favorites always pinned first, then by the chosen mode.
+function compareItems(a, b) {
+  var af = a.data.favorite ? 1 : 0, bf = b.data.favorite ? 1 : 0;
+  if (af !== bf) return bf - af;
+  if (currentSort === "recent") return (b.data.createdAt || 0) - (a.data.createdAt || 0);
+  var an = (a.data.name || "").toLowerCase(), bn = (b.data.name || "").toLowerCase();
+  return an < bn ? -1 : an > bn ? 1 : 0;
+}
+
+// Re-sort and re-render the already-loaded items (no refetch).
+function renderCurrent() {
+  var sorted = currentData.slice().sort(compareItems);
+  renderItems(sorted, currentTab);
 }
 
 // ---- CAPTURE ----
@@ -490,7 +511,7 @@ document.getElementById("saveBtn").addEventListener("click", function () {
   if (!pendingCapture) return;
   var name = document.getElementById("newName").value.trim();
   if (!name) { document.getElementById("output").innerText = "Please enter a name."; return; }
-  var docData = Object.assign({}, pendingCapture, { name: name, client: currentClient });
+  var docData = Object.assign({}, pendingCapture, { name: name, client: currentClient, createdAt: Date.now() });
   document.getElementById("output").innerText = "Saving...";
   db.collection(collectionMap[currentTab]).add(docData)
     .then(function () {
@@ -678,6 +699,74 @@ document.getElementById("importCaptionsBtn").addEventListener("click", function 
   });
 });
 
+// ---- SORT CONTROL ----
+document.getElementById("sortSelect").addEventListener("change", function () {
+  currentSort = this.value;
+  if (currentData && currentData.length) renderCurrent();
+});
+
+// ---- MANUAL COLOR ADD ----
+function normalizeHex(v) {
+  if (!v) return null;
+  v = v.toString().replace(/[^0-9a-fA-F]/g, "");
+  if (v.length === 3) v = v[0] + v[0] + v[1] + v[1] + v[2] + v[2];
+  if (v.length !== 6) return null;
+  return "#" + v.toUpperCase();
+}
+
+function syncManualColor(hex) {
+  var norm = normalizeHex(hex);
+  var preview = document.getElementById("manualColorPreview");
+  if (norm) {
+    preview.style.backgroundColor = norm;
+    document.getElementById("manualColorPicker").value = norm.toLowerCase();
+    preview.classList.remove("invalid");
+  } else {
+    preview.classList.add("invalid");
+  }
+}
+
+document.getElementById("manualColorBtn").addEventListener("click", function () {
+  var form = document.getElementById("manualColorForm");
+  document.getElementById("addForm").classList.add("hidden");
+  var willShow = form.classList.contains("hidden");
+  form.classList.toggle("hidden");
+  if (willShow) {
+    document.getElementById("manualColorName").value = "";
+    document.getElementById("manualColorHex").value = "#4C72FF";
+    syncManualColor("#4C72FF");
+    document.getElementById("manualColorName").focus();
+  }
+});
+
+document.getElementById("manualColorPicker").addEventListener("input", function () {
+  document.getElementById("manualColorHex").value = this.value.toUpperCase();
+  syncManualColor(this.value);
+});
+
+document.getElementById("manualColorHex").addEventListener("input", function () {
+  syncManualColor(this.value);
+});
+
+document.getElementById("manualColorCancelBtn").addEventListener("click", function () {
+  document.getElementById("manualColorForm").classList.add("hidden");
+});
+
+document.getElementById("manualColorSaveBtn").addEventListener("click", function () {
+  var name = document.getElementById("manualColorName").value.trim();
+  var hex = normalizeHex(document.getElementById("manualColorHex").value);
+  if (!name) { document.getElementById("output").innerText = "Please enter a color name."; return; }
+  if (!hex) { document.getElementById("output").innerText = "Enter a valid hex, e.g. #4C72FF."; return; }
+  document.getElementById("output").innerText = "Saving...";
+  db.collection("colors").add({ name: name, hex: hex, client: currentClient, favorite: false, createdAt: Date.now() })
+    .then(function () {
+      document.getElementById("output").innerText = "Color added.";
+      document.getElementById("manualColorForm").classList.add("hidden");
+      loadClientLibrary("colors");
+    })
+    .catch(function (err) { document.getElementById("output").innerText = "Save failed: " + err.message; });
+});
+
 // ---- HANDLER FACTORIES ----
 function makeColorHandler(hexValue) {
   return function (e) {
@@ -754,27 +843,47 @@ function makeEffectWithPropsHandler(effectData) {
   };
 }
 
+// Small star marker for favorited items.
+function favMark(fav) {
+  return fav ? '<span class="favStar" title="Favorite">★</span>' : '';
+}
+
 // ---- RENDER ITEMS ----
 function renderItems(items, tab) {
   var contentEl = document.getElementById("libraryContent");
   contentEl.innerHTML = "";
+  // Colors render as a compact swatch grid; everything else as list cards.
+  contentEl.classList.toggle("library--grid", tab === "colors");
   if (items.length === 0) {
-    contentEl.innerHTML = '<div style="color:#333348;padding:20px;text-align:center;font-size:11px;">No items</div>';
+    contentEl.innerHTML = '<div class="emptyState">No items</div>';
     return;
   }
+
+  // ---- Colors: swatch grid ----
+  if (tab === "colors") {
+    for (var ci = 0; ci < items.length; ci++) {
+      var cEntry = items[ci];
+      var cData = cEntry.data;
+      var tile = document.createElement("div");
+      tile.className = "colorTile" + (cData.favorite ? " isFav" : "");
+      tile.innerHTML =
+        '<div class="colorTileSwatch" style="background-color:' + cData.hex + '">' + favMark(cData.favorite) + '</div>' +
+        '<div class="colorTileName">' + cData.name + '</div>' +
+        '<div class="colorTileHex">' + cData.hex + '</div>';
+      tile.addEventListener("click", makeColorHandler(cData.hex));
+      addLongPressHandler(tile, cEntry);
+      contentEl.appendChild(tile);
+    }
+    return;
+  }
+
   for (var idx = 0; idx < items.length; idx++) {
     var entry = items[idx];
     var data = entry.data;
     var card = document.createElement("div");
-    card.className = "card";
+    card.className = "card" + (data.favorite ? " isFav" : "");
 
-    if (tab === "colors") {
-      card.innerHTML =
-        '<div class="swatch" style="background-color:' + data.hex + '"></div>' +
-        '<div class="cardInfo"><div class="cardTitle">' + data.name + '</div>' +
-        '<div class="cardSub">' + data.hex + '</div></div>';
-      card.addEventListener("click", makeColorHandler(data.hex));
-    } else if (tab === "fonts") {
+    if (tab === "fonts") {
       card.innerHTML =
         '<div class="cardInfo"><div class="cardTitle">' + data.name + '</div>' +
         '<div class="cardSub">' + (data.weight || "Regular") + '</div></div>';
@@ -815,6 +924,12 @@ function renderItems(items, tab) {
       card.addEventListener("click", makeFfxHandler(data.url, data.filename));
     }
 
+    // Pin a star on favorited cards
+    if (data.favorite) {
+      var titleEl = card.querySelector(".cardTitle");
+      if (titleEl) titleEl.insertAdjacentHTML("afterbegin", favMark(true) + " ");
+    }
+
     addLongPressHandler(card, entry);
     contentEl.appendChild(card);
   }
@@ -848,12 +963,25 @@ function addLongPressHandler(element, entryRef) {
 
 function showContextMenu(x, y) {
   document.getElementById("clientContextMenu").classList.add("hidden");
+  var favBtn = document.getElementById("ctxFavorite");
+  if (favBtn) favBtn.innerText = (activeContextItem && activeContextItem.favorite) ? "☆ Unfavorite" : "⭐ Favorite";
   var menu = document.getElementById("contextMenu");
   menu.style.left = x + "px";
   menu.style.top = y + "px";
   menu.classList.remove("hidden");
 }
 function hideContextMenu() { document.getElementById("contextMenu").classList.add("hidden"); }
+
+document.getElementById("ctxFavorite").addEventListener("click", function (e) {
+  e.stopPropagation();
+  if (!activeContextId) return;
+  var newFav = !(activeContextItem && activeContextItem.favorite);
+  hideContextMenu();
+  document.getElementById("output").innerText = newFav ? "Favorited." : "Unfavorited.";
+  db.collection(collectionMap[currentTab]).doc(activeContextId).update({ favorite: newFav })
+    .then(function () { loadClientLibrary(currentTab); })
+    .catch(function (err) { document.getElementById("output").innerText = "Update failed: " + err.message; });
+});
 
 document.getElementById("ctxDelete").addEventListener("click", function (e) {
   e.stopPropagation();
