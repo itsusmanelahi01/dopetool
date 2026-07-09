@@ -790,6 +790,21 @@ body {
   opacity: 0.35;
   cursor: default;
 }
+.reloadBtn {
+  flex-shrink: 0;
+  width: 34px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #6b6b80;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 0.12s, transform 0.3s;
+}
+.reloadBtn:hover { color: #ffffff; }
+.reloadBtn:active { transform: rotate(180deg); }
 
 /* ═══════════════════════════════════════ */
 /* CAPTION IMPORTER — CLIENT FILTER       */

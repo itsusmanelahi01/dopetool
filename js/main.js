@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.4.1
+// DopeTool main.js — v2.4.2
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -1005,6 +1005,25 @@ document.getElementById("ctxEdit").addEventListener("click", function (e) {
   document.getElementById("editForm").classList.remove("hidden");
 });
 
+// ---- RELOAD PANEL ----
+// Re-loads the ExtendScript file (so updated AE-side code takes effect) and
+// then reloads the HTML page — no need to close/reopen the panel.
+function reloadPanel() {
+  var out = document.getElementById("output");
+  if (out) out.innerText = "Reloading…";
+  try {
+    var jsxPath = toJsxPath(extensionPath + "/jsx/hostscript.jsx");
+    csInterface.evalScript('$.evalFile("' + jsxPath + '")', function () {
+      window.location.reload();
+    });
+  } catch (e) {
+    window.location.reload();
+  }
+}
+
+var reloadBtnEl = document.getElementById("reloadBtn");
+if (reloadBtnEl) reloadBtnEl.addEventListener("click", reloadPanel);
+
 // ---- AUTO UPDATE ----
 function checkForUpdate() {
   var localVersion = getLocalVersion();
@@ -1077,7 +1096,9 @@ function finishUpdate(newVersion, banner, failed) {
   } else {
     setLocalVersion(newVersion);
     showVersion();
-    banner.innerHTML = '<span>✓ Updated to v' + newVersion + '</span>';
+    banner.innerHTML = '<span>✓ Updated to v' + newVersion + ' — reload to apply</span><button id="reloadNowBtn">Reload</button>';
+    var reloadNowBtn = document.getElementById("reloadNowBtn");
+    if (reloadNowBtn) reloadNowBtn.addEventListener("click", reloadPanel);
     showWhatsNew(newVersion);
   }
 }
