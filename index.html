@@ -12,7 +12,7 @@
   <div id="topTabBar" class="topTabBar">
     <button class="topTabBtn active" data-toptab="library">Style Library</button>
     <button class="topTabBtn" data-toptab="captions">Caption Importer</button>
-    <button class="topTabBtn topTabBtnSoon" data-toptab="graph">Graph Tool</button>
+    <button class="topTabBtn" data-toptab="toolkit">Toolkit</button>
     <button id="reloadBtn" class="reloadBtn" title="Reload panel (re-loads code without closing)">⟳</button>
   </div>
 
@@ -247,6 +247,69 @@
 
       <button id="importCaptionsBtn" class="importBtn">↓ Import Captions into Active Comp</button>
       <div id="captionStatus" class="captionStatus">Ready</div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- TOOLKIT VIEW                           -->
+  <!-- ═══════════════════════════════════════ -->
+  <div id="toolkitView" class="hidden">
+    <div class="clientHeader">
+      <div class="clientHeaderInfo">
+        <div class="clientViewName">Toolkit</div>
+        <div class="clientViewCount">Comp &amp; layer utilities</div>
+      </div>
+    </div>
+
+    <div id="toolkitOutput" class="statusBar">Ready</div>
+
+    <div class="toolkitBody">
+
+      <div class="tkSection">
+        <div class="tkLabel">Reframe Comp</div>
+        <div class="tkGrid">
+          <button class="tkBtn" data-w="1080" data-h="1920">9:16</button>
+          <button class="tkBtn" data-w="1080" data-h="1080">1:1</button>
+          <button class="tkBtn" data-w="1920" data-h="1080">16:9</button>
+          <button class="tkBtn" data-w="1080" data-h="1350">4:5</button>
+        </div>
+        <div class="tkRow">
+          <label for="reframeMode">Content</label>
+          <select id="reframeMode">
+            <option value="fit">Fit (contain)</option>
+            <option value="fill">Fill (cover)</option>
+            <option value="none">Recenter only</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="tkSection">
+        <div class="tkLabel">Expressions <span class="tkHint">— select a property first</span></div>
+        <div class="tkGrid">
+          <button class="tkBtn" data-expr="wiggle">Wiggle</button>
+          <button class="tkBtn" data-expr="loop">Loop</button>
+          <button class="tkBtn" data-expr="bounce">Bounce</button>
+          <button class="tkBtn tkBtnGhost" data-expr="clear">Clear</button>
+        </div>
+      </div>
+
+      <div class="tkSection">
+        <div class="tkLabel">Align to Comp</div>
+        <div class="tkAlignGrid">
+          <button class="tkBtn" data-align="left">Left</button>
+          <button class="tkBtn" data-align="hcenter">Center</button>
+          <button class="tkBtn" data-align="right">Right</button>
+          <button class="tkBtn" data-align="top">Top</button>
+          <button class="tkBtn" data-align="vcenter">Middle</button>
+          <button class="tkBtn" data-align="bottom">Bottom</button>
+        </div>
+        <div class="tkLabel" style="margin-top:2px;">Distribute <span class="tkHint">— 3+ layers</span></div>
+        <div class="tkGrid" style="grid-template-columns:repeat(2,1fr);">
+          <button class="tkBtn" data-dist="h">Horizontal</button>
+          <button class="tkBtn" data-dist="v">Vertical</button>
+        </div>
+      </div>
 
     </div>
   </div>

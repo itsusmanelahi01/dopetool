@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.4.2
+// DopeTool main.js — v2.5.0
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -100,7 +100,7 @@ function clientInitial(name) { return name.trim().charAt(0).toUpperCase(); }
 
 // ---- VIEW NAVIGATION ----
 function showView(viewId) {
-  var views = ["hubView","homeView","clientView","captionView"];
+  var views = ["hubView","homeView","clientView","captionView","toolkitView"];
   views.forEach(function (v) {
     document.getElementById(v).classList.toggle("hidden", v !== viewId);
   });
@@ -1276,7 +1276,7 @@ function ensureFontInstalled(fontName, familyName, onReady) {
 }
 
 // ---- PERSISTENT TOP TAB BAR NAVIGATION ----
-var topTabOrder = ["library", "captions", "graph"];
+var topTabOrder = ["library", "captions", "toolkit"];
 
 function setActiveTopTab(tab) {
   var btns = document.querySelectorAll(".topTabBtn");
@@ -1302,6 +1302,9 @@ function switchTopTab(tab) {
     setActiveTopTab("captions");
     showView("captionView");
     loadCaptionStyles();
+  } else if (tab === "toolkit") {
+    setActiveTopTab("toolkit");
+    showView("toolkitView");
   }
 }
 
@@ -1310,7 +1313,6 @@ function switchTopTab(tab) {
   for (var i = 0; i < btns.length; i++) {
     btns[i].addEventListener("click", function () {
       var tab = this.getAttribute("data-toptab");
-      if (tab === "graph") return;
       switchTopTab(tab);
     });
   }
@@ -1324,7 +1326,52 @@ function switchTopTab(tab) {
     if (e.deltaY > 0 && idx < topTabOrder.length - 1) idx++;
     else if (e.deltaY < 0 && idx > 0) idx--;
     var next = topTabOrder[idx];
-    if (next === "graph") return;
     switchTopTab(next);
   });
+})();
+
+// ---- TOOLKIT (comp & layer utilities) ----
+function tkStatus(msg) {
+  var el = document.getElementById("toolkitOutput");
+  if (el) el.innerText = msg;
+}
+function tkEval(script) {
+  tkStatus("Working…");
+  csInterface.evalScript(script, function (r) { tkStatus(r || "Done."); });
+}
+
+(function () {
+  var view = document.getElementById("toolkitView");
+  if (!view) return;
+
+  var reframeBtns = view.querySelectorAll("[data-w]");
+  for (var i = 0; i < reframeBtns.length; i++) {
+    reframeBtns[i].addEventListener("click", function () {
+      var w = parseInt(this.getAttribute("data-w"), 10);
+      var h = parseInt(this.getAttribute("data-h"), 10);
+      var mode = document.getElementById("reframeMode").value;
+      tkEval('reformatComp(' + w + ',' + h + ',"' + mode + '")');
+    });
+  }
+
+  var exprBtns = view.querySelectorAll("[data-expr]");
+  for (var j = 0; j < exprBtns.length; j++) {
+    exprBtns[j].addEventListener("click", function () {
+      tkEval('applyExpression("' + this.getAttribute("data-expr") + '")');
+    });
+  }
+
+  var alignBtns = view.querySelectorAll("[data-align]");
+  for (var k = 0; k < alignBtns.length; k++) {
+    alignBtns[k].addEventListener("click", function () {
+      tkEval('alignLayers("' + this.getAttribute("data-align") + '")');
+    });
+  }
+
+  var distBtns = view.querySelectorAll("[data-dist]");
+  for (var m = 0; m < distBtns.length; m++) {
+    distBtns[m].addEventListener("click", function () {
+      tkEval('distributeLayers("' + this.getAttribute("data-dist") + '")');
+    });
+  }
 })();

@@ -1,4 +1,11 @@
 {
+  "2.5.0": [
+    "New Toolkit tab — comp & layer utilities",
+    "Reframe Comp: switch the active comp to 9:16 / 1:1 / 16:9 / 4:5 with content auto-scaled (fit/fill/recenter)",
+    "Expressions: one-click Wiggle, Loop, Bounce (and Clear) on the selected property",
+    "Align to comp (left/center/right/top/middle/bottom) and distribute layers evenly",
+    "Tightened the Style Library logo spacing"
+  ],
   "2.4.2": [
     "New reload button (⟳) in the top bar — refresh the panel in place after an update instead of closing and reopening it",
     "After an update, the banner now has a one-click Reload button"

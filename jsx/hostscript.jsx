@@ -1,4 +1,4 @@
-// DopeTool hostscript.jsx — v2.4.1
+// DopeTool hostscript.jsx — v2.5.0
 
 function testConnection() {
   return "Connected: AE " + app.version;
@@ -751,4 +751,209 @@ function checkFontInstalled(fontName) {
   } finally {
     try { if (testComp) testComp.remove(); } catch (eFin) {}
   }
+}
+
+// ═══════════════════════════════════════════════════════════
+// TOOLKIT — comp & layer utilities
+// ═══════════════════════════════════════════════════════════
+
+function _dtActiveComp() {
+  var comp = app.project.activeItem;
+  if (!comp || !(comp instanceof CompItem)) return null;
+  return comp;
+}
+
+// On-screen bounding box of a 2D layer (ignores rotation).
+function _dtLayerBounds(layer, t) {
+  var tr = layer.property("Transform");
+  var r = layer.sourceRectAtTime(t, false);
+  var anchor = tr.property("Anchor Point").value;
+  var pos = tr.property("Position").value;
+  var scale = tr.property("Scale").value;
+  var sx = scale[0] / 100, sy = scale[1] / 100;
+  return {
+    left: pos[0] + (r.left - anchor[0]) * sx,
+    top: pos[1] + (r.top - anchor[1]) * sy,
+    width: r.width * sx,
+    height: r.height * sy,
+    pos: pos
+  };
+}
+
+// ---- REFRAME COMP ----
+function _dtReframePos(prop, s, oldC, newC) {
+  function map(v) {
+    var nv = [newC[0] + (v[0] - oldC[0]) * s, newC[1] + (v[1] - oldC[1]) * s];
+    if (v.length > 2) nv[2] = v[2];
+    return nv;
+  }
+  if (prop.numKeys > 0) {
+    for (var k = 1; k <= prop.numKeys; k++) prop.setValueAtTime(prop.keyTime(k), map(prop.keyValue(k)));
+  } else {
+    prop.setValue(map(prop.value));
+  }
+}
+function _dtReframeDim(prop, s, oldc, newc) {
+  function map(v) { return newc + (v - oldc) * s; }
+  if (prop.numKeys > 0) {
+    for (var k = 1; k <= prop.numKeys; k++) prop.setValueAtTime(prop.keyTime(k), map(prop.keyValue(k)));
+  } else {
+    prop.setValue(map(prop.value));
+  }
+}
+function _dtScaleProp(prop, s) {
+  function map(v) {
+    var nv = [v[0] * s, v[1] * s];
+    if (v.length > 2) nv[2] = v[2] * s;
+    return nv;
+  }
+  if (prop.numKeys > 0) {
+    for (var k = 1; k <= prop.numKeys; k++) prop.setValueAtTime(prop.keyTime(k), map(prop.keyValue(k)));
+  } else {
+    prop.setValue(map(prop.value));
+  }
+}
+function _dtReframeLayer(L, s, oldC, newC) {
+  var tr = L.property("Transform");
+  var posProp = tr.property("Position");
+  if (posProp) {
+    if (posProp.dimensionsSeparated) {
+      _dtReframeDim(tr.property("X Position"), s, oldC[0], newC[0]);
+      _dtReframeDim(tr.property("Y Position"), s, oldC[1], newC[1]);
+    } else {
+      _dtReframePos(posProp, s, oldC, newC);
+    }
+  }
+  if (Math.abs(s - 1) > 1e-6) {
+    var scProp = tr.property("Scale");
+    if (scProp) _dtScaleProp(scProp, s);
+  }
+}
+function reformatComp(newW, newH, mode) {
+  try {
+    var comp = _dtActiveComp();
+    if (!comp) return "No active composition.";
+    newW = Math.round(newW); newH = Math.round(newH);
+    if (newW < 4 || newH < 4 || newW > 30000 || newH > 30000) return "Invalid target size.";
+    var oldW = comp.width, oldH = comp.height;
+    if (oldW === newW && oldH === newH) return "Comp is already " + newW + "×" + newH + ".";
+    var s = 1;
+    if (mode === "fit") s = Math.min(newW / oldW, newH / oldH);
+    else if (mode === "fill") s = Math.max(newW / oldW, newH / oldH);
+    var oldC = [oldW / 2, oldH / 2], newC = [newW / 2, newH / 2];
+    app.beginUndoGroup("DopeTool: Reframe Comp");
+    comp.width = newW;
+    comp.height = newH;
+    var count = 0;
+    for (var i = 1; i <= comp.numLayers; i++) {
+      var L = comp.layer(i);
+      try {
+        if (L.parent != null) continue; // children move with their parent
+        _dtReframeLayer(L, s, oldC, newC);
+        count++;
+      } catch (e) {}
+    }
+    app.endUndoGroup();
+    return "Reframed to " + newW + "×" + newH + " (" + count + " layer(s)).";
+  } catch (e) { return "Error: " + e.toString(); }
+}
+
+// ---- EXPRESSIONS ----
+var DT_EXPR = {
+  wiggle: "wiggle(2, 30);",
+  loop: "loopOut(\"cycle\");",
+  bounce: "n = 0;\nif (numKeys > 0){ n = nearestKey(time).index; if (key(n).time > time) n--; }\nif (n > 0){ t = time - key(n).time; amp = .08; freq = 2.5; decay = 5.0; v = velocityAtTime(key(n).time - .001); value + v*amp*Math.sin(freq*t*2*Math.PI)/Math.exp(decay*t); } else { value }"
+};
+function applyExpression(kind) {
+  try {
+    var comp = _dtActiveComp();
+    if (!comp) return "No active composition.";
+    var props = comp.selectedProperties;
+    if (!props || props.length === 0) return "Select a property first (e.g. click 'Position').";
+    var count = 0;
+    app.beginUndoGroup("DopeTool: Expression");
+    for (var i = 0; i < props.length; i++) {
+      var p = props[i];
+      try {
+        if (p.canSetExpression) {
+          p.expression = (kind === "clear") ? "" : (DT_EXPR[kind] || "");
+          count++;
+        }
+      } catch (e) {}
+    }
+    app.endUndoGroup();
+    if (count === 0) return "Select an animatable property (like Position or Opacity).";
+    if (kind === "clear") return "Cleared expression on " + count + " property(ies).";
+    return "Applied " + kind + " to " + count + " property(ies).";
+  } catch (e) { return "Error: " + e.toString(); }
+}
+
+// ---- ALIGN ----
+function alignLayers(mode) {
+  try {
+    var comp = _dtActiveComp();
+    if (!comp) return "No active composition.";
+    var layers = comp.selectedLayers;
+    if (!layers.length) return "No layer selected.";
+    var t = comp.time, count = 0;
+    app.beginUndoGroup("DopeTool: Align");
+    for (var i = 0; i < layers.length; i++) {
+      try {
+        var L = layers[i];
+        var posProp = L.property("Transform").property("Position");
+        if (!posProp || posProp.numKeys > 0) continue; // don't wreck animated positions
+        var b = _dtLayerBounds(L, t);
+        var np = [b.pos[0], b.pos[1]];
+        if (mode === "left") np[0] += (0 - b.left);
+        else if (mode === "right") np[0] += (comp.width - (b.left + b.width));
+        else if (mode === "hcenter") np[0] += (comp.width / 2 - (b.left + b.width / 2));
+        else if (mode === "top") np[1] += (0 - b.top);
+        else if (mode === "bottom") np[1] += (comp.height - (b.top + b.height));
+        else if (mode === "vcenter") np[1] += (comp.height / 2 - (b.top + b.height / 2));
+        if (b.pos.length > 2) np[2] = b.pos[2];
+        posProp.setValue(np);
+        count++;
+      } catch (e) {}
+    }
+    app.endUndoGroup();
+    return count ? "Aligned " + count + " layer(s)." : "No layers aligned (animated or unsupported).";
+  } catch (e) { return "Error: " + e.toString(); }
+}
+
+// ---- DISTRIBUTE ----
+function distributeLayers(axis) {
+  try {
+    var comp = _dtActiveComp();
+    if (!comp) return "No active composition.";
+    var layers = comp.selectedLayers;
+    if (layers.length < 3) return "Select 3+ layers to distribute.";
+    var t = comp.time, arr = [];
+    for (var i = 0; i < layers.length; i++) {
+      try {
+        var posProp = layers[i].property("Transform").property("Position");
+        if (!posProp || posProp.numKeys > 0) continue;
+        var b = _dtLayerBounds(layers[i], t);
+        var center = (axis === "h") ? (b.left + b.width / 2) : (b.top + b.height / 2);
+        arr.push({ layer: layers[i], pos: b.pos, center: center });
+      } catch (e) {}
+    }
+    if (arr.length < 3) return "Need 3+ non-animated layers.";
+    arr.sort(function (a, b) { return a.center - b.center; });
+    var min = arr[0].center, max = arr[arr.length - 1].center;
+    var step = (max - min) / (arr.length - 1);
+    app.beginUndoGroup("DopeTool: Distribute");
+    for (var j = 1; j < arr.length - 1; j++) {
+      try {
+        var it = arr[j];
+        var target = min + step * j;
+        var np = [it.pos[0], it.pos[1]];
+        if (axis === "h") np[0] += (target - it.center);
+        else np[1] += (target - it.center);
+        if (it.pos.length > 2) np[2] = it.pos[2];
+        it.layer.property("Transform").property("Position").setValue(np);
+      } catch (e) {}
+    }
+    app.endUndoGroup();
+    return "Distributed " + arr.length + " layer(s).";
+  } catch (e) { return "Error: " + e.toString(); }
 }
