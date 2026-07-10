@@ -1110,8 +1110,9 @@ body {
   gap: 8px;
   background: #13131e;
   border: 1px solid #1c1c2a;
+  border-left: 3px solid var(--tk-accent, #4c72ff);
   border-radius: 12px;
-  padding: 10px;
+  padding: 10px 11px;
 }
 .tkLabel {
   font-size: 10px;
@@ -1120,7 +1121,40 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.8px;
 }
-.tkHint { color: #444458; font-weight: 400; text-transform: none; letter-spacing: 0; }
+.tkHint { color: #55556e; font-weight: 400; text-transform: none; letter-spacing: 0; }
+
+/* Per-tool header: coloured icon chip + coloured title */
+.tkHeader {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 1px;
+}
+.tkIcon {
+  width: 27px;
+  height: 27px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--tk-accent-bg, #131a33);
+  color: var(--tk-accent, #4c72ff);
+  flex-shrink: 0;
+}
+.tkTitle {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--tk-accent, #4c72ff);
+  letter-spacing: 0.2px;
+}
+.tkHeader .tkHint { margin-left: auto; font-size: 9px; }
+.tkSubLabel {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #6b6b86;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+}
 .tkNote { font-size: 9px; color: #55556e; line-height: 1.5; }
 .tkGrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
 .tkAlignGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
@@ -1135,7 +1169,7 @@ body {
   cursor: pointer;
   transition: background 0.12s, border-color 0.12s, color 0.12s, transform 0.08s;
 }
-.tkBtn:hover { background: #20203a; border-color: #4c72ff; color: #fff; }
+.tkBtn:hover { background: #20203a; border-color: var(--tk-accent, #4c72ff); color: #fff; }
 .tkBtn:active { transform: translateY(1px); }
 .tkBtnGhost { color: #ff6b7d; }
 .tkBtnGhost:hover { border-color: #ff6b7d; background: #251520; color: #ff8a99; }

@@ -1,4 +1,7 @@
 {
+  "2.8.3": [
+    "Toolkit redesign — each tool now has its own colored icon, title and accent stripe so they're easy to tell apart"
+  ],
   "2.8.2": [
     "Caption Importer: each caption's anchor point is now centered on its text (easier to scale/animate)"
   ],

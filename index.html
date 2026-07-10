@@ -291,8 +291,11 @@
 
     <div class="toolkitBody">
 
-      <div class="tkSection">
-        <div class="tkLabel">Reframe Comp</div>
+      <div class="tkSection" style="--tk-accent:#4c72ff; --tk-accent-bg:#131a33;">
+        <div class="tkHeader">
+          <span class="tkIcon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></svg></span>
+          <span class="tkTitle">Reframe Comp</span>
+        </div>
         <div class="tkGrid">
           <button class="tkBtn" data-w="1080" data-h="1920">9:16</button>
           <button class="tkBtn" data-w="1080" data-h="1080">1:1</button>
@@ -309,8 +312,12 @@
         </div>
       </div>
 
-      <div class="tkSection">
-        <div class="tkLabel">Text Exploder <span class="tkHint">— select a text layer</span></div>
+      <div class="tkSection" style="--tk-accent:#b06cff; --tk-accent-bg:#1c1430;">
+        <div class="tkHeader">
+          <span class="tkIcon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="6" width="6" height="6" rx="1"/><rect x="7" y="14" width="7" height="7" rx="1"/></svg></span>
+          <span class="tkTitle">Text Exploder</span>
+          <span class="tkHint">select a text layer</span>
+        </div>
         <div class="tkRow">
           <label for="explodeMode">Split by</label>
           <select id="explodeMode">
@@ -323,8 +330,12 @@
         <div class="tkNote">Splits into separate layers, centers each anchor, and stacks them bottom-to-top for easy stagger animation.</div>
       </div>
 
-      <div class="tkSection">
-        <div class="tkLabel">Expressions <span class="tkHint">— select a property first</span></div>
+      <div class="tkSection" style="--tk-accent:#33cc88; --tk-accent-bg:#0f2a1e;">
+        <div class="tkHeader">
+          <span class="tkIcon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H7a2 2 0 0 0-2 2v4a2 2 0 0 1-2 2 2 2 0 0 1 2 2v4a2 2 0 0 0 2 2h1"/><path d="M16 3h1a2 2 0 0 1 2 2v4a2 2 0 0 0 2 2 2 2 0 0 0-2 2v4a2 2 0 0 1-2 2h-1"/></svg></span>
+          <span class="tkTitle">Expressions</span>
+          <span class="tkHint">select a property</span>
+        </div>
         <div class="tkGrid">
           <button class="tkBtn" data-expr="wiggle">Wiggle</button>
           <button class="tkBtn" data-expr="loop">Loop</button>
@@ -334,8 +345,12 @@
         <div class="tkNote">Wiggle &amp; Bounce add adjustable sliders (Amplitude, Frequency…) to the layer's Effect Controls — tweak them live.</div>
       </div>
 
-      <div class="tkSection">
-        <div class="tkLabel">Align to Comp</div>
+      <div class="tkSection" style="--tk-accent:#ff9944; --tk-accent-bg:#2a1d10;">
+        <div class="tkHeader">
+          <span class="tkIcon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="3" x2="12" y2="21"/><rect x="6" y="6" width="12" height="4" rx="1"/><rect x="8" y="14" width="8" height="4" rx="1"/></svg></span>
+          <span class="tkTitle">Align &amp; Distribute</span>
+        </div>
+        <div class="tkSubLabel">Align to comp</div>
         <div class="tkAlignGrid">
           <button class="tkBtn" data-align="left">Left</button>
           <button class="tkBtn" data-align="hcenter">Center</button>
@@ -344,7 +359,7 @@
           <button class="tkBtn" data-align="vcenter">Middle</button>
           <button class="tkBtn" data-align="bottom">Bottom</button>
         </div>
-        <div class="tkLabel" style="margin-top:2px;">Distribute <span class="tkHint">— 3+ layers</span></div>
+        <div class="tkSubLabel" style="margin-top:4px;">Distribute <span class="tkHint">3+ layers</span></div>
         <div class="tkGrid" style="grid-template-columns:repeat(2,1fr);">
           <button class="tkBtn" data-dist="h">Horizontal</button>
           <button class="tkBtn" data-dist="v">Vertical</button>
