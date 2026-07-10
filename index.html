@@ -237,7 +237,7 @@
       <div class="captionSection">
         <div class="captionLabel">SRT File</div>
         <div class="srtRow">
-          <div id="srtFilePath" class="srtFilePath">No file selected</div>
+          <div id="srtFilePath" class="srtFilePath">Drop a .srt here, or Browse →</div>
           <button id="browseSrtBtn" class="srtBrowseBtn">Browse</button>
         </div>
       </div>
@@ -307,6 +307,20 @@
             <option value="none">Recenter only</option>
           </select>
         </div>
+      </div>
+
+      <div class="tkSection">
+        <div class="tkLabel">Text Exploder <span class="tkHint">— select a text layer</span></div>
+        <div class="tkRow">
+          <label for="explodeMode">Split by</label>
+          <select id="explodeMode">
+            <option value="word">Word</option>
+            <option value="line">Line</option>
+            <option value="character">Character</option>
+          </select>
+        </div>
+        <button class="tkBtn tkBtnWide" id="explodeBtn">Explode Text</button>
+        <div class="tkNote">Splits into separate layers, centers each anchor, and stacks them bottom-to-top for easy stagger animation.</div>
       </div>
 
       <div class="tkSection">

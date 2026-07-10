@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.7.1
+// DopeTool main.js — v2.8.0
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -685,16 +685,57 @@ function loadCaptionStyles() {
 document.getElementById("browseSrtBtn").addEventListener("click", function () {
   csInterface.evalScript("pickSrtFile()", function (result) {
     if (result && result !== "" && result !== "undefined") {
-      currentSrtPath = result;
-      var parts = result.split(/[\/\\]/);
-      document.getElementById("srtFilePath").innerText = parts[parts.length - 1];
-      document.getElementById("srtFilePath").title = result;
-      document.getElementById("captionStatus").innerText = "File: " + parts[parts.length - 1];
+      setSrtFile(result);
     } else {
       document.getElementById("captionStatus").innerText = "No file selected.";
     }
   });
 });
+
+function setSrtFile(path) {
+  currentSrtPath = path;
+  var parts = path.split(/[\/\\]/);
+  var name = parts[parts.length - 1];
+  document.getElementById("srtFilePath").innerText = name;
+  document.getElementById("srtFilePath").title = path;
+  document.getElementById("captionStatus").innerText = "File: " + name;
+}
+
+// ---- SRT DRAG & DROP (Mac + Windows) ----
+// CEP's Node-integrated Chromium exposes the dropped file's absolute path on
+// the File object (file.path), which works on both platforms.
+(function () {
+  var zone = document.getElementById("srtFilePath");
+  if (!zone) return;
+
+  function stop(e) { e.preventDefault(); e.stopPropagation(); }
+
+  ["dragenter", "dragover"].forEach(function (ev) {
+    zone.addEventListener(ev, function (e) { stop(e); zone.classList.add("dropActive"); });
+  });
+  ["dragleave", "dragend"].forEach(function (ev) {
+    zone.addEventListener(ev, function (e) { stop(e); zone.classList.remove("dropActive"); });
+  });
+
+  zone.addEventListener("drop", function (e) {
+    stop(e);
+    zone.classList.remove("dropActive");
+    var files = e.dataTransfer && e.dataTransfer.files;
+    if (!files || !files.length) return;
+    var f = files[0];
+    var path = f.path || "";
+    if (!path) { document.getElementById("captionStatus").innerText = "Couldn't read the dropped file's path."; return; }
+    if (!/\.srt$/i.test(f.name) && !/\.srt$/i.test(path)) {
+      document.getElementById("captionStatus").innerText = "Please drop a .srt file.";
+      return;
+    }
+    setSrtFile(path);
+  });
+
+  // Stop the panel from navigating when a file is dropped outside the zone
+  window.addEventListener("dragover", function (e) { e.preventDefault(); }, false);
+  window.addEventListener("drop", function (e) { e.preventDefault(); }, false);
+})();
 
 document.getElementById("importCaptionsBtn").addEventListener("click", function () {
   if (!currentSrtPath) { document.getElementById("captionStatus").innerText = "Please select an SRT file first."; return; }
@@ -1530,4 +1571,10 @@ function tkEval(script) {
       tkEval('distributeLayers("' + this.getAttribute("data-dist") + '")');
     });
   }
+
+  var explodeBtn = view.querySelector("#explodeBtn");
+  if (explodeBtn) explodeBtn.addEventListener("click", function () {
+    var mode = document.getElementById("explodeMode").value;
+    tkEval('explodeText("' + mode + '")');
+  });
 })();

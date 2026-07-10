@@ -1,4 +1,4 @@
-// DopeTool hostscript.jsx — v2.7.0
+// DopeTool hostscript.jsx — v2.8.0
 
 function testConnection() {
   return "Connected: AE " + app.version;
@@ -1113,5 +1113,112 @@ function importAsset(path, addToComp) {
     }
     app.endUndoGroup();
     return msg;
+  } catch (e) { return "Error: " + e.toString(); }
+}
+
+// ═══════════════════════════════════════════════════════════
+// TEXT EXPLODER — split a text layer by word / line / character
+// Centers each piece's anchor and stacks layers bottom-to-top.
+// ═══════════════════════════════════════════════════════════
+function explodeText(mode) {
+  try {
+    var comp = _dtActiveComp();
+    if (!comp) return "No active composition.";
+    var sel = comp.selectedLayers;
+    var src = null;
+    for (var i = 0; i < sel.length; i++) { if (sel[i] instanceof TextLayer) { src = sel[i]; break; } }
+    if (!src) return "Select a text layer to explode.";
+
+    var doc = src.property("Source Text").value;
+    var fullText = doc.text;
+    if (!fullText || !fullText.replace(/\s/g, "").length) return "The text layer is empty.";
+
+    var fontSize = doc.fontSize || 100;
+    var leading = doc.autoLeading ? fontSize * 1.2 : (doc.leading || fontSize * 1.2);
+    var just = doc.justification;
+
+    // Build segments per line so multi-line text keeps its layout
+    var rawLines = fullText.split(/\r\n|\r|\n/);
+    var segs = [];
+    for (var li = 0; li < rawLines.length; li++) {
+      var lineStr = rawLines[li];
+      if (mode === "line") {
+        if (lineStr.replace(/\s/g, "").length) segs.push({ text: lineStr, li: li, prefix: "", lineStr: lineStr, whole: true });
+      } else if (mode === "character") {
+        for (var c = 0; c < lineStr.length; c++) {
+          var ch = lineStr.charAt(c);
+          if (ch !== " ") segs.push({ text: ch, li: li, prefix: lineStr.substring(0, c), lineStr: lineStr, whole: false });
+        }
+      } else { // word
+        var re = /\S+/g, m;
+        while ((m = re.exec(lineStr)) !== null) segs.push({ text: m[0], li: li, prefix: lineStr.substring(0, m.index), lineStr: lineStr, whole: false });
+      }
+    }
+    if (!segs.length) return "Nothing to explode.";
+    if (segs.length > 500) return "That would make " + segs.length + " layers — too many. Try Word or Line.";
+
+    var t = comp.time;
+    var scale = src.property("Scale").value;
+    var sx = scale[0] / 100, sy = scale[1] / 100;
+    var pos0 = src.property("Position").value;
+
+    app.beginUndoGroup("DopeTool: Explode Text");
+
+    // A hidden duplicate used only to measure prefix / line widths
+    var measurer = src.duplicate();
+    measurer.enabled = false;
+    function widthOf(str) {
+      if (!str) return 0;
+      try {
+        var dv = measurer.property("Source Text").value;
+        dv.text = str;
+        measurer.property("Source Text").setValue(dv);
+        return measurer.sourceRectAtTime(t, false).width;
+      } catch (e) { return 0; }
+    }
+    function baseOffset(lineW) {
+      try {
+        if (just === ParagraphJustification.CENTER_JUSTIFY) return -lineW / 2;
+        if (just === ParagraphJustification.RIGHT_JUSTIFY) return -lineW;
+      } catch (e) {}
+      return 0;
+    }
+
+    var created = [];
+    for (var s = 0; s < segs.length; s++) {
+      var seg = segs[s];
+      var L = src.duplicate();
+      var dv = L.property("Source Text").value;
+      dv.text = seg.text;
+      L.property("Source Text").setValue(dv);
+      try { L.name = seg.text.substr(0, 32); } catch (eN) {}
+
+      var r = L.sourceRectAtTime(t, false);
+      var cx = r.left + r.width / 2;
+      var cy = r.top + r.height / 2;
+      var lineW = seg.whole ? r.width : widthOf(seg.lineStr);
+      var prefixW = seg.whole ? 0 : widthOf(seg.prefix);
+
+      // Comp-space centre of this segment where it sat in the original sentence
+      var compX = pos0[0] + (baseOffset(lineW) + prefixW + r.width / 2) * sx;
+      var compY = pos0[1] + (cy * sy) + (seg.li * leading * sy);
+
+      L.property("Anchor Point").setValue([cx, cy]); // centre the anchor on the word
+      var np = [compX, compY];
+      if (pos0.length > 2) np[2] = pos0[2];
+      L.property("Position").setValue(np);
+
+      created.push(L);
+    }
+    measurer.remove();
+
+    // Stack bottom-to-top: first segment ends up at the bottom
+    for (var o = 1; o < created.length; o++) { try { created[o].moveBefore(created[o - 1]); } catch (eM) {} }
+
+    // Hide the original source layer
+    try { src.enabled = false; src.name = "[exploded] " + src.name; } catch (eS) {}
+
+    app.endUndoGroup();
+    return "Exploded into " + created.length + " layer(s) by " + mode + ".";
   } catch (e) { return "Error: " + e.toString(); }
 }

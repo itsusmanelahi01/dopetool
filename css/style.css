@@ -680,6 +680,13 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  transition: border-color 0.12s, background 0.12s, color 0.12s;
+}
+.srtFilePath.dropActive {
+  border-color: #4c72ff;
+  border-style: dashed;
+  background: #141428;
+  color: #8899ff;
 }
 
 .srtBrowseBtn {
@@ -1145,6 +1152,7 @@ body {
   outline: none;
   cursor: pointer;
 }
+.tkBtnWide { width: 100%; }
 
 /* ---- Small polish ---- */
 .card, .colorTile, .clientCard, .toolCard { will-change: transform; }

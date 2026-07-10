@@ -1,4 +1,9 @@
 {
+  "2.8.0": [
+    "Caption Importer: drag & drop your .srt straight onto the panel (Mac + Windows)",
+    "New Toolkit tool — Text Exploder: split a text layer by word / line / character",
+    "Exploded pieces get a centered anchor point and are stacked bottom-to-top, ready to stagger-animate"
+  ],
   "2.7.1": [
     "Add Asset now lists files straight from the GitHub release — pick from a dropdown, no typing filenames (name + type auto-fill)",
     "Fixed scrolling so the last items in any tab are always reachable",
