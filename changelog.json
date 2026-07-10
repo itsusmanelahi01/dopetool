@@ -1,4 +1,9 @@
 {
+  "2.7.1": [
+    "Add Asset now lists files straight from the GitHub release — pick from a dropdown, no typing filenames (name + type auto-fill)",
+    "Fixed scrolling so the last items in any tab are always reachable",
+    "Cleaner tab bar (icon over label) and tidier layout"
+  ],
   "2.7.0": [
     "New Assets tab per client — images, videos and .aep templates",
     "Assets are hosted free on GitHub Releases (no repo bloat); click a card to download and drop it straight into your comp",

@@ -135,18 +135,19 @@
     </div>
 
     <div id="assetForm" class="form hidden">
-      <div class="formHint">
-        1. Open the repo's <b>Releases</b> → the <b>assets</b> release<br>
-        2. Drag your file in (use names <b>without spaces</b> — use _ or -)<br>
-        3. Fill in below (filename must match exactly)
+      <div class="assetPickRow">
+        <select id="assetFilename" class="assetCategory">
+          <option value="">Loading files…</option>
+        </select>
+        <button id="assetRefreshBtn" class="miniBtn" title="Reload files from the release">↻</button>
       </div>
-      <input type="text" id="assetName" placeholder="Asset name" />
+      <input type="text" id="assetName" placeholder="Display name" />
       <select id="assetCategory" class="assetCategory">
         <option value="image">Image</option>
         <option value="video">Video</option>
         <option value="template">Template (.aep)</option>
       </select>
-      <input type="text" id="assetFilename" placeholder="filename.mp4" />
+      <div class="formHint">Drop files on the repo's <b>assets</b> release, then hit ↻ to see them here.</div>
       <div class="formRow">
         <button id="assetSaveBtn">Save</button>
         <button id="assetCancelBtn" class="btnSecondary">Cancel</button>

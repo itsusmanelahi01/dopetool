@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.7.0
+// DopeTool main.js — v2.7.1
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -798,37 +798,81 @@ document.getElementById("manualColorSaveBtn").addEventListener("click", function
     .catch(function (err) { document.getElementById("output").innerText = "Save failed: " + err.message; });
 });
 
-// ---- ADD ASSET ----
+// ---- ADD ASSET (auto-listed from the GitHub 'assets' release) ----
+var releaseAssetsMap = {}; // filename -> download_url
+
+function guessCategory(filename) {
+  var n = (filename || "").toLowerCase();
+  if (/\.(mp4|mov|avi|mkv|webm|m4v|gif)$/.test(n)) return "video";
+  if (/\.(aep|aet|zip)$/.test(n)) return "template";
+  return "image";
+}
+
+function loadReleaseAssets() {
+  var sel = document.getElementById("assetFilename");
+  sel.innerHTML = '<option value="">Loading files…</option>';
+  releaseAssetsMap = {};
+  fetch("https://api.github.com/repos/" + GITHUB_REPO + "/releases/tags/" + GITHUB_ASSETS_TAG + "?t=" + Date.now())
+    .then(function (res) { if (!res.ok) throw new Error(res.status === 404 ? "no 'assets' release yet" : "HTTP " + res.status); return res.json(); })
+    .then(function (rel) {
+      var assets = (rel && rel.assets) || [];
+      if (!assets.length) { sel.innerHTML = '<option value="">No files on the release yet</option>'; return; }
+      sel.innerHTML = '<option value="">Select a file…</option>';
+      assets.sort(function (a, b) { return a.name.toLowerCase() < b.name.toLowerCase() ? -1 : 1; });
+      assets.forEach(function (a) {
+        releaseAssetsMap[a.name] = a.browser_download_url;
+        var o = document.createElement("option");
+        o.value = a.name;
+        o.textContent = a.name;
+        sel.appendChild(o);
+      });
+    })
+    .catch(function (e) { sel.innerHTML = '<option value="">Could not load (' + e.message + ')</option>'; });
+}
+
 document.getElementById("assetToggleBtn").addEventListener("click", function () {
-  document.getElementById("assetForm").classList.toggle("hidden");
+  var form = document.getElementById("assetForm");
   document.getElementById("addForm").classList.add("hidden");
-  if (!document.getElementById("assetForm").classList.contains("hidden")) {
-    document.getElementById("assetName").focus();
+  var willShow = form.classList.contains("hidden");
+  form.classList.toggle("hidden");
+  if (willShow) {
+    document.getElementById("assetName").value = "";
+    loadReleaseAssets();
+  }
+});
+
+document.getElementById("assetRefreshBtn").addEventListener("click", loadReleaseAssets);
+
+// Picking a file auto-fills the name + category
+document.getElementById("assetFilename").addEventListener("change", function () {
+  var fn = this.value;
+  if (!fn) return;
+  document.getElementById("assetCategory").value = guessCategory(fn);
+  if (!document.getElementById("assetName").value.trim()) {
+    document.getElementById("assetName").value = fn.replace(/\.[^.]+$/, "").replace(/[_.\-]+/g, " ").trim();
   }
 });
 
 document.getElementById("assetCancelBtn").addEventListener("click", function () {
   document.getElementById("assetForm").classList.add("hidden");
   document.getElementById("assetName").value = "";
-  document.getElementById("assetFilename").value = "";
 });
 
 document.getElementById("assetSaveBtn").addEventListener("click", function () {
   var name = document.getElementById("assetName").value.trim();
   var category = document.getElementById("assetCategory").value;
-  var filename = document.getElementById("assetFilename").value.trim();
-  if (!name) { document.getElementById("output").innerText = "Please enter a name."; return; }
-  if (!filename) { document.getElementById("output").innerText = "Please enter the filename."; return; }
+  var filename = document.getElementById("assetFilename").value;
+  if (!filename) { document.getElementById("output").innerText = "Pick a file from the release."; return; }
+  if (!name) { document.getElementById("output").innerText = "Please enter a display name."; return; }
   document.getElementById("output").innerText = "Saving...";
   db.collection("assets").add({
     name: name, client: currentClient, category: category, filename: filename,
-    type: "asset", url: assetUrl(filename), createdAt: Date.now()
+    type: "asset", url: releaseAssetsMap[filename] || assetUrl(filename), createdAt: Date.now()
   })
     .then(function () {
-      document.getElementById("output").innerText = "Saved! Upload " + filename + " to the '" + GITHUB_ASSETS_TAG + "' release on GitHub.";
+      document.getElementById("output").innerText = "Asset added.";
       document.getElementById("assetForm").classList.add("hidden");
       document.getElementById("assetName").value = "";
-      document.getElementById("assetFilename").value = "";
       loadClientLibrary("assets");
     })
     .catch(function (err) { document.getElementById("output").innerText = "Save failed: " + err.message; });
