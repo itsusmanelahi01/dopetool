@@ -1,4 +1,7 @@
 {
+  "2.6.1": [
+    "Fixed a harmless-but-scary 'Image is not a constructor' error by switching Firestore to long-polling (the transport that works inside After Effects)"
+  ],
   "2.6.0": [
     "Text styles now save AND re-apply layer styles (drop shadow, stroke, glows, color overlay) — no FFX needed for those",
     "Caption Importer applies the style's layer styles too",

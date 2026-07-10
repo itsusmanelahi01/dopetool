@@ -10,3 +10,5 @@ var firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 var db = firebase.firestore();
+// NOTE: Firestore transport settings are applied in main.js (which is covered
+// by the auto-updater) so the fix reaches existing installs.

@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.6.0
+// DopeTool main.js — v2.6.1
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -38,6 +38,18 @@ var nodeOs = require("os");
 var nodePath = require("path");
 var extensionPath = csInterface.getSystemPath(SystemPath.EXTENSION);
 var localVersionPath = extensionPath + "/local_version.json";
+
+// ---- FIRESTORE TRANSPORT FIX ----
+// In a CEP panel (Node-integrated context) the browser Image global isn't a
+// real constructor, so Firestore's default WebChannel transport throws
+// "Image is not a constructor". Forcing long-polling avoids that transport and
+// works reliably inside After Effects. Must run before any Firestore query
+// (this executes at load, before DOMContentLoaded fires the first read).
+try {
+  if (typeof db !== "undefined" && db && db.settings) {
+    db.settings({ experimentalForceLongPolling: true });
+  }
+} catch (e) {}
 
 // ---- UPDATE CHANNEL ----
 // channel.json decides which GitHub branch this panel pulls its code, version,
