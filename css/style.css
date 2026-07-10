@@ -1070,6 +1070,7 @@ body {
   letter-spacing: 0.8px;
 }
 .tkHint { color: #444458; font-weight: 400; text-transform: none; letter-spacing: 0; }
+.tkNote { font-size: 9px; color: #55556e; line-height: 1.5; }
 .tkGrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
 .tkAlignGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
 .tkBtn {

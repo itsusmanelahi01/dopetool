@@ -1,4 +1,7 @@
 {
+  "2.5.1": [
+    "Wiggle & Bounce expressions now add adjustable Expression Controls to the layer (Amplitude, Frequency, Decay, Floor) so you can fine-tune them live in Effect Controls"
+  ],
   "2.5.0": [
     "New Toolkit tab — comp & layer utilities",
     "Reframe Comp: switch the active comp to 9:16 / 1:1 / 16:9 / 4:5 with content auto-scaled (fit/fill/recenter)",

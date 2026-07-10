@@ -1,4 +1,4 @@
-// DopeTool hostscript.jsx — v2.5.0
+// DopeTool hostscript.jsx — v2.5.1
 
 function testConnection() {
   return "Connected: AE " + app.version;
@@ -859,11 +859,59 @@ function reformatComp(newW, newH, mode) {
 }
 
 // ---- EXPRESSIONS ----
+// Bounce/Wiggle read their settings from Expression Control effects that get
+// added to the layer, so editors can tweak Amplitude/Frequency/etc. live in the
+// Effect Controls panel (like the Bouncrr plugin). Fallbacks use fixed values
+// if the layer can't be resolved.
 var DT_EXPR = {
   wiggle: "wiggle(2, 30);",
   loop: "loopOut(\"cycle\");",
-  bounce: "n = 0;\nif (numKeys > 0){ n = nearestKey(time).index; if (key(n).time > time) n--; }\nif (n > 0){ t = time - key(n).time; amp = .08; freq = 2.5; decay = 5.0; v = velocityAtTime(key(n).time - .001); value + v*amp*Math.sin(freq*t*2*Math.PI)/Math.exp(decay*t); } else { value }"
+  bounce: "n = 0;\nif (numKeys > 0){ n = nearestKey(time).index; if (key(n).time > time) n--; }\nif (n > 0){ t = time - key(n).time; amp = .08; freq = 2.5; decay = 5.0; v = velocityAtTime(key(n).time - .001); value + v*amp*Math.sin(freq*t*2*Math.PI)/Math.exp(decay*t); } else { value }",
+  wiggleControlled: "wiggle(effect(\"Wiggle Frequency\")(\"Slider\"), effect(\"Wiggle Amplitude\")(\"Slider\"));",
+  bounceControlled: [
+    "amp = effect(\"Bounce Amplitude\")(\"Slider\");",
+    "freq = effect(\"Bounce Frequency\")(\"Slider\");",
+    "decay = effect(\"Bounce Decay\")(\"Slider\");",
+    "floorOn = effect(\"Bounce Floor\")(\"Checkbox\");",
+    "n = 0;",
+    "if (numKeys > 0){ n = nearestKey(time).index; if (key(n).time > time) n--; }",
+    "if (n > 0){",
+    "  t = time - key(n).time;",
+    "  v = velocityAtTime(key(n).time - .001);",
+    "  res = value + v * (amp/1000) * Math.sin(freq*t*2*Math.PI) / Math.exp(decay*t);",
+    "} else { res = value; }",
+    "if (floorOn == 1){",
+    "  if (value.length){ out = []; for (k = 0; k < value.length; k++){ out[k] = Math.max(res[k], value[k]); } res = out; }",
+    "  else { res = Math.max(res, value); }",
+    "}",
+    "res"
+  ].join("\n")
 };
+
+// Walk up from a property to the layer that contains it.
+function _dtLayerOfProp(prop) {
+  try {
+    var p = prop;
+    while (p && p.parentProperty) p = p.parentProperty;
+    return p;
+  } catch (e) { return null; }
+}
+
+// Add (or reuse, by name) an Expression Control effect on a layer.
+function _dtGetOrAddControl(layer, matchName, name, propName, defVal) {
+  try {
+    var fx = layer.property("Effects");
+    if (!fx) return null;
+    for (var i = 1; i <= fx.numProperties; i++) {
+      if (fx.property(i).name === name) return fx.property(i); // already there — keep its value
+    }
+    var ctrl = fx.addProperty(matchName);
+    try { ctrl.name = name; } catch (e1) {}
+    if (propName) { try { ctrl.property(propName).setValue(defVal); } catch (e2) {} }
+    return ctrl;
+  } catch (e) { return null; }
+}
+
 function applyExpression(kind) {
   try {
     var comp = _dtActiveComp();
@@ -875,16 +923,36 @@ function applyExpression(kind) {
     for (var i = 0; i < props.length; i++) {
       var p = props[i];
       try {
-        if (p.canSetExpression) {
-          p.expression = (kind === "clear") ? "" : (DT_EXPR[kind] || "");
-          count++;
+        if (!p.canSetExpression) continue;
+        if (kind === "clear") { p.expression = ""; count++; continue; }
+
+        var layer = _dtLayerOfProp(p);
+        var expr;
+        if (kind === "wiggle") {
+          if (layer) {
+            _dtGetOrAddControl(layer, "ADBE Slider Control", "Wiggle Frequency", "Slider", 2);
+            _dtGetOrAddControl(layer, "ADBE Slider Control", "Wiggle Amplitude", "Slider", 30);
+            expr = DT_EXPR.wiggleControlled;
+          } else { expr = DT_EXPR.wiggle; }
+        } else if (kind === "bounce") {
+          if (layer) {
+            _dtGetOrAddControl(layer, "ADBE Slider Control", "Bounce Amplitude", "Slider", 50);
+            _dtGetOrAddControl(layer, "ADBE Slider Control", "Bounce Frequency", "Slider", 2);
+            _dtGetOrAddControl(layer, "ADBE Slider Control", "Bounce Decay", "Slider", 4);
+            _dtGetOrAddControl(layer, "ADBE Checkbox Control", "Bounce Floor", "Checkbox", 0);
+            expr = DT_EXPR.bounceControlled;
+          } else { expr = DT_EXPR.bounce; }
+        } else {
+          expr = DT_EXPR[kind] || "";
         }
+        p.expression = expr;
+        count++;
       } catch (e) {}
     }
     app.endUndoGroup();
     if (count === 0) return "Select an animatable property (like Position or Opacity).";
     if (kind === "clear") return "Cleared expression on " + count + " property(ies).";
-    return "Applied " + kind + " to " + count + " property(ies).";
+    return "Applied " + kind + " to " + count + " property(ies) — tweak the sliders in Effect Controls.";
   } catch (e) { return "Error: " + e.toString(); }
 }
 
