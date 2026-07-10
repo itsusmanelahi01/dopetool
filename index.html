@@ -345,6 +345,25 @@
         <div class="tkNote">Wiggle &amp; Bounce add adjustable sliders (Amplitude, Frequency…) to the layer's Effect Controls — tweak them live.</div>
       </div>
 
+      <div class="tkSection" style="--tk-accent:#29c2d6; --tk-accent-bg:#0e2830;">
+        <div class="tkHeader">
+          <span class="tkIcon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg></span>
+          <span class="tkTitle">Slider Counter</span>
+          <span class="tkHint">select a text layer</span>
+        </div>
+        <div class="tkFieldRow">
+          <input type="text" id="counterPrefix" class="tkInput" placeholder="Prefix  e.g. $" />
+          <input type="text" id="counterPostfix" class="tkInput" placeholder="Postfix  e.g. KG" />
+        </div>
+        <div class="tkRow">
+          <label for="counterDecimals">Decimals</label>
+          <input type="number" id="counterDecimals" class="tkNum" value="0" min="0" max="10" />
+          <label class="tkCheck"><input type="checkbox" id="counterCommas" /> Commas</label>
+        </div>
+        <button class="tkBtn tkBtnWide" id="counterBtn">Add Counter</button>
+        <div class="tkNote">Adds a "Counter" slider to the layer and links the text to it. Keyframe the slider to count.</div>
+      </div>
+
       <div class="tkSection" style="--tk-accent:#ff9944; --tk-accent-bg:#2a1d10;">
         <div class="tkHeader">
           <span class="tkIcon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="3" x2="12" y2="21"/><rect x="6" y="6" width="12" height="4" rx="1"/><rect x="8" y="14" width="8" height="4" rx="1"/></svg></span>

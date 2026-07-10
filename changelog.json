@@ -1,4 +1,8 @@
 {
+  "2.9.0": [
+    "New Toolkit tool — Slider Counter: adds a Counter slider to a text layer and links the text to it",
+    "Set a prefix ($) and postfix (KG, %), choose decimal places, and toggle thousands commas — keyframe the slider to animate the number"
+  ],
   "2.8.3": [
     "Toolkit redesign — each tool now has its own colored icon, title and accent stripe so they're easy to tell apart"
   ],

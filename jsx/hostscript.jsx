@@ -1,4 +1,4 @@
-// DopeTool hostscript.jsx — v2.8.2
+// DopeTool hostscript.jsx — v2.9.0
 
 function testConnection() {
   return "Connected: AE " + app.version;
@@ -1233,5 +1233,57 @@ function explodeText(mode) {
 
     app.endUndoGroup();
     return "Exploded into " + created.length + " layer(s) by " + mode + ".";
+  } catch (e) { return "Error: " + e.toString(); }
+}
+
+// ═══════════════════════════════════════════════════════════
+// SLIDER COUNTER — add a Slider Control and link the Source Text
+// to it, with prefix / postfix / decimals / thousands commas.
+// ═══════════════════════════════════════════════════════════
+function _dtStrLit(s) {
+  try { return JSON.stringify(String(s)); }
+  catch (e) {
+    return '"' + String(s).replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n") + '"';
+  }
+}
+function addSliderCounter(cfgJson) {
+  try {
+    var comp = _dtActiveComp();
+    if (!comp) return "No active composition.";
+    var layers = comp.selectedLayers;
+    var src = null;
+    for (var i = 0; i < layers.length; i++) { if (layers[i] instanceof TextLayer) { src = layers[i]; break; } }
+    if (!src) return "Select a text layer.";
+
+    var cfg = JSON.parse(cfgJson);
+    var prefix = cfg.prefix || "";
+    var postfix = cfg.postfix || "";
+    var dec = parseInt(cfg.decimals, 10);
+    if (isNaN(dec) || dec < 0) dec = 0;
+    if (dec > 10) dec = 10;
+    var commas = !!cfg.commas;
+    var effName = "Counter";
+
+    app.beginUndoGroup("DopeTool: Slider Counter");
+
+    // Add (or reuse) a slider control named "Counter" on this layer
+    _dtGetOrAddControl(src, "ADBE Slider Control", effName, null, null);
+
+    var slider = 'effect("' + effName + '")("Slider")';
+    var lines = [];
+    lines.push('var v = ' + slider + ';');
+    lines.push('var neg = v < 0;');
+    lines.push('var n = Math.abs(v).toFixed(' + dec + ');');
+    if (commas) {
+      lines.push('var p = n.split(".");');
+      lines.push('p[0] = p[0].replace(/\\B(?=(\\d{3})+(?!\\d))/g, ",");');
+      lines.push('n = p.join(".");');
+    }
+    lines.push('(neg ? "-" : "") + ' + _dtStrLit(prefix) + ' + n + ' + _dtStrLit(postfix) + ';');
+
+    src.property("Source Text").expression = lines.join("\n");
+
+    app.endUndoGroup();
+    return "Counter added — keyframe the 'Counter' slider in Effect Controls.";
   } catch (e) { return "Error: " + e.toString(); }
 }
