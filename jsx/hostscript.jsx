@@ -1,4 +1,4 @@
-// DopeTool hostscript.jsx — v2.5.2
+// DopeTool hostscript.jsx — v2.6.0
 
 function testConnection() {
   return "Connected: AE " + app.version;
@@ -180,6 +180,63 @@ function clearAllEffects(layer) {
   } catch (e) {}
 }
 
+// ---- LAYER STYLES ----
+// Maps a captured style's display name to the key addProperty() expects.
+var DT_LAYERSTYLE_KEYS = {
+  "Drop Shadow": "dropShadow",
+  "Inner Shadow": "innerShadow",
+  "Outer Glow": "outerGlow",
+  "Inner Glow": "innerGlow",
+  "Bevel and Emboss": "bevelEmboss",
+  "Bevel & Emboss": "bevelEmboss",
+  "Satin": "satin",
+  "Color Overlay": "colorOverlay",
+  "Gradient Overlay": "gradientOverlay",
+  "Stroke": "stroke"
+};
+
+function clearLayerStyles(layer) {
+  try {
+    var ls = layer.property("ADBE Layer Styles");
+    if (!ls) return;
+    // Remove enabled styles (Blending Options can't be removed — that throws and is ignored)
+    for (var i = ls.numProperties; i >= 1; i--) {
+      try { ls.property(i).remove(); } catch (e) {}
+    }
+  } catch (e) {}
+}
+
+// Re-create captured layer styles (drop shadow, stroke, color overlay, glows, etc.)
+// and restore their property values. Note: Gradient Overlay's gradient *colors*
+// use an opaque data type ExtendScript can't fully serialize, so those may need
+// an FFX; solid styles restore cleanly.
+function restoreLayerStyles(layer, layerStyles) {
+  try {
+    if (!layerStyles || !layerStyles.length) return 0;
+    var ls = layer.property("ADBE Layer Styles");
+    if (!ls) return 0;
+    var applied = 0;
+    for (var i = 0; i < layerStyles.length; i++) {
+      try {
+        var st = layerStyles[i];
+        if (!st || !st.name) continue;
+        // Skip the Blending Options container if it slipped into the capture
+        if (st.name === "Blending Options") continue;
+        var key = DT_LAYERSTYLE_KEYS[st.name];
+        if (!key) continue;
+        try { if (ls.canAddProperty(key)) ls.addProperty(key); } catch (eAdd) {}
+        // Find the (now enabled) style group by name and restore its values
+        var target = null;
+        for (var p = 1; p <= ls.numProperties; p++) {
+          if (ls.property(p).name === st.name) { target = ls.property(p); break; }
+        }
+        if (target && st.props) { restoreEffectProps(target, st.props); applied++; }
+      } catch (e) {}
+    }
+    return applied;
+  } catch (e) { return 0; }
+}
+
 // ---- APPLY TEXT STYLE (full — clears old effects first) ----
 function applyTextStyle(styleJson) {
   try {
@@ -200,8 +257,9 @@ function applyTextStyle(styleJson) {
       var layer = layers[i];
       if (!(layer instanceof TextLayer)) continue;
 
-      // ---- Clear existing effects before applying new ones ----
+      // ---- Clear existing effects & layer styles before applying new ones ----
       clearAllEffects(layer);
+      clearLayerStyles(layer);
 
       var tp = layer.property("Source Text");
       var td = tp.value;
@@ -269,6 +327,9 @@ function applyTextStyle(styleJson) {
           if (newFx && effects[ef].props) restoreEffectProps(newFx, effects[ef].props, layer.inPoint);
         } catch (e) {}
       }
+
+      // Apply saved layer styles (drop shadow, stroke, glows, color overlay, etc.)
+      restoreLayerStyles(layer, s.layerStyles || []);
 
       count++;
     }
@@ -640,7 +701,7 @@ function importCaptions(cfgJson) {
       var iF = Math.round(e.inSec * fps);
       var oF = Math.min(Math.round(e.outSec * fps), Math.round(dur * fps) - 1);
       if (oF <= iF) oF = iF + 1;
-      var tl = comp.layers.addBoxText([W * 0.9, H * 0.25], e.text);
+      var tl = comp.layers.addText(e.text); // point text (not box text)
       tl.name = lname(e.text);
       tl.startTime = iF / fps;
       tl.outPoint = oF / fps;
@@ -672,6 +733,9 @@ function importCaptions(cfgJson) {
           } catch (eFx) {}
         }
       }
+
+      // Apply the saved style's layer styles too (drop shadow, stroke, glows, etc.)
+      if (cfg.layerStyles && cfg.layerStyles.length) restoreLayerStyles(tl, cfg.layerStyles);
 
       var tr = tl.property("Transform");
       tr.property("Anchor Point").setValue([0, 0]);

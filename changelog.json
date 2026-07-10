@@ -1,4 +1,10 @@
 {
+  "2.6.0": [
+    "Text styles now save AND re-apply layer styles (drop shadow, stroke, glows, color overlay) — no FFX needed for those",
+    "Caption Importer applies the style's layer styles too",
+    "Caption Importer now creates point text instead of box text",
+    "Note: Gradient Overlay colours still need an FFX (AE can't fully serialise gradients)"
+  ],
   "2.5.2": [
     "Bounce Amplitude now defaults to 20 for a subtler bounce out of the box"
   ],
