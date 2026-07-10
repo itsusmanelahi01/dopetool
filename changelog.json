@@ -1,4 +1,7 @@
 {
+  "2.8.1": [
+    "Text Exploder: fixed word/character positioning so pieces stay exactly where they were (now accounts for spaces and kerning)"
+  ],
   "2.8.0": [
     "Caption Importer: drag & drop your .srt straight onto the panel (Mac + Windows)",
     "New Toolkit tool — Text Exploder: split a text layer by word / line / character",

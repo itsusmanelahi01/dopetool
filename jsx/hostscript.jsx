@@ -1,4 +1,4 @@
-// DopeTool hostscript.jsx — v2.8.0
+// DopeTool hostscript.jsx — v2.8.1
 
 function testConnection() {
   return "Connected: AE " + app.version;
@@ -1197,10 +1197,15 @@ function explodeText(mode) {
       var cx = r.left + r.width / 2;
       var cy = r.top + r.height / 2;
       var lineW = seg.whole ? r.width : widthOf(seg.lineStr);
-      var prefixW = seg.whole ? 0 : widthOf(seg.prefix);
+
+      // Advance-accurate horizontal centre of this segment within its line.
+      // width(prefix+segment) - segment/2 correctly accounts for spaces and
+      // kerning (a trailing space has zero *ink* width, so measuring the prefix
+      // alone would drift words left — this doesn't).
+      var segCenterInLine = seg.whole ? (r.width / 2) : (widthOf(seg.prefix + seg.text) - r.width / 2);
 
       // Comp-space centre of this segment where it sat in the original sentence
-      var compX = pos0[0] + (baseOffset(lineW) + prefixW + r.width / 2) * sx;
+      var compX = pos0[0] + (baseOffset(lineW) + segCenterInLine) * sx;
       var compY = pos0[1] + (cy * sy) + (seg.li * leading * sy);
 
       L.property("Anchor Point").setValue([cx, cy]); // centre the anchor on the word
