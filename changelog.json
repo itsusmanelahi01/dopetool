@@ -1,4 +1,7 @@
 {
+  "2.5.2": [
+    "Bounce Amplitude now defaults to 20 for a subtler bounce out of the box"
+  ],
   "2.5.1": [
     "Wiggle & Bounce expressions now add adjustable Expression Controls to the layer (Amplitude, Frequency, Decay, Floor) so you can fine-tune them live in Effect Controls"
   ],

@@ -1,4 +1,4 @@
-// DopeTool hostscript.jsx — v2.5.1
+// DopeTool hostscript.jsx — v2.5.2
 
 function testConnection() {
   return "Connected: AE " + app.version;
@@ -936,7 +936,7 @@ function applyExpression(kind) {
           } else { expr = DT_EXPR.wiggle; }
         } else if (kind === "bounce") {
           if (layer) {
-            _dtGetOrAddControl(layer, "ADBE Slider Control", "Bounce Amplitude", "Slider", 50);
+            _dtGetOrAddControl(layer, "ADBE Slider Control", "Bounce Amplitude", "Slider", 20);
             _dtGetOrAddControl(layer, "ADBE Slider Control", "Bounce Frequency", "Slider", 2);
             _dtGetOrAddControl(layer, "ADBE Slider Control", "Bounce Decay", "Slider", 4);
             _dtGetOrAddControl(layer, "ADBE Checkbox Control", "Bounce Floor", "Checkbox", 0);
