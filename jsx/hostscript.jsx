@@ -1,4 +1,4 @@
-// DopeTool hostscript.jsx — v2.8.1
+// DopeTool hostscript.jsx — v2.8.2
 
 function testConnection() {
   return "Connected: AE " + app.version;
@@ -738,7 +738,15 @@ function importCaptions(cfgJson) {
       if (cfg.layerStyles && cfg.layerStyles.length) restoreLayerStyles(tl, cfg.layerStyles);
 
       var tr = tl.property("Transform");
-      tr.property("Anchor Point").setValue([0, 0]);
+      // Centre the anchor point on the caption's text box so it scales/rotates
+      // around its own centre; then position that centre where we want it.
+      var cRect = null;
+      try { cRect = tl.sourceRectAtTime(tl.inPoint, false); } catch (eR) { cRect = null; }
+      if (cRect) {
+        tr.property("Anchor Point").setValue([cRect.left + cRect.width / 2, cRect.top + cRect.height / 2]);
+      } else {
+        tr.property("Anchor Point").setValue([0, 0]);
+      }
       tr.property("Position").setValue([W / 2, H / 2 + (cfg.verticalOffset || 200)]);
       if (cfg.fadeFrames > 0) {
         var op = tr.property("Opacity"), fd = cfg.fadeFrames / fps;
