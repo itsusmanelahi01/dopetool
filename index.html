@@ -113,6 +113,10 @@
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
         Anim
       </button>
+      <button class="tabBtn" data-tab="assets">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+        Assets
+      </button>
     </div>
 
     <div id="output" class="statusBar">Ready</div>
@@ -123,10 +127,30 @@
       <button id="ffxStyleToggleBtn" class="addBtn hidden">+ Add FFX Style</button>
       <button id="ffxToggleBtn" class="addBtn hidden">+ Add FFX</button>
       <button id="quickCaptureBtn" class="addBtn hidden">+ Quick Capture</button>
+      <button id="assetToggleBtn" class="addBtn hidden">+ Add Asset</button>
       <select id="sortSelect" class="sortSelect" title="Sort items">
         <option value="name">A–Z</option>
         <option value="recent">Recent</option>
       </select>
+    </div>
+
+    <div id="assetForm" class="form hidden">
+      <div class="formHint">
+        1. Open the repo's <b>Releases</b> → the <b>assets</b> release<br>
+        2. Drag your file in (use names <b>without spaces</b> — use _ or -)<br>
+        3. Fill in below (filename must match exactly)
+      </div>
+      <input type="text" id="assetName" placeholder="Asset name" />
+      <select id="assetCategory" class="assetCategory">
+        <option value="image">Image</option>
+        <option value="video">Video</option>
+        <option value="template">Template (.aep)</option>
+      </select>
+      <input type="text" id="assetFilename" placeholder="filename.mp4" />
+      <div class="formRow">
+        <button id="assetSaveBtn">Save</button>
+        <button id="assetCancelBtn" class="btnSecondary">Cancel</button>
+      </div>
     </div>
 
     <div id="manualColorForm" class="form hidden">

@@ -370,6 +370,22 @@ body {
 
 .badge.ffx { background: #22163a; color: #9966ff; }
 .badge.anim { background: #102a1e; color: #33bb77; }
+.badge.asset { background: #10202a; color: #4cb0d8; }
+.badge.asset.video { background: #201628; color: #c07ce0; }
+.badge.asset.template { background: #2a2410; color: #e0b64c; }
+
+.assetCategory {
+  width: 100%;
+  padding: 6px 10px;
+  background: #1a1a28;
+  border: 1px solid #252538;
+  border-radius: 7px;
+  color: #e8e8f0;
+  font-size: 11px;
+  outline: none;
+  cursor: pointer;
+}
+.assetCategory:focus { border-color: #4c72ff; }
 
 /* ---- SHIFT HINT ---- */
 .shiftHint {

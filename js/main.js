@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.6.1
+// DopeTool main.js — v2.7.0
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -25,12 +25,12 @@ var currentSort = "name";
 
 var collectionMap = {
   colors: "colors", fonts: "fonts", textstyles: "textstyles",
-  effects: "effects", animations: "animations"
+  effects: "effects", animations: "animations", assets: "assets"
 };
 
 var captureFunctionMap = {
   colors: "captureColor()", fonts: "captureFont()",
-  textstyles: "captureTextStyle()", effects: null, animations: null
+  textstyles: "captureTextStyle()", effects: null, animations: null, assets: null
 };
 
 var nodeFs = require("fs");
@@ -81,6 +81,18 @@ function toJsxPath(p) {
 
 function getPresetsDir() {
   return nodePath.join(nodeOs.homedir(), "Documents", "DopeTool_Presets");
+}
+
+// ---- ASSETS (stored as GitHub Release assets — free, no repo bloat) ----
+// The lead drag-drops files onto a Release tagged "assets"; the panel builds
+// the public download URL from the filename. Assets are shared across channels,
+// so this always points at the main repo (no branch).
+var GITHUB_ASSETS_TAG = "assets";
+function getAssetsDir() {
+  return nodePath.join(nodeOs.homedir(), "Documents", "DopeTool_Assets");
+}
+function assetUrl(filename) {
+  return "https://github.com/" + GITHUB_REPO + "/releases/download/" + GITHUB_ASSETS_TAG + "/" + encodeURIComponent(filename);
 }
 
 // ---- VERSION ----
@@ -134,7 +146,7 @@ document.getElementById("openCaptionBtn").addEventListener("click", function () 
 function loadAllClients() {
   var grid = document.getElementById("clientGrid");
   grid.innerHTML = '<div style="color:#333348;padding:20px;text-align:center;font-size:11px;">Loading...</div>';
-  var collections = ["colors","fonts","textstyles","effects","animations"];
+  var collections = ["colors","fonts","textstyles","effects","animations","assets"];
   var clientMap = {};
   var pending = collections.length;
 
@@ -178,6 +190,7 @@ function renderClientGrid(clientMap) {
     if (data.types.textstyles) typeSummary.push(data.types.textstyles + " styles");
     if (data.types.effects) typeSummary.push(data.types.effects + " fx");
     if (data.types.animations) typeSummary.push(data.types.animations + " anims");
+    if (data.types.assets) typeSummary.push(data.types.assets + " assets");
 
     var card = document.createElement("div");
     card.className = "clientCard";
@@ -252,7 +265,7 @@ document.getElementById("clientRenameSaveBtn").addEventListener("click", functio
   var newName = document.getElementById("clientRenameName").value.trim();
   if (!newName || !activeClientName) return;
   if (newName === activeClientName) { document.getElementById("clientRenameForm").classList.add("hidden"); return; }
-  var collections = ["colors","fonts","textstyles","effects","animations"];
+  var collections = ["colors","fonts","textstyles","effects","animations","assets"];
   var pending = collections.length;
   var oldName = activeClientName;
   collections.forEach(function (col) {
@@ -280,7 +293,7 @@ document.getElementById("ctxClientDelete").addEventListener("click", function (e
   document.getElementById("clientContextMenu").classList.add("hidden");
   var confirmed = confirm("Delete client \"" + activeClientName + "\" and ALL their items? This cannot be undone.");
   if (!confirmed) return;
-  var collections = ["colors","fonts","textstyles","effects","animations"];
+  var collections = ["colors","fonts","textstyles","effects","animations","assets"];
   var pending = collections.length;
   var clientToDelete = activeClientName;
   collections.forEach(function (col) {
@@ -316,6 +329,7 @@ document.getElementById("backBtn").addEventListener("click", function () {
   document.getElementById("ffxForm").classList.add("hidden");
   document.getElementById("ffxStyleForm").classList.add("hidden");
   document.getElementById("manualColorForm").classList.add("hidden");
+  document.getElementById("assetForm").classList.add("hidden");
   document.getElementById("editForm").classList.add("hidden");
   showView("homeView");
   loadAllClients();
@@ -359,6 +373,7 @@ document.querySelectorAll(".tabBtn").forEach(function (btn) {
     document.getElementById("ffxForm").classList.add("hidden");
     document.getElementById("ffxStyleForm").classList.add("hidden");
     document.getElementById("manualColorForm").classList.add("hidden");
+    document.getElementById("assetForm").classList.add("hidden");
     hideContextMenu();
     updateTabUI();
     loadClientLibrary(currentTab);
@@ -369,12 +384,14 @@ function updateTabUI() {
   var isEffects = currentTab === "effects";
   var isAnimations = currentTab === "animations";
   var isTextStyles = currentTab === "textstyles";
+  var isAssets = currentTab === "assets";
   var isFfxTab = isEffects || isAnimations;
-  document.getElementById("captureBtn").classList.toggle("hidden", isFfxTab);
+  document.getElementById("captureBtn").classList.toggle("hidden", isFfxTab || isAssets);
   document.getElementById("ffxToggleBtn").classList.toggle("hidden", !isFfxTab);
   document.getElementById("quickCaptureBtn").classList.toggle("hidden", !isEffects);
   document.getElementById("ffxStyleToggleBtn").classList.toggle("hidden", !isTextStyles);
   document.getElementById("manualColorBtn").classList.toggle("hidden", currentTab !== "colors");
+  document.getElementById("assetToggleBtn").classList.toggle("hidden", !isAssets);
   var hint = document.getElementById("shiftHint");
   if (currentTab === "colors") hint.classList.remove("hidden");
   else hint.classList.add("hidden");
@@ -781,6 +798,42 @@ document.getElementById("manualColorSaveBtn").addEventListener("click", function
     .catch(function (err) { document.getElementById("output").innerText = "Save failed: " + err.message; });
 });
 
+// ---- ADD ASSET ----
+document.getElementById("assetToggleBtn").addEventListener("click", function () {
+  document.getElementById("assetForm").classList.toggle("hidden");
+  document.getElementById("addForm").classList.add("hidden");
+  if (!document.getElementById("assetForm").classList.contains("hidden")) {
+    document.getElementById("assetName").focus();
+  }
+});
+
+document.getElementById("assetCancelBtn").addEventListener("click", function () {
+  document.getElementById("assetForm").classList.add("hidden");
+  document.getElementById("assetName").value = "";
+  document.getElementById("assetFilename").value = "";
+});
+
+document.getElementById("assetSaveBtn").addEventListener("click", function () {
+  var name = document.getElementById("assetName").value.trim();
+  var category = document.getElementById("assetCategory").value;
+  var filename = document.getElementById("assetFilename").value.trim();
+  if (!name) { document.getElementById("output").innerText = "Please enter a name."; return; }
+  if (!filename) { document.getElementById("output").innerText = "Please enter the filename."; return; }
+  document.getElementById("output").innerText = "Saving...";
+  db.collection("assets").add({
+    name: name, client: currentClient, category: category, filename: filename,
+    type: "asset", url: assetUrl(filename), createdAt: Date.now()
+  })
+    .then(function () {
+      document.getElementById("output").innerText = "Saved! Upload " + filename + " to the '" + GITHUB_ASSETS_TAG + "' release on GitHub.";
+      document.getElementById("assetForm").classList.add("hidden");
+      document.getElementById("assetName").value = "";
+      document.getElementById("assetFilename").value = "";
+      loadClientLibrary("assets");
+    })
+    .catch(function (err) { document.getElementById("output").innerText = "Save failed: " + err.message; });
+});
+
 // ---- HANDLER FACTORIES ----
 function makeColorHandler(hexValue) {
   return function (e) {
@@ -854,6 +907,44 @@ function makeEffectWithPropsHandler(effectData) {
   return function () {
     var escaped = JSON.stringify(effectData).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
     csInterface.evalScript('applyEffectWithProps("' + escaped + '")', function (result) { document.getElementById("output").innerText = result; });
+  };
+}
+
+// Download an asset from GitHub Releases (cached locally) and import it into AE.
+// Images/videos are added to the active comp; templates (.aep) are imported.
+function makeAssetHandler(data) {
+  return function () {
+    var outputEl = document.getElementById("output");
+    var filename = data.filename;
+    if (!filename) { outputEl.innerText = "This asset has no filename."; return; }
+    var url = data.url || assetUrl(filename);
+    var category = data.category || "image";
+    var addToComp = (category !== "template");
+    var dir = getAssetsDir();
+    var localPath = nodePath.join(dir, filename);
+    var jsxPath = toJsxPath(localPath);
+
+    function doImport() {
+      outputEl.innerText = "Importing…";
+      csInterface.evalScript('importAsset("' + jsxPath + '", ' + (addToComp ? "true" : "false") + ')', function (r) { outputEl.innerText = r; });
+    }
+
+    if (nodeFs.existsSync(localPath)) { doImport(); return; }
+
+    outputEl.innerText = "Downloading " + filename + "…";
+    fetch(url + "?t=" + Date.now())
+      .then(function (res) {
+        if (!res.ok) throw new Error("Not on GitHub Releases yet (HTTP " + res.status + "). Upload " + filename + " to the '" + GITHUB_ASSETS_TAG + "' release.");
+        return res.arrayBuffer();
+      })
+      .then(function (buffer) {
+        try { if (!nodeFs.existsSync(dir)) nodeFs.mkdirSync(dir, { recursive: true }); }
+        catch (e) { outputEl.innerText = "Could not create folder: " + e.message; return; }
+        try { nodeFs.writeFileSync(localPath, Buffer.from(new Uint8Array(buffer))); }
+        catch (e) { outputEl.innerText = "Write failed: " + e.message; return; }
+        doImport();
+      })
+      .catch(function (err) { outputEl.innerText = "Download failed: " + err.message; });
   };
 }
 
@@ -936,6 +1027,14 @@ function renderItems(items, tab) {
         '<div class="cardSub">Animation Preset</div></div>' +
         '<span class="badge anim">ANIM</span>';
       card.addEventListener("click", makeFfxHandler(data.url, data.filename));
+    } else if (tab === "assets") {
+      var cat = data.category || "image";
+      var catLabel = cat === "template" ? "TEMPLATE" : (cat === "video" ? "VIDEO" : "IMAGE");
+      card.innerHTML =
+        '<div class="cardInfo"><div class="cardTitle">' + data.name + '</div>' +
+        '<div class="cardSub">' + (data.filename || "") + '</div></div>' +
+        '<span class="badge asset ' + cat + '">' + catLabel + '</span>';
+      card.addEventListener("click", makeAssetHandler(data));
     }
 
     // Pin a star on favorited cards

@@ -1,4 +1,9 @@
 {
+  "2.7.0": [
+    "New Assets tab per client — images, videos and .aep templates",
+    "Assets are hosted free on GitHub Releases (no repo bloat); click a card to download and drop it straight into your comp",
+    "Add assets with + Add Asset (name, type, filename) after dropping the file on the repo's 'assets' release"
+  ],
   "2.6.1": [
     "Fixed a harmless-but-scary 'Image is not a constructor' error by switching Firestore to long-polling (the transport that works inside After Effects)"
   ],

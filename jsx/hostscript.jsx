@@ -1,4 +1,4 @@
-// DopeTool hostscript.jsx — v2.6.0
+// DopeTool hostscript.jsx — v2.7.0
 
 function testConnection() {
   return "Connected: AE " + app.version;
@@ -1087,5 +1087,31 @@ function distributeLayers(axis) {
     }
     app.endUndoGroup();
     return "Distributed " + arr.length + " layer(s).";
+  } catch (e) { return "Error: " + e.toString(); }
+}
+
+// ═══════════════════════════════════════════════════════════
+// ASSETS — import images/videos/templates from the library
+// ═══════════════════════════════════════════════════════════
+function importAsset(path, addToComp) {
+  try {
+    var f = new File(path);
+    if (!f.exists) return "Asset file not found: " + path;
+    app.beginUndoGroup("DopeTool: Import Asset");
+    var io = new ImportOptions(f);
+    var item = app.project.importFile(io);
+    var msg = "Imported: " + f.name;
+    if (addToComp) {
+      var comp = app.project.activeItem;
+      if (comp && comp instanceof CompItem && item && (item instanceof FootageItem)) {
+        var L = comp.layers.add(item);
+        try { L.property("Transform").property("Position").setValue([comp.width / 2, comp.height / 2]); } catch (eP) {}
+        msg = "Added " + f.name + " to comp.";
+      } else if (!comp || !(comp instanceof CompItem)) {
+        msg = "Imported " + f.name + " (open a comp to place it).";
+      }
+    }
+    app.endUndoGroup();
+    return msg;
   } catch (e) { return "Error: " + e.toString(); }
 }
