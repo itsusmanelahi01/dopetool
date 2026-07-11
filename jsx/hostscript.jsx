@@ -1,4 +1,4 @@
-// DopeTool hostscript.jsx — v2.10.0
+// DopeTool hostscript.jsx — v2.10.3
 
 function testConnection() {
   return "Connected: AE " + app.version;
@@ -1310,7 +1310,7 @@ function applyEase(x1, y1, x2, y2) {
     var outSlope = x1 > 0 ? (y1 / x1) : 0;
     var inSlope = (1 - x2) > 0 ? ((1 - y2) / (1 - x2)) : 0;
 
-    var applied = 0;
+    var applied = 0, candidates = 0, lastErr = "";
     app.beginUndoGroup("DopeTool: Smoooth Ease");
     for (var pi = 0; pi < props.length; pi++) {
       var p = props[pi];
@@ -1318,6 +1318,7 @@ function applyEase(x1, y1, x2, y2) {
         if (!p.canVaryOverTime || !p.numKeys || p.numKeys < 2) continue;
         var selKeys = p.selectedKeys;
         if (!selKeys || selKeys.length < 2) continue;
+        candidates++;
         selKeys.sort(function (a, b) { return a - b; });
 
         var probe = p.keyValue(selKeys[0]);
@@ -1330,9 +1331,25 @@ function applyEase(x1, y1, x2, y2) {
           if (dur <= 0) continue;
           var vA = p.keyValue(kA), vB = p.keyValue(kB);
 
+          // The number of temporal-ease components AE expects is NOT the value
+          // dimension: spatial props (Position) use 1 even when 2D/3D, while
+          // Scale/Color use one per dimension. Read the existing ease to get it.
+          var keepAin = p.keyInTemporalEase(kA);
+          var keepBout = p.keyOutTemporalEase(kB);
+          var easeLen = (keepAin && keepAin.length) ? keepAin.length : 1;
+
           var outEaseA = [], inEaseB = [];
-          for (var d = 0; d < dims; d++) {
-            var delta = (dims > 1) ? (vB[d] - vA[d]) : (vB - vA);
+          for (var e2 = 0; e2 < easeLen; e2++) {
+            var delta;
+            if (easeLen > 1) {
+              delta = vB[e2] - vA[e2];                 // per-dimension (Scale, Color…)
+            } else if (dims > 1) {                      // spatial (Position) → path length
+              var sum = 0;
+              for (var dd = 0; dd < dims; dd++) { var q = vB[dd] - vA[dd]; sum += q * q; }
+              delta = Math.sqrt(sum);
+            } else {
+              delta = vB - vA;                          // 1D (Opacity, Rotation…)
+            }
             var avg = delta / dur;
             outEaseA.push(new KeyframeEase(outSlope * avg, outInf));
             inEaseB.push(new KeyframeEase(inSlope * avg, inInf));
@@ -1341,18 +1358,18 @@ function applyEase(x1, y1, x2, y2) {
           try {
             p.setInterpolationTypeAtKey(kA, KeyframeInterpolationType.BEZIER, KeyframeInterpolationType.BEZIER);
             p.setInterpolationTypeAtKey(kB, KeyframeInterpolationType.BEZIER, KeyframeInterpolationType.BEZIER);
-          } catch (eI) {}
-
-          var keepAin = p.keyInTemporalEase(kA);
-          var keepBout = p.keyOutTemporalEase(kB);
-          p.setTemporalEaseAtKey(kA, keepAin, outEaseA);
-          p.setTemporalEaseAtKey(kB, inEaseB, keepBout);
-          applied++;
+            p.setTemporalEaseAtKey(kA, keepAin, outEaseA);
+            p.setTemporalEaseAtKey(kB, inEaseB, keepBout);
+            applied++;
+          } catch (eSet) { lastErr = eSet.toString(); }
         }
-      } catch (eP) {}
+      } catch (eP) { lastErr = eP.toString(); }
     }
     app.endUndoGroup();
-    if (applied === 0) return "Select 2+ adjacent keyframes on a property.";
+    if (applied === 0) {
+      if (candidates === 0) return "Select 2+ keyframes on a property (click them in the timeline).";
+      return "Couldn't apply ease" + (lastErr ? ": " + lastErr : ". Select adjacent keyframes.");
+    }
     return "Eased " + applied + " segment(s).";
   } catch (e) { return "Error: " + e.toString(); }
 }

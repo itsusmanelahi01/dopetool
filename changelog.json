@@ -1,4 +1,8 @@
 {
+  "2.10.3": [
+    "Smoooth now applies correctly to Position (and all property types) — fixed a temporal-ease length mismatch — with clearer status messages",
+    "Mouse wheel over the tabs steps through them again, and the active tab centers itself"
+  ],
   "2.10.2": [
     "Fixed the Smoooth tab — it now scrolls to the presets, the drag handles work, and Apply reaches your keyframes"
   ],

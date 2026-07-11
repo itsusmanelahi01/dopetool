@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.10.2
+// DopeTool main.js — v2.10.3
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -1480,8 +1480,8 @@ function setActiveTopTab(tab) {
   for (var i = 0; i < btns.length; i++) {
     if (btns[i].getAttribute("data-toptab") === tab) {
       btns[i].classList.add("active");
-      // Bring the active tab fully into view in the scrollable strip
-      try { btns[i].scrollIntoView({ inline: "nearest", block: "nearest" }); } catch (e) {}
+      // Center the active tab in the scrollable strip (first/last settle at the edges)
+      try { btns[i].scrollIntoView({ inline: "center", block: "nearest" }); } catch (e) {}
     } else {
       btns[i].classList.remove("active");
     }
@@ -1533,11 +1533,16 @@ function switchTopTab(tab) {
 
   var strip = document.getElementById("topTabScroll");
   if (strip) {
-    // Mouse wheel scrolls the tab strip horizontally instead of squishing tabs
+    // Mouse wheel steps through the tabs (the active one centers itself)
     strip.addEventListener("wheel", function (e) {
-      if (strip.scrollWidth <= strip.clientWidth) return;
       e.preventDefault();
-      strip.scrollLeft += (e.deltaY !== 0 ? e.deltaY : e.deltaX);
+      var activeBtn = document.querySelector(".topTabBtn.active");
+      var current = activeBtn ? activeBtn.getAttribute("data-toptab") : "library";
+      var idx = topTabOrder.indexOf(current);
+      var dir = (e.deltaY || e.deltaX);
+      if (dir > 0 && idx < topTabOrder.length - 1) idx++;
+      else if (dir < 0 && idx > 0) idx--;
+      switchTopTab(topTabOrder[idx]);
     });
     strip.addEventListener("scroll", updateTopTabFades);
     window.addEventListener("resize", updateTopTabFades);
