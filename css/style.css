@@ -83,8 +83,59 @@ body {
 .paneBTab:hover { color: #9999b8; }
 .paneBTab.active { color: #ffffff; border-bottom-color: #7c5cff; }
 .reloadBtn.active { color: #7c5cff; }
-/* A tab shown in the other pane is greyed out + unclickable here */
 .tabDisabled { opacity: 0.25; pointer-events: none; }
+.topTabBtn.docked { color: #4c72ff; }
+
+/* ---- DOCK ---- */
+.dockRoot { flex: 1 1 auto; min-height: 0; display: flex; overflow: hidden; }
+.dockSplit { display: flex; flex: 1 1 auto; min-height: 0; min-width: 0; }
+.dockRow { flex-direction: row; }
+.dockCol { flex-direction: column; }
+.dockLeaf {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  position: relative;
+  border: 1px solid #17171f;
+}
+.dockLeaf.focused { border-color: #2a2a46; }
+.dockLeafHead {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 9px;
+  background: #0d0d14;
+  border-bottom: 1px solid #1a1a26;
+  cursor: grab;
+  font-size: 10px;
+  font-weight: 700;
+  color: #7b7b95;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  user-select: none;
+}
+.dockLeaf.focused .dockLeafHead { color: #cfd0e6; }
+.dockLeafClose { cursor: pointer; color: #55556e; font-size: 15px; line-height: 1; padding: 0 2px; }
+.dockLeafClose:hover { color: #ff5566; }
+.dockLeafBody { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+.dockDivider { flex: 0 0 auto; background: #16161f; }
+.dockDivVert { width: 6px; cursor: ew-resize; }
+.dockDivHorz { height: 6px; cursor: ns-resize; }
+.dockDivider:hover { background: #4c72ff; }
+
+/* Drop zones shown while dragging a tab over a pane */
+.dockDropOverlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 60; }
+.dockDropOverlay.hidden { display: none !important; }
+.dz { position: absolute; background: rgba(76,114,255,0.10); border: 1px solid rgba(76,114,255,0.35); box-sizing: border-box; }
+.dz-top { top: 0; left: 0; right: 0; height: 32%; }
+.dz-bottom { bottom: 0; left: 0; right: 0; height: 32%; }
+.dz-left { left: 0; top: 0; bottom: 0; width: 32%; }
+.dz-right { right: 0; top: 0; bottom: 0; width: 32%; }
+.dz-center { top: 32%; left: 32%; right: 32%; bottom: 32%; }
+.dz.dzHot { background: rgba(76,114,255,0.40); border-color: #6c8cff; }
 
 .hidden { display: none !important; }
 

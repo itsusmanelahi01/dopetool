@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.12.1
+// DopeTool main.js — v2.13.0
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -136,15 +136,21 @@ function showView(viewId) {
   });
 }
 
-// ---- SPLIT VIEW ----
-var currentTopTab = "library";
-var splitMode = false;
-var bottomTab = null;
+// ═══════════════════════════════════════════════════════════
+// DOCK — free-form drag-to-dock layout of tab panes
+// Layout is a binary tree: leaf { type:"leaf", tab, id } or
+// split { type:"split", dir:"row"|"col", split:0..1, a, b }.
+// Views are single instances that get moved into a leaf's body.
+// ═══════════════════════════════════════════════════════════
+var TAB_TITLES = { library: "Library", captions: "Captions", toolkit: "Toolkit", smooth: "Smoooth" };
 var TAB_VIEWS = { library: ["homeView", "clientView"], captions: ["captionView"], toolkit: ["toolkitView"], smooth: ["smoothView"] };
 var ALL_VIEWS = ["hubView", "homeView", "clientView", "captionView", "toolkitView", "smoothView"];
+var dockLeafSeq = 0;
+var dockTree = { type: "leaf", tab: "library", id: "leaf0" };
+var focusedLeafId = "leaf0";
+var dockDragTab = null;
 
 function viewsFor(tab) { return TAB_VIEWS[tab] || []; }
-function firstOtherTab(tab) { for (var i = 0; i < topTabOrder.length; i++) { if (topTabOrder[i] !== tab) return topTabOrder[i]; } return "toolkit"; }
 function activeViewId(tab) {
   if (tab === "library") return currentClient ? "clientView" : "homeView";
   if (tab === "captions") return "captionView";
@@ -152,73 +158,215 @@ function activeViewId(tab) {
   if (tab === "smooth") return "smoothView";
   return "homeView";
 }
-function placeView(id, host) { var el = document.getElementById(id); if (el && el.parentNode !== host) host.appendChild(el); }
 function loadForTab(tab) {
   if (tab === "library") { if (!currentClient) loadAllClients(); }
   else if (tab === "captions") loadCaptionStyles();
   else if (tab === "smooth") { if (typeof smoothDraw === "function") smoothDraw(); if (typeof loadSmoothPresets === "function") loadSmoothPresets(); }
 }
-function showTabInHost(tab, isBottom) {
-  var showId = activeViewId(tab);
-  var host = document.getElementById(isBottom ? "paneBBody" : "paneABody");
-  for (var i = 0; i < ALL_VIEWS.length; i++) {
-    var e = document.getElementById(ALL_VIEWS[i]);
-    if (e && e.parentNode === host) e.classList.toggle("hidden", ALL_VIEWS[i] !== showId);
+function dockedTabs() {
+  var out = [];
+  (function walk(n) { if (!n) return; if (n.type === "leaf") { if (n.tab) out.push(n.tab); } else { walk(n.a); walk(n.b); } })(dockTree);
+  return out;
+}
+function leafWithTab(tab, node) { node = node || dockTree; if (node.type === "leaf") return node.tab === tab ? node : null; return leafWithTab(tab, node.a) || leafWithTab(tab, node.b); }
+function firstLeafId(node) { return node.type === "leaf" ? node.id : firstLeafId(node.a); }
+function countLeaves(node) { return node.type === "leaf" ? 1 : countLeaves(node.a) + countLeaves(node.b); }
+
+// Remove the leaf holding `tab` (collapse its parent). Returns true if removed.
+function removeTabLeaf(tab) {
+  if (dockTree.type === "leaf") return false; // never remove the only leaf here
+  function rm(node) {
+    if (node.type === "split") {
+      if (node.a.type === "leaf" && node.a.tab === tab) return node.b;
+      if (node.b.type === "leaf" && node.b.tab === tab) return node.a;
+      node.a = rm(node.a); node.b = rm(node.b); return node;
+    }
+    return node;
   }
-  loadForTab(tab);
+  var before = countLeaves(dockTree);
+  dockTree = rm(dockTree);
+  return countLeaves(dockTree) < before;
 }
-// Grey out (in each selector) the tab already shown in the other pane, so the
-// two panes can never collide and neither one gets swapped out from under you.
-function updateTabDisabled() {
-  var topBtns = document.querySelectorAll(".topTabBtn");
-  for (var i = 0; i < topBtns.length; i++) topBtns[i].classList.toggle("tabDisabled", splitMode && topBtns[i].getAttribute("data-toptab") === bottomTab);
-  var bBtns = document.querySelectorAll(".paneBTab");
-  for (var k = 0; k < bBtns.length; k++) bBtns[k].classList.toggle("tabDisabled", bBtns[k].getAttribute("data-toptab") === currentTopTab);
+
+function closeLeaf(id) {
+  if (dockTree.type === "leaf") return; // can't close the only pane
+  function rm(node) {
+    if (node.type === "split") {
+      if (node.a.type === "leaf" && node.a.id === id) return node.b;
+      if (node.b.type === "leaf" && node.b.id === id) return node.a;
+      node.a = rm(node.a); node.b = rm(node.b); return node;
+    }
+    return node;
+  }
+  dockTree = rm(dockTree);
+  focusedLeafId = firstLeafId(dockTree);
+  buildDock();
 }
-function markBottomActive() {
-  var bt = document.querySelectorAll(".paneBTab");
-  for (var k = 0; k < bt.length; k++) bt[k].classList.toggle("active", splitMode && bt[k].getAttribute("data-toptab") === bottomTab);
+
+// Split the target leaf, placing `tab` on the given side (top/bottom/left/right)
+function dockTabIntoLeaf(targetId, side, tab) {
+  var target = (function find(n) { if (n.type === "leaf") return n.id === targetId ? n : null; return find(n.a) || find(n.b); })(dockTree);
+  if (!target) return;
+  if (target.tab === tab) return;
+  // If dropping onto the same leaf's center, just replace it
+  if (side === "center") { setLeafTabById(targetId, tab); return; }
+  // Remove the tab from wherever it currently lives (single instance)
+  if (leafWithTab(tab)) removeTabLeaf(tab);
+  var nl = { type: "leaf", tab: tab, id: "leaf" + (++dockLeafSeq) };
+  var dir = (side === "left" || side === "right") ? "row" : "col";
+  var first = (side === "left" || side === "top");
+  function ins(node) {
+    if (node.type === "leaf") {
+      if (node.id === targetId) return { type: "split", dir: dir, split: 0.5, a: first ? nl : node, b: first ? node : nl };
+      return node;
+    }
+    node.a = ins(node.a); node.b = ins(node.b); return node;
+  }
+  dockTree = ins(dockTree);
+  focusedLeafId = nl.id;
+  buildDock();
 }
-// Full (re)layout — used when toggling split and on restore
-function applyPanes() {
-  var topHost = document.getElementById("paneABody"), botHost = document.getElementById("paneBBody");
-  var botViews = (splitMode && bottomTab) ? viewsFor(bottomTab) : [];
-  for (var i = 0; i < ALL_VIEWS.length; i++) { var id = ALL_VIEWS[i]; placeView(id, (botViews.indexOf(id) !== -1) ? botHost : topHost); }
-  showTabInHost(currentTopTab, false);
-  if (splitMode && bottomTab) showTabInHost(bottomTab, true);
-  setActiveTopTab(currentTopTab);
-  markBottomActive();
-  updateTabDisabled();
+
+// Replace the tab shown in a specific leaf
+function setLeafTabById(id, tab) {
+  var existing = leafWithTab(tab);
+  if (existing && existing.id !== id) { focusedLeafId = existing.id; buildDock(); return; } // already docked → focus it
+  (function set(n) { if (n.type === "leaf") { if (n.id === id) n.tab = tab; } else { set(n.a); set(n.b); } })(dockTree);
+  focusedLeafId = id;
+  buildDock();
 }
-function setBottomTab(tab) {
-  if (!splitMode) return;
-  if (tab === currentTopTab) return; // already shown in the top pane
-  var topHost = document.getElementById("paneABody"), botHost = document.getElementById("paneBBody");
-  // Return the previous bottom view(s) to the top host, hidden (doesn't disturb the top's visible view)
-  if (bottomTab) viewsFor(bottomTab).forEach(function (id) { placeView(id, topHost); var e = document.getElementById(id); if (e) e.classList.add("hidden"); });
-  bottomTab = tab;
-  viewsFor(tab).forEach(function (id) { placeView(id, botHost); });
-  showTabInHost(tab, true); // refresh ONLY the bottom pane
-  markBottomActive();
-  updateTabDisabled();
-  try { localStorage.setItem("dopetool_bottomTab", bottomTab || ""); } catch (e) {}
+
+function updateTopBarDockState() {
+  var docked = dockedTabs();
+  var focusLeaf = (function f(n) { if (n.type === "leaf") return n.id === focusedLeafId ? n : null; return f(n.a) || f(n.b); })(dockTree);
+  var focusTab = focusLeaf ? focusLeaf.tab : null;
+  var btns = document.querySelectorAll(".topTabBtn");
+  for (var i = 0; i < btns.length; i++) {
+    var t = btns[i].getAttribute("data-toptab");
+    btns[i].classList.toggle("active", t === focusTab);
+    btns[i].classList.toggle("docked", docked.indexOf(t) !== -1 && t !== focusTab);
+  }
 }
-function setSplit(on) {
-  splitMode = on;
-  document.getElementById("paneB").classList.toggle("hidden", !on);
-  document.getElementById("splitDivider").classList.toggle("hidden", !on);
-  var sb = document.getElementById("splitBtn");
-  if (sb) sb.classList.toggle("active", on);
-  if (on && (!bottomTab || bottomTab === currentTopTab)) bottomTab = firstOtherTab(currentTopTab);
-  applyPanes();
-  try { localStorage.setItem("dopetool_split", on ? "1" : "0"); localStorage.setItem("dopetool_bottomTab", bottomTab || ""); } catch (e) {}
+
+// ---- Render ----
+function buildDock() {
+  var root = document.getElementById("dockRoot");
+  var limbo = document.getElementById("dockLimbo");
+  if (!root || !limbo) return;
+  // Park all views in limbo so clearing dockRoot doesn't destroy them
+  for (var i = 0; i < ALL_VIEWS.length; i++) { var el = document.getElementById(ALL_VIEWS[i]); if (el) limbo.appendChild(el); }
+  root.innerHTML = "";
+  root.appendChild(renderNode(dockTree));
+  placeViews(dockTree);
+  updateTopBarDockState();
+  try { localStorage.setItem("dopetool_dock", JSON.stringify({ tree: dockTree, focus: focusedLeafId })); } catch (e) {}
 }
-// Move all view elements into the top pane host at load
-(function initPanes() {
-  var topHost = document.getElementById("paneABody");
-  if (!topHost) return;
-  for (var i = 0; i < ALL_VIEWS.length; i++) { var el = document.getElementById(ALL_VIEWS[i]); if (el) topHost.appendChild(el); }
-})();
+
+function renderNode(node) {
+  if (node.type === "leaf") {
+    var leaf = document.createElement("div");
+    leaf.className = "dockLeaf" + (node.id === focusedLeafId ? " focused" : "");
+    var head = document.createElement("div");
+    head.className = "dockLeafHead";
+    head.setAttribute("draggable", "true");
+    head.innerHTML = '<span class="dockLeafTitle">' + (TAB_TITLES[node.tab] || node.tab) + '</span><span class="dockLeafClose">&times;</span>';
+    var body = document.createElement("div");
+    body.className = "dockLeafBody paneBody";
+    body.setAttribute("data-leaf-body", node.id);
+    leaf.appendChild(head);
+    leaf.appendChild(body);
+    leaf.addEventListener("mousedown", function () { if (focusedLeafId !== node.id) { focusedLeafId = node.id; updateTopBarDockState(); } });
+    head.querySelector(".dockLeafClose").addEventListener("click", function (e) { e.stopPropagation(); closeLeaf(node.id); });
+    // Drag a leaf's header to move that tab elsewhere
+    head.addEventListener("dragstart", function (e) { dockDragTab = node.tab; try { e.dataTransfer.setData("text/plain", node.tab); } catch (err) {} });
+    setupLeafDrop(leaf, node.id);
+    return leaf;
+  }
+  var split = document.createElement("div");
+  split.className = "dockSplit " + (node.dir === "row" ? "dockRow" : "dockCol");
+  var a = renderNode(node.a); a.style.flex = "1 1 " + (node.split * 100) + "%";
+  var divider = document.createElement("div"); divider.className = "dockDivider " + (node.dir === "row" ? "dockDivVert" : "dockDivHorz");
+  var b = renderNode(node.b); b.style.flex = "1 1 " + ((1 - node.split) * 100) + "%";
+  split.appendChild(a); split.appendChild(divider); split.appendChild(b);
+  setupDividerDrag(divider, node, split, a, b);
+  return split;
+}
+
+function placeViews(node) {
+  if (node.type === "leaf") {
+    var body = document.querySelector('[data-leaf-body="' + node.id + '"]');
+    if (!body) return;
+    var showId = activeViewId(node.tab);
+    viewsFor(node.tab).forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) { body.appendChild(el); el.classList.toggle("hidden", id !== showId); }
+    });
+    loadForTab(node.tab);
+  } else { placeViews(node.a); placeViews(node.b); }
+}
+
+// ---- Drop zones (dock a dragged tab into a leaf edge) ----
+function setupLeafDrop(leaf, leafId) {
+  var zone = document.createElement("div");
+  zone.className = "dockDropOverlay hidden";
+  zone.innerHTML =
+    '<div class="dz dz-top" data-side="top"></div>' +
+    '<div class="dz dz-bottom" data-side="bottom"></div>' +
+    '<div class="dz dz-left" data-side="left"></div>' +
+    '<div class="dz dz-right" data-side="right"></div>' +
+    '<div class="dz dz-center" data-side="center"></div>';
+  leaf.appendChild(zone);
+  leaf.addEventListener("dragover", function (e) { if (dockDragTab) { e.preventDefault(); zone.classList.remove("hidden"); } });
+  leaf.addEventListener("dragleave", function (e) { if (e.target === leaf || e.target === zone) zone.classList.add("hidden"); });
+  var zs = zone.querySelectorAll(".dz");
+  for (var i = 0; i < zs.length; i++) {
+    zs[i].addEventListener("dragover", function (e) { e.preventDefault(); this.classList.add("dzHot"); });
+    zs[i].addEventListener("dragleave", function () { this.classList.remove("dzHot"); });
+    zs[i].addEventListener("drop", function (e) {
+      e.preventDefault(); e.stopPropagation();
+      zone.classList.add("hidden");
+      var side = this.getAttribute("data-side");
+      if (dockDragTab) dockTabIntoLeaf(leafId, side, dockDragTab);
+      dockDragTab = null;
+    });
+  }
+}
+
+// ---- Divider resize ----
+function setupDividerDrag(divider, node, split, a, b) {
+  divider.addEventListener("mousedown", function (e) {
+    e.preventDefault();
+    document.body.style.userSelect = "none";
+    function onMove(ev) {
+      var rect = split.getBoundingClientRect();
+      var ratio = node.dir === "row" ? (ev.clientX - rect.left) / rect.width : (ev.clientY - rect.top) / rect.height;
+      ratio = Math.max(0.12, Math.min(0.88, ratio));
+      node.split = ratio;
+      a.style.flex = "1 1 " + (ratio * 100) + "%";
+      b.style.flex = "1 1 " + ((1 - ratio) * 100) + "%";
+      if (typeof smoothDraw === "function") smoothDraw();
+    }
+    function onUp() {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+      document.body.style.userSelect = "";
+      try { localStorage.setItem("dopetool_dock", JSON.stringify({ tree: dockTree, focus: focusedLeafId })); } catch (er) {}
+    }
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  });
+}
+
+function resetDock() {
+  var focusLeaf = leafWithTab(currentActiveTab());
+  dockTree = { type: "leaf", tab: currentActiveTab(), id: "leaf" + (++dockLeafSeq) };
+  focusedLeafId = dockTree.id;
+  buildDock();
+}
+function currentActiveTab() {
+  var f = (function f(n) { if (n.type === "leaf") return n.id === focusedLeafId ? n : null; return f(n.a) || f(n.b); })(dockTree);
+  return f ? f.tab : "library";
+}
 
 // ---- TOOL HUB ----
 document.getElementById("openLibraryBtn").addEventListener("click", function () {
@@ -1589,13 +1737,9 @@ function updateTopTabFades() {
   bar.classList.toggle("moreRight", strip.scrollLeft < maxScroll - 2);
 }
 
+// Clicking a top tab sets it in the focused pane (or focuses it if already docked).
 function switchTopTab(tab) {
-  if (splitMode && tab === bottomTab) return; // that tab is shown in the bottom pane
-  currentTopTab = tab;
-  // Only refresh the top pane — the bottom pane is left completely untouched.
-  showTabInHost(tab, false);
-  setActiveTopTab(tab);
-  updateTabDisabled();
+  setLeafTabById(focusedLeafId, tab);
 }
 
 // ---- DRAG-TO-REORDER TABS (per-editor, saved in localStorage) ----
@@ -1635,12 +1779,14 @@ function initTabDrag() {
       t.setAttribute("draggable", "true");
       t.addEventListener("dragstart", function (e) {
         tabDragEl = t;
+        dockDragTab = t.getAttribute("data-toptab"); // also a dock drop source
         t.classList.add("dragging");
         try { e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", ""); } catch (err) {}
       });
       t.addEventListener("dragend", function () {
         t.classList.remove("dragging");
         tabDragEl = null;
+        dockDragTab = null;
         saveTabOrder();
       });
       t.addEventListener("dragover", function (e) {
@@ -1668,13 +1814,12 @@ function initTabDrag() {
 
   var strip = document.getElementById("topTabScroll");
   if (strip) {
-    // Mouse wheel steps through the tabs (the active one centers itself)
+    // Mouse wheel steps the focused pane through the tabs
     strip.addEventListener("wheel", function (e) {
       e.preventDefault();
-      var idx = topTabOrder.indexOf(currentTopTab);
+      var idx = topTabOrder.indexOf(currentActiveTab());
       var dir = (e.deltaY || e.deltaX) > 0 ? 1 : -1;
-      var ni = idx;
-      do { ni += dir; } while (ni >= 0 && ni < topTabOrder.length && splitMode && topTabOrder[ni] === bottomTab);
+      var ni = idx + dir;
       if (ni >= 0 && ni < topTabOrder.length) switchTopTab(topTabOrder[ni]);
     });
     strip.addEventListener("scroll", updateTopTabFades);
@@ -1682,43 +1827,22 @@ function initTabDrag() {
     updateTopTabFades();
   }
 
-  // Split toggle + bottom-pane tab buttons
+  // Reset-layout button (collapse back to a single pane)
   var splitBtn = document.getElementById("splitBtn");
-  if (splitBtn) splitBtn.addEventListener("click", function () { setSplit(!splitMode); });
-  var pbtabs = document.querySelectorAll(".paneBTab");
-  for (var b = 0; b < pbtabs.length; b++) {
-    pbtabs[b].addEventListener("click", function () { setBottomTab(this.getAttribute("data-toptab")); });
-  }
+  if (splitBtn) splitBtn.addEventListener("click", function () { resetDock(); });
 
-  // Resizable divider between the two panes
-  var divider = document.getElementById("splitDivider");
-  var paneB = document.getElementById("paneB");
-  if (divider && paneB) {
-    var dragging = false;
-    divider.addEventListener("mousedown", function (e) { dragging = true; e.preventDefault(); document.body.style.userSelect = "none"; });
-    window.addEventListener("mousemove", function (e) {
-      if (!dragging) return;
-      var h = window.innerHeight - e.clientY;
-      h = Math.max(90, Math.min(window.innerHeight - 140, h));
-      paneB.style.height = h + "px";
-      if (typeof smoothDraw === "function") smoothDraw();
-    });
-    window.addEventListener("mouseup", function () {
-      if (!dragging) return;
-      dragging = false;
-      document.body.style.userSelect = "";
-      try { localStorage.setItem("dopetool_paneBH", paneB.style.height); } catch (e) {}
-    });
-  }
-
-  // Restore saved split state (per editor)
+  // Restore saved dock layout (per editor), else build the default single pane
   try {
-    var savedBottom = localStorage.getItem("dopetool_bottomTab");
-    if (savedBottom && TAB_VIEWS[savedBottom]) bottomTab = savedBottom;
-    var savedH = localStorage.getItem("dopetool_paneBH");
-    if (savedH && paneB) paneB.style.height = savedH;
-    if (localStorage.getItem("dopetool_split") === "1") setSplit(true);
+    var savedDock = JSON.parse(localStorage.getItem("dopetool_dock") || "null");
+    if (savedDock && savedDock.tree) {
+      dockTree = savedDock.tree;
+      focusedLeafId = savedDock.focus || firstLeafId(dockTree);
+      var mx = 0;
+      (function walk(n) { if (n.type === "leaf") { var m = /leaf(\d+)/.exec(n.id); if (m) mx = Math.max(mx, parseInt(m[1], 10)); } else { walk(n.a); walk(n.b); } })(dockTree);
+      dockLeafSeq = mx;
+    }
   } catch (e) {}
+  buildDock();
 })();
 
 // ---- TOOLKIT (comp & layer utilities) ----

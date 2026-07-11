@@ -1,4 +1,9 @@
 {
+  "2.13.0": [
+    "Free-form docking — drag a tab into a pane's edge to split it, arrange panes however you like",
+    "Resize panes by dragging the dividers, close a pane with ×, and reset to a single pane with the square button",
+    "Your dock layout is remembered on your machine"
+  ],
   "2.12.1": [
     "Split view: the two panes are now fully independent — changing one never affects the other, and a tab already open in one pane is greyed out in the other",
     "Fixed the 'Add New Client' bar so it stays inside the Library pane"
