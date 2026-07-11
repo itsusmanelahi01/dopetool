@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.10.0
+// DopeTool main.js — v2.10.1
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -1480,10 +1480,23 @@ function setActiveTopTab(tab) {
   for (var i = 0; i < btns.length; i++) {
     if (btns[i].getAttribute("data-toptab") === tab) {
       btns[i].classList.add("active");
+      // Bring the active tab fully into view in the scrollable strip
+      try { btns[i].scrollIntoView({ inline: "nearest", block: "nearest" }); } catch (e) {}
     } else {
       btns[i].classList.remove("active");
     }
   }
+  updateTopTabFades();
+}
+
+// Toggle the left/right edge fades based on scroll position
+function updateTopTabFades() {
+  var strip = document.getElementById("topTabScroll");
+  var bar = document.getElementById("topTabBar");
+  if (!strip || !bar) return;
+  var maxScroll = strip.scrollWidth - strip.clientWidth;
+  bar.classList.toggle("moreLeft", strip.scrollLeft > 2);
+  bar.classList.toggle("moreRight", strip.scrollLeft < maxScroll - 2);
 }
 
 function switchTopTab(tab) {
@@ -1518,17 +1531,18 @@ function switchTopTab(tab) {
     });
   }
 
-  var bar = document.getElementById("topTabBar");
-  bar.addEventListener("wheel", function (e) {
-    e.preventDefault();
-    var activeBtn = document.querySelector(".topTabBtn.active");
-    var current = activeBtn ? activeBtn.getAttribute("data-toptab") : "library";
-    var idx = topTabOrder.indexOf(current);
-    if (e.deltaY > 0 && idx < topTabOrder.length - 1) idx++;
-    else if (e.deltaY < 0 && idx > 0) idx--;
-    var next = topTabOrder[idx];
-    switchTopTab(next);
-  });
+  var strip = document.getElementById("topTabScroll");
+  if (strip) {
+    // Mouse wheel scrolls the tab strip horizontally instead of squishing tabs
+    strip.addEventListener("wheel", function (e) {
+      if (strip.scrollWidth <= strip.clientWidth) return;
+      e.preventDefault();
+      strip.scrollLeft += (e.deltaY !== 0 ? e.deltaY : e.deltaX);
+    });
+    strip.addEventListener("scroll", updateTopTabFades);
+    window.addEventListener("resize", updateTopTabFades);
+    updateTopTabFades();
+  }
 })();
 
 // ---- TOOLKIT (comp & layer utilities) ----

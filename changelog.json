@@ -1,4 +1,7 @@
 {
+  "2.10.1": [
+    "Top tabs no longer squish in a narrow panel — the tab bar scrolls sideways with edge fades, mouse-wheel scrolling, and the active tab auto-scrolls into view"
+  ],
   "2.10.0": [
     "New Smoooth tab — a live cubic-bezier keyframe easing editor",
     "Drag the two handles to shape the curve, or click a preset, then Apply to your selected keyframes",

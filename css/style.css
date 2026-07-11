@@ -820,19 +820,51 @@ body {
   flex: 0 0 auto;
   z-index: 500;
   display: flex;
+  align-items: stretch;
   gap: 0;
   background: #0d0d14;
   border-bottom: 1px solid #1a1a26;
+  position: relative;
+  overflow: hidden;
 }
+/* Horizontally scrollable tab strip (tabs keep natural width, never squish) */
+.topTabScroll {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.topTabScroll::-webkit-scrollbar { display: none; }
+/* Edge fades to hint that the strip scrolls */
+.topTabBar::before, .topTabBar::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 24px;
+  pointer-events: none;
+  z-index: 3;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.topTabBar::before { left: 0; background: linear-gradient(to right, #0d0d14, rgba(13,13,20,0)); }
+.topTabBar::after  { right: 34px; background: linear-gradient(to left, #0d0d14, rgba(13,13,20,0)); }
+.topTabBar.moreLeft::before { opacity: 1; }
+.topTabBar.moreRight::after { opacity: 1; }
 .topTabBtn {
-  flex: 1;
-  padding: 10px 0;
+  flex: 0 0 auto;
+  padding: 10px 15px;
   background: transparent;
   border: none;
   color: #6b6b80;
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
+  white-space: nowrap;
   border-bottom: 2px solid transparent;
 }
 .topTabBtn.active {
