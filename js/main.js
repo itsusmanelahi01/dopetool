@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.13.1
+// DopeTool main.js — v2.13.2
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -236,14 +236,18 @@ function setLeafTabById(id, tab) {
   buildDock();
 }
 
-// The top bar is a palette of tabs that AREN'T open in a pane. Docking a tab
-// removes it from the bar; closing its pane returns it.
+// Top bar reflects the dock: the focused pane's tab is highlighted (active) and
+// always stays in the bar; tabs open in OTHER panes leave the bar (you switch to
+// them by clicking their pane). Tabs not in any pane show normally.
 function updateTopBarDockState() {
+  var cur = currentActiveTab();
   var docked = dockedTabs();
   var btns = document.querySelectorAll(".topTabBtn");
   for (var i = 0; i < btns.length; i++) {
     var t = btns[i].getAttribute("data-toptab");
-    btns[i].classList.toggle("tabHidden", docked.indexOf(t) !== -1);
+    var inOtherPane = t !== cur && docked.indexOf(t) !== -1;
+    btns[i].classList.toggle("tabHidden", inOtherPane);
+    btns[i].classList.toggle("active", t === cur);
   }
   if (typeof updateTopTabFades === "function") updateTopTabFades();
 }
@@ -275,7 +279,14 @@ function renderNode(node) {
     body.setAttribute("data-leaf-body", node.id);
     leaf.appendChild(head);
     leaf.appendChild(body);
-    leaf.addEventListener("mousedown", function () { if (focusedLeafId !== node.id) { focusedLeafId = node.id; updateTopBarDockState(); } });
+    leaf.addEventListener("mousedown", function () {
+      if (focusedLeafId === node.id) return;
+      focusedLeafId = node.id;
+      var leaves = document.querySelectorAll(".dockLeaf");
+      for (var k = 0; k < leaves.length; k++) leaves[k].classList.remove("focused");
+      leaf.classList.add("focused");
+      updateTopBarDockState();
+    });
     head.querySelector(".dockLeafClose").addEventListener("click", function (e) { e.stopPropagation(); closeLeaf(node.id); });
     // Drag a leaf's header to move that tab elsewhere
     head.addEventListener("dragstart", function (e) { dockDragTab = node.tab; try { e.dataTransfer.setData("text/plain", node.tab); } catch (err) {} });

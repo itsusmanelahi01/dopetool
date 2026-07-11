@@ -1,4 +1,9 @@
 {
+  "2.13.2": [
+    "Docking fixes: the active tab no longer disappears from the top bar — it stays and is highlighted; only tabs open in another pane leave the bar",
+    "Click a pane to focus it — the highlight and the top bar now follow the focused pane",
+    "Fixes the confusing empty / missing-tab top bar from 2.13.1"
+  ],
   "2.13.1": [
     "Docking: opening a tab in a pane now removes it from the top bar — the bar shows only the tabs that aren't in a pane yet, so there's no duplicate/forced 'main' tab",
     "Mouse-wheel over the top bar now steps only through the tabs still in the bar"
