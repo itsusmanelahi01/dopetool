@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.10.3
+// DopeTool main.js — v2.11.0
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -1519,6 +1519,7 @@ function switchTopTab(tab) {
     setActiveTopTab("smooth");
     showView("smoothView");
     if (typeof smoothDraw === "function") smoothDraw();
+    if (typeof loadSmoothPresets === "function") loadSmoothPresets();
   }
 }
 
@@ -1700,6 +1701,16 @@ function smoothDraw() {
     var r = smoothCP.map(function (n) { return Math.round(n * 100) / 100; });
     b.innerText = "cubic-bezier(" + r.join(", ") + ")";
   }
+  updateSmoothInputs();
+}
+
+// Start box = outgoing influence (x1*100); End box = incoming influence ((1-x2)*100).
+// Skip the box currently being typed in so the cursor doesn't jump.
+function updateSmoothInputs() {
+  var si = document.getElementById("smoothStart");
+  var ei = document.getElementById("smoothEnd");
+  if (si && si !== document.activeElement) si.value = Math.round(smoothCP[0] * 100);
+  if (ei && ei !== document.activeElement) ei.value = Math.round((1 - smoothCP[2]) * 100);
 }
 function smoothClientToXY(canvas, clientX, clientY) {
   var rect = canvas.getBoundingClientRect();
@@ -1724,6 +1735,50 @@ function smoothApply() {
   csInterface.evalScript("applyEase(" + cp[0] + "," + cp[1] + "," + cp[2] + "," + cp[3] + ")", function (r) {
     if (out) out.innerText = r || "Done.";
   });
+}
+
+// ---- Saved (shared) easing presets — Firestore collection "smoothpresets" ----
+function loadSmoothPresets() {
+  var host = document.getElementById("smoothSaved");
+  if (!host) return;
+  host.innerHTML = '<div class="tkHint" style="padding:4px;">Loading…</div>';
+  db.collection("smoothpresets").get()
+    .then(function (snap) {
+      var arr = [];
+      snap.forEach(function (doc) {
+        var d = doc.data();
+        if (d.cp && d.cp.length === 4) arr.push({ id: doc.id, name: d.name || "Preset", cp: d.cp });
+      });
+      host.innerHTML = "";
+      if (!arr.length) { host.innerHTML = '<div class="tkHint" style="padding:4px;">No saved presets yet — shape a curve and hit Save.</div>'; return; }
+      arr.sort(function (a, b) { return (a.name || "").toLowerCase() < (b.name || "").toLowerCase() ? -1 : 1; });
+      arr.forEach(function (item) {
+        var d = document.createElement("div");
+        d.className = "smoothPreset smoothSavedItem";
+        d.title = item.name;
+        var c = document.createElement("canvas");
+        c.width = 64; c.height = 42;
+        d.appendChild(c);
+        smoothDrawInto(c, item.cp, { handles: false, grid: false, curveColor: "#8fe0c0", lineWidth: 1.6 });
+        var del = document.createElement("div");
+        del.className = "smoothDel";
+        del.innerHTML = "&times;";
+        d.appendChild(del);
+        d.addEventListener("click", function (e) {
+          if (e.target === del) return;
+          smoothCP = item.cp.slice();
+          smoothDraw();
+          smoothApply();
+        });
+        del.addEventListener("click", function (e) {
+          e.stopPropagation();
+          if (!confirm('Delete preset "' + item.name + '"?')) return;
+          db.collection("smoothpresets").doc(item.id).delete().then(loadSmoothPresets);
+        });
+        host.appendChild(d);
+      });
+    })
+    .catch(function (err) { host.innerHTML = '<div class="tkHint" style="padding:4px;color:#ff5566;">Error: ' + err.message + '</div>'; });
 }
 
 (function () {
@@ -1758,5 +1813,48 @@ function smoothApply() {
   var applyBtn = document.getElementById("smoothApplyBtn");
   if (applyBtn) applyBtn.addEventListener("click", smoothApply);
 
+  // Start / End value boxes (influence %)
+  var startInput = document.getElementById("smoothStart");
+  var endInput = document.getElementById("smoothEnd");
+  if (startInput) startInput.addEventListener("input", function () {
+    var v = Math.max(0, Math.min(100, parseFloat(this.value) || 0));
+    smoothCP[0] = v / 100;
+    smoothDraw();
+  });
+  if (endInput) endInput.addEventListener("input", function () {
+    var v = Math.max(0, Math.min(100, parseFloat(this.value) || 0));
+    smoothCP[2] = 1 - v / 100;
+    smoothDraw();
+  });
+
+  // Save current curve as a shared preset
+  var saveToggle = document.getElementById("smoothSaveToggle");
+  var saveForm = document.getElementById("smoothSaveForm");
+  if (saveToggle) saveToggle.addEventListener("click", function () {
+    saveForm.classList.toggle("hidden");
+    if (!saveForm.classList.contains("hidden")) document.getElementById("smoothSaveName").focus();
+  });
+  var saveCancel = document.getElementById("smoothSaveCancelBtn");
+  if (saveCancel) saveCancel.addEventListener("click", function () {
+    saveForm.classList.add("hidden");
+    document.getElementById("smoothSaveName").value = "";
+  });
+  var saveBtn = document.getElementById("smoothSaveBtn");
+  if (saveBtn) saveBtn.addEventListener("click", function () {
+    var name = document.getElementById("smoothSaveName").value.trim();
+    var out = document.getElementById("smoothOutput");
+    if (!name) { if (out) out.innerText = "Enter a preset name."; return; }
+    if (out) out.innerText = "Saving…";
+    db.collection("smoothpresets").add({ name: name, cp: smoothCP.slice(), createdAt: Date.now() })
+      .then(function () {
+        if (out) out.innerText = "Preset saved.";
+        saveForm.classList.add("hidden");
+        document.getElementById("smoothSaveName").value = "";
+        loadSmoothPresets();
+      })
+      .catch(function (err) { if (out) out.innerText = "Save failed: " + err.message; });
+  });
+
   smoothDraw();
+  loadSmoothPresets();
 })();

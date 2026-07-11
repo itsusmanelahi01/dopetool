@@ -1,4 +1,8 @@
 {
+  "2.11.0": [
+    "Smoooth: save your own easing presets — shared with the whole team, shown in a My Presets panel on top of the graph",
+    "Smoooth: Start / End value boxes to type the handle influence directly (and they update as you drag)"
+  ],
   "2.10.3": [
     "Smoooth now applies correctly to Position (and all property types) — fixed a temporal-ease length mismatch — with clearer status messages",
     "Mouse wheel over the tabs steps through them again, and the active tab centers itself"

@@ -982,6 +982,43 @@ body {
 .smoothPreset:active { transform: translateY(0); }
 .smoothPreset canvas { width: 100%; height: auto; display: block; }
 
+/* Saved (shared) presets + delete button */
+.smoothSavedItem { position: relative; }
+.smoothDel {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ff5566;
+  color: #fff;
+  font-size: 12px;
+  line-height: 15px;
+  text-align: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s;
+  z-index: 2;
+}
+.smoothSavedItem:hover .smoothDel { opacity: 1; }
+
+/* Start / End value inputs */
+.smoothValues {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.smoothValues label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #8888aa;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.smoothValUnit { font-size: 10px; color: #55556e; margin-right: 6px; }
+
 /* ---- WHATS NEW MODAL ---- */
 .whatsNewOverlay {
   position: fixed;

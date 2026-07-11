@@ -405,12 +405,35 @@
     <div id="smoothOutput" class="statusBar">Select 2+ keyframes, pick a curve, apply</div>
 
     <div class="smoothBody">
+
+      <div class="smoothPresetsLabel">My Presets <span class="tkHint">shared with the team</span></div>
+      <div id="smoothSaved" class="smoothPresets"></div>
+      <button id="smoothSaveToggle" class="addBtn">+ Save current curve</button>
+      <div id="smoothSaveForm" class="form hidden">
+        <input type="text" id="smoothSaveName" placeholder="Preset name" />
+        <div class="formRow">
+          <button id="smoothSaveBtn">Save</button>
+          <button id="smoothSaveCancelBtn" class="btnSecondary">Cancel</button>
+        </div>
+      </div>
+
       <div class="smoothCanvasWrap">
         <canvas id="smoothCanvas" class="smoothCanvas" width="300" height="230"></canvas>
       </div>
+
+      <div class="smoothValues">
+        <label for="smoothStart">Start</label>
+        <input type="number" id="smoothStart" class="tkNum" min="0" max="100" />
+        <span class="smoothValUnit">%</span>
+        <label for="smoothEnd">End</label>
+        <input type="number" id="smoothEnd" class="tkNum" min="0" max="100" />
+        <span class="smoothValUnit">%</span>
+      </div>
+
       <div class="smoothBezier" id="smoothBezier">cubic-bezier(.42, 0, .58, 1)</div>
       <button id="smoothApplyBtn" class="importBtn">Apply Ease to Selected Keyframes</button>
-      <div class="smoothPresetsLabel">Presets <span class="tkHint">click to apply</span></div>
+
+      <div class="smoothPresetsLabel">Built-in Presets <span class="tkHint">click to apply</span></div>
       <div id="smoothPresets" class="smoothPresets"></div>
     </div>
   </div>
