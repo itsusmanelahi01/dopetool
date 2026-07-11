@@ -1,4 +1,4 @@
-// DopeTool hostscript.jsx — v2.9.0
+// DopeTool hostscript.jsx — v2.10.0
 
 function testConnection() {
   return "Connected: AE " + app.version;
@@ -1285,5 +1285,74 @@ function addSliderCounter(cfgJson) {
 
     app.endUndoGroup();
     return "Counter added — keyframe the 'Counter' slider in Effect Controls.";
+  } catch (e) { return "Error: " + e.toString(); }
+}
+
+// ═══════════════════════════════════════════════════════════
+// SMOOOTH — apply a cubic-bezier temporal ease to selected keys
+// P1=(x1,y1) drives the outgoing ease of each segment's first key,
+// P2=(x2,y2) the incoming ease of the second key.
+// ═══════════════════════════════════════════════════════════
+function applyEase(x1, y1, x2, y2) {
+  try {
+    var comp = _dtActiveComp();
+    if (!comp) return "No active composition.";
+    var props = comp.selectedProperties;
+    if (!props || !props.length) return "Select keyframes on a property.";
+
+    x1 = Math.max(0.0001, Math.min(1, Number(x1)));
+    y1 = Number(y1);
+    x2 = Math.max(0, Math.min(0.9999, Number(x2)));
+    y2 = Number(y2);
+
+    var outInf = Math.max(0.1, Math.min(100, x1 * 100));
+    var inInf = Math.max(0.1, Math.min(100, (1 - x2) * 100));
+    var outSlope = x1 > 0 ? (y1 / x1) : 0;
+    var inSlope = (1 - x2) > 0 ? ((1 - y2) / (1 - x2)) : 0;
+
+    var applied = 0;
+    app.beginUndoGroup("DopeTool: Smoooth Ease");
+    for (var pi = 0; pi < props.length; pi++) {
+      var p = props[pi];
+      try {
+        if (!p.canVaryOverTime || !p.numKeys || p.numKeys < 2) continue;
+        var selKeys = p.selectedKeys;
+        if (!selKeys || selKeys.length < 2) continue;
+        selKeys.sort(function (a, b) { return a - b; });
+
+        var probe = p.keyValue(selKeys[0]);
+        var dims = (probe instanceof Array) ? probe.length : 1;
+
+        for (var s = 0; s < selKeys.length - 1; s++) {
+          var kA = selKeys[s], kB = selKeys[s + 1];
+          if (kB !== kA + 1) continue; // only real adjacent segments
+          var dur = p.keyTime(kB) - p.keyTime(kA);
+          if (dur <= 0) continue;
+          var vA = p.keyValue(kA), vB = p.keyValue(kB);
+
+          var outEaseA = [], inEaseB = [];
+          for (var d = 0; d < dims; d++) {
+            var delta = (dims > 1) ? (vB[d] - vA[d]) : (vB - vA);
+            var avg = delta / dur;
+            outEaseA.push(new KeyframeEase(outSlope * avg, outInf));
+            inEaseB.push(new KeyframeEase(inSlope * avg, inInf));
+          }
+
+          try {
+            p.setInterpolationTypeAtKey(kA, KeyframeInterpolationType.BEZIER, KeyframeInterpolationType.BEZIER);
+            p.setInterpolationTypeAtKey(kB, KeyframeInterpolationType.BEZIER, KeyframeInterpolationType.BEZIER);
+          } catch (eI) {}
+
+          var keepAin = p.keyInTemporalEase(kA);
+          var keepBout = p.keyOutTemporalEase(kB);
+          p.setTemporalEaseAtKey(kA, keepAin, outEaseA);
+          p.setTemporalEaseAtKey(kB, inEaseB, keepBout);
+          applied++;
+        }
+      } catch (eP) {}
+    }
+    app.endUndoGroup();
+    if (applied === 0) return "Select 2+ adjacent keyframes on a property.";
+    return "Eased " + applied + " segment(s).";
   } catch (e) { return "Error: " + e.toString(); }
 }

@@ -1,4 +1,9 @@
 {
+  "2.10.0": [
+    "New Smoooth tab — a live cubic-bezier keyframe easing editor",
+    "Drag the two handles to shape the curve, or click a preset, then Apply to your selected keyframes",
+    "12 built-in easing presets (gentle → snappy, ease in/out, linear)"
+  ],
   "2.9.0": [
     "New Toolkit tool — Slider Counter: adds a Counter slider to a text layer and links the text to it",
     "Set a prefix ($) and postfix (KG, %), choose decimal places, and toggle thousands commas — keyframe the slider to animate the number"

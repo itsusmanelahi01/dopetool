@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.9.0
+// DopeTool main.js — v2.10.0
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -124,7 +124,7 @@ function clientInitial(name) { return name.trim().charAt(0).toUpperCase(); }
 
 // ---- VIEW NAVIGATION ----
 function showView(viewId) {
-  var views = ["hubView","homeView","clientView","captionView","toolkitView"];
+  var views = ["hubView","homeView","clientView","captionView","toolkitView","smoothView"];
   views.forEach(function (v) {
     document.getElementById(v).classList.toggle("hidden", v !== viewId);
   });
@@ -1473,7 +1473,7 @@ function ensureFontInstalled(fontName, familyName, onReady) {
 }
 
 // ---- PERSISTENT TOP TAB BAR NAVIGATION ----
-var topTabOrder = ["library", "captions", "toolkit"];
+var topTabOrder = ["library", "captions", "toolkit", "smooth"];
 
 function setActiveTopTab(tab) {
   var btns = document.querySelectorAll(".topTabBtn");
@@ -1502,6 +1502,10 @@ function switchTopTab(tab) {
   } else if (tab === "toolkit") {
     setActiveTopTab("toolkit");
     showView("toolkitView");
+  } else if (tab === "smooth") {
+    setActiveTopTab("smooth");
+    showView("smoothView");
+    if (typeof smoothDraw === "function") smoothDraw();
   }
 }
 
@@ -1589,4 +1593,148 @@ function tkEval(script) {
     var escaped = JSON.stringify(cfg).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
     tkEval('addSliderCounter("' + escaped + '")');
   });
+})();
+
+// ═══════════════════════════════════════════════════════════
+// SMOOOTH — cubic-bezier keyframe easing editor
+// ═══════════════════════════════════════════════════════════
+var smoothCP = [0.42, 0, 0.58, 1]; // x1, y1, x2, y2
+var smoothDragIdx = -1;
+var SMOOTH_PRESETS = [
+  [0.25, 0.10, 0.25, 1.0],  // gentle
+  [0.42, 0.00, 0.58, 1.0],  // smooth
+  [0.50, 0.00, 0.50, 1.0],  // even S
+  [0.65, 0.00, 0.35, 1.0],  // strong S
+  [0.80, 0.00, 0.20, 1.0],  // heavy S
+  [0.90, 0.00, 0.10, 1.0],  // snappy
+  [0.00, 0.00, 0.58, 1.0],  // ease out
+  [0.16, 1.00, 0.30, 1.0],  // fast-out
+  [0.42, 0.00, 1.00, 1.0],  // ease in
+  [0.70, 0.00, 1.00, 1.0],  // ease in hard
+  [0.33, 0.00, 0.67, 1.0],  // soft
+  [0.00, 0.00, 1.00, 1.0]   // linear
+];
+
+function smoothMap(canvas) {
+  var pad = 16;
+  return { pad: pad, gw: canvas.width - 2 * pad, gh: canvas.height - 2 * pad };
+}
+function smoothPx(canvas, x, y) {
+  var m = smoothMap(canvas);
+  return [m.pad + x * m.gw, m.pad + (1 - y) * m.gh];
+}
+function smoothDrawInto(canvas, cp, opts) {
+  opts = opts || {};
+  var ctx = canvas.getContext("2d");
+  var W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  var m = smoothMap(canvas);
+
+  if (opts.grid) {
+    ctx.strokeStyle = "#20202e";
+    ctx.lineWidth = 1;
+    for (var i = 0; i <= 4; i++) {
+      var gx = m.pad + (i / 4) * m.gw;
+      ctx.beginPath(); ctx.moveTo(gx, m.pad); ctx.lineTo(gx, m.pad + m.gh); ctx.stroke();
+      var gy = m.pad + (i / 4) * m.gh;
+      ctx.beginPath(); ctx.moveTo(m.pad, gy); ctx.lineTo(m.pad + m.gw, gy); ctx.stroke();
+    }
+  }
+
+  var p0 = smoothPx(canvas, 0, 0);
+  var p1 = smoothPx(canvas, cp[0], cp[1]);
+  var p2 = smoothPx(canvas, cp[2], cp[3]);
+  var p3 = smoothPx(canvas, 1, 1);
+
+  if (opts.handles) {
+    ctx.setLineDash([3, 3]);
+    ctx.strokeStyle = "#3a5cff";
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(p0[0], p0[1]); ctx.lineTo(p1[0], p1[1]); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(p3[0], p3[1]); ctx.lineTo(p2[0], p2[1]); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  ctx.strokeStyle = opts.curveColor || "#ffffff";
+  ctx.lineWidth = opts.lineWidth || 2;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(p0[0], p0[1]);
+  ctx.bezierCurveTo(p1[0], p1[1], p2[0], p2[1], p3[0], p3[1]);
+  ctx.stroke();
+
+  if (opts.handles) {
+    ctx.fillStyle = "#555a80";
+    [p0, p3].forEach(function (p) { ctx.beginPath(); ctx.arc(p[0], p[1], 2.5, 0, Math.PI * 2); ctx.fill(); });
+    ctx.fillStyle = "#4c72ff";
+    [p1, p2].forEach(function (p) { ctx.beginPath(); ctx.arc(p[0], p[1], 5.5, 0, Math.PI * 2); ctx.fill(); });
+  }
+}
+function smoothDraw() {
+  var canvas = document.getElementById("smoothCanvas");
+  if (!canvas) return;
+  smoothDrawInto(canvas, smoothCP, { handles: true, grid: true, curveColor: "#ffffff", lineWidth: 2 });
+  var b = document.getElementById("smoothBezier");
+  if (b) {
+    var r = smoothCP.map(function (n) { return Math.round(n * 100) / 100; });
+    b.innerText = "cubic-bezier(" + r.join(", ") + ")";
+  }
+}
+function smoothClientToXY(canvas, clientX, clientY) {
+  var rect = canvas.getBoundingClientRect();
+  var sx = canvas.width / rect.width, sy = canvas.height / rect.height;
+  var px = (clientX - rect.left) * sx, py = (clientY - rect.top) * sy;
+  var m = smoothMap(canvas);
+  return [(px - m.pad) / m.gw, 1 - (py - m.pad) / m.gh];
+}
+function smoothOnDrag(e) {
+  var canvas = document.getElementById("smoothCanvas");
+  var xy = smoothClientToXY(canvas, e.clientX, e.clientY);
+  var x = Math.max(0, Math.min(1, xy[0]));
+  var y = Math.max(0, Math.min(1, xy[1]));
+  if (smoothDragIdx === 0) { smoothCP[0] = x; smoothCP[1] = y; }
+  else if (smoothDragIdx === 1) { smoothCP[2] = x; smoothCP[3] = y; }
+  smoothDraw();
+}
+function smoothApply() {
+  var out = document.getElementById("smoothOutput");
+  if (out) out.innerText = "Applying…";
+  var cp = smoothCP;
+  csInterface.evalScript("applyEase(" + cp[0] + "," + cp[1] + "," + cp[2] + "," + cp[3] + ")", function (r) {
+    if (out) out.innerText = r || "Done.";
+  });
+}
+
+(function () {
+  var canvas = document.getElementById("smoothCanvas");
+  if (!canvas) return;
+
+  var host = document.getElementById("smoothPresets");
+  SMOOTH_PRESETS.forEach(function (cp) {
+    var d = document.createElement("div");
+    d.className = "smoothPreset";
+    var c = document.createElement("canvas");
+    c.width = 64; c.height = 42;
+    d.appendChild(c);
+    smoothDrawInto(c, cp, { handles: false, grid: false, curveColor: "#c8ccff", lineWidth: 1.6 });
+    d.addEventListener("click", function () { smoothCP = cp.slice(); smoothDraw(); smoothApply(); });
+    host.appendChild(d);
+  });
+
+  canvas.addEventListener("pointerdown", function (e) {
+    var xy = smoothClientToXY(canvas, e.clientX, e.clientY);
+    var d1 = Math.abs(xy[0] - smoothCP[0]) + Math.abs(xy[1] - smoothCP[1]);
+    var d2 = Math.abs(xy[0] - smoothCP[2]) + Math.abs(xy[1] - smoothCP[3]);
+    smoothDragIdx = (d1 <= d2) ? 0 : 1;
+    try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
+    smoothOnDrag(e);
+  });
+  canvas.addEventListener("pointermove", function (e) { if (smoothDragIdx >= 0) smoothOnDrag(e); });
+  canvas.addEventListener("pointerup", function () { smoothDragIdx = -1; });
+  canvas.addEventListener("pointercancel", function () { smoothDragIdx = -1; });
+
+  var applyBtn = document.getElementById("smoothApplyBtn");
+  if (applyBtn) applyBtn.addEventListener("click", smoothApply);
+
+  smoothDraw();
 })();

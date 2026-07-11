@@ -10,9 +10,10 @@
   <!-- PERSISTENT TOP TAB BAR                 -->
   <!-- ═══════════════════════════════════════ -->
   <div id="topTabBar" class="topTabBar">
-    <button class="topTabBtn active" data-toptab="library">Style Library</button>
-    <button class="topTabBtn" data-toptab="captions">Caption Importer</button>
+    <button class="topTabBtn active" data-toptab="library">Library</button>
+    <button class="topTabBtn" data-toptab="captions">Captions</button>
     <button class="topTabBtn" data-toptab="toolkit">Toolkit</button>
+    <button class="topTabBtn" data-toptab="smooth">Smoooth</button>
     <button id="reloadBtn" class="reloadBtn" title="Reload panel (re-loads code without closing)">⟳</button>
   </div>
 
@@ -385,6 +386,30 @@
         </div>
       </div>
 
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- SMOOOTH — keyframe easing editor       -->
+  <!-- ═══════════════════════════════════════ -->
+  <div id="smoothView" class="hidden">
+    <div class="clientHeader">
+      <div class="clientHeaderInfo">
+        <div class="clientViewName">Smoooth</div>
+        <div class="clientViewCount">Keyframe easing</div>
+      </div>
+    </div>
+
+    <div id="smoothOutput" class="statusBar">Select 2+ keyframes, pick a curve, apply</div>
+
+    <div class="smoothBody">
+      <div class="smoothCanvasWrap">
+        <canvas id="smoothCanvas" class="smoothCanvas" width="300" height="230"></canvas>
+      </div>
+      <div class="smoothBezier" id="smoothBezier">cubic-bezier(.42, 0, .58, 1)</div>
+      <button id="smoothApplyBtn" class="importBtn">Apply Ease to Selected Keyframes</button>
+      <div class="smoothPresetsLabel">Presets <span class="tkHint">click to apply</span></div>
+      <div id="smoothPresets" class="smoothPresets"></div>
     </div>
   </div>
 
