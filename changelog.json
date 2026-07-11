@@ -1,4 +1,7 @@
 {
+  "2.10.2": [
+    "Fixed the Smoooth tab — it now scrolls to the presets, the drag handles work, and Apply reaches your keyframes"
+  ],
   "2.10.1": [
     "Top tabs no longer squish in a narrow panel — the tab bar scrolls sideways with edge fades, mouse-wheel scrolling, and the active tab auto-scrolls into view"
   ],

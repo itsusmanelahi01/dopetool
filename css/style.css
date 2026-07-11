@@ -14,7 +14,7 @@ body {
 
 /* The visible view fills the space under the top tab bar; its inner list
    scrolls. This keeps the last items reachable regardless of tab-bar height. */
-#hubView, #homeView, #clientView, #captionView, #toolkitView {
+#hubView, #homeView, #clientView, #captionView, #toolkitView, #smoothView {
   flex: 1 1 auto;
   min-height: 0;
   display: flex;
@@ -945,9 +945,10 @@ body {
 .smoothCanvas {
   width: 100%;
   max-width: 320px;
-  height: auto;
+  height: 230px; /* JS keeps the true aspect ratio once the view is visible */
   touch-action: none;
   cursor: crosshair;
+  display: block;
 }
 .smoothBezier {
   text-align: center;

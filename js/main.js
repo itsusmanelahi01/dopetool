@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.10.1
+// DopeTool main.js — v2.10.2
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -1687,6 +1687,8 @@ function smoothDrawInto(canvas, cp, opts) {
 function smoothDraw() {
   var canvas = document.getElementById("smoothCanvas");
   if (!canvas) return;
+  // Keep the on-screen aspect ratio correct once the canvas is actually visible
+  if (canvas.clientWidth > 0) canvas.style.height = (canvas.clientWidth * (canvas.height / canvas.width)) + "px";
   smoothDrawInto(canvas, smoothCP, { handles: true, grid: true, curveColor: "#ffffff", lineWidth: 2 });
   var b = document.getElementById("smoothBezier");
   if (b) {
@@ -1735,17 +1737,18 @@ function smoothApply() {
     host.appendChild(d);
   });
 
-  canvas.addEventListener("pointerdown", function (e) {
+  // Mouse events (more reliable than pointer events in CEP); move/up on window
+  // so a drag continues even when the cursor leaves the canvas.
+  canvas.addEventListener("mousedown", function (e) {
+    e.preventDefault();
     var xy = smoothClientToXY(canvas, e.clientX, e.clientY);
     var d1 = Math.abs(xy[0] - smoothCP[0]) + Math.abs(xy[1] - smoothCP[1]);
     var d2 = Math.abs(xy[0] - smoothCP[2]) + Math.abs(xy[1] - smoothCP[3]);
     smoothDragIdx = (d1 <= d2) ? 0 : 1;
-    try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
     smoothOnDrag(e);
   });
-  canvas.addEventListener("pointermove", function (e) { if (smoothDragIdx >= 0) smoothOnDrag(e); });
-  canvas.addEventListener("pointerup", function () { smoothDragIdx = -1; });
-  canvas.addEventListener("pointercancel", function () { smoothDragIdx = -1; });
+  window.addEventListener("mousemove", function (e) { if (smoothDragIdx >= 0) smoothOnDrag(e); });
+  window.addEventListener("mouseup", function () { smoothDragIdx = -1; });
 
   var applyBtn = document.getElementById("smoothApplyBtn");
   if (applyBtn) applyBtn.addEventListener("click", smoothApply);
