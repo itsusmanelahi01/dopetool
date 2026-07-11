@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.13.0
+// DopeTool main.js — v2.13.1
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -236,16 +236,16 @@ function setLeafTabById(id, tab) {
   buildDock();
 }
 
+// The top bar is a palette of tabs that AREN'T open in a pane. Docking a tab
+// removes it from the bar; closing its pane returns it.
 function updateTopBarDockState() {
   var docked = dockedTabs();
-  var focusLeaf = (function f(n) { if (n.type === "leaf") return n.id === focusedLeafId ? n : null; return f(n.a) || f(n.b); })(dockTree);
-  var focusTab = focusLeaf ? focusLeaf.tab : null;
   var btns = document.querySelectorAll(".topTabBtn");
   for (var i = 0; i < btns.length; i++) {
     var t = btns[i].getAttribute("data-toptab");
-    btns[i].classList.toggle("active", t === focusTab);
-    btns[i].classList.toggle("docked", docked.indexOf(t) !== -1 && t !== focusTab);
+    btns[i].classList.toggle("tabHidden", docked.indexOf(t) !== -1);
   }
+  if (typeof updateTopTabFades === "function") updateTopTabFades();
 }
 
 // ---- Render ----
@@ -1814,12 +1814,15 @@ function initTabDrag() {
 
   var strip = document.getElementById("topTabScroll");
   if (strip) {
-    // Mouse wheel steps the focused pane through the tabs
+    // Mouse wheel steps the focused pane through the tabs not open elsewhere
     strip.addEventListener("wheel", function (e) {
       e.preventDefault();
-      var idx = topTabOrder.indexOf(currentActiveTab());
+      var cur = currentActiveTab();
+      var others = dockedTabs().filter(function (t) { return t !== cur; });
+      var idx = topTabOrder.indexOf(cur);
       var dir = (e.deltaY || e.deltaX) > 0 ? 1 : -1;
-      var ni = idx + dir;
+      var ni = idx;
+      do { ni += dir; } while (ni >= 0 && ni < topTabOrder.length && others.indexOf(topTabOrder[ni]) !== -1);
       if (ni >= 0 && ni < topTabOrder.length) switchTopTab(topTabOrder[ni]);
     });
     strip.addEventListener("scroll", updateTopTabFades);

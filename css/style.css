@@ -84,7 +84,7 @@ body {
 .paneBTab.active { color: #ffffff; border-bottom-color: #7c5cff; }
 .reloadBtn.active { color: #7c5cff; }
 .tabDisabled { opacity: 0.25; pointer-events: none; }
-.topTabBtn.docked { color: #4c72ff; }
+.topTabBtn.tabHidden { display: none; }
 
 /* ---- DOCK ---- */
 .dockRoot { flex: 1 1 auto; min-height: 0; display: flex; overflow: hidden; }

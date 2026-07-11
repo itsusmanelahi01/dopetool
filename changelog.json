@@ -1,4 +1,8 @@
 {
+  "2.13.1": [
+    "Docking: opening a tab in a pane now removes it from the top bar — the bar shows only the tabs that aren't in a pane yet, so there's no duplicate/forced 'main' tab",
+    "Mouse-wheel over the top bar now steps only through the tabs still in the bar"
+  ],
   "2.13.0": [
     "Free-form docking — drag a tab into a pane's edge to split it, arrange panes however you like",
     "Resize panes by dragging the dividers, close a pane with ×, and reset to a single pane with the square button",
