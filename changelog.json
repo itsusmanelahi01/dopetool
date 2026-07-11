@@ -1,4 +1,8 @@
 {
+  "2.12.1": [
+    "Split view: the two panes are now fully independent — changing one never affects the other, and a tab already open in one pane is greyed out in the other",
+    "Fixed the 'Add New Client' bar so it stays inside the Library pane"
+  ],
   "2.12.0": [
     "Split view — click the split icon (top right) to show two tabs at once, top and bottom",
     "Pick any tab for the bottom pane, drag the divider to resize, and your split layout is remembered"

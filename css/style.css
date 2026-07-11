@@ -83,6 +83,8 @@ body {
 .paneBTab:hover { color: #9999b8; }
 .paneBTab.active { color: #ffffff; border-bottom-color: #7c5cff; }
 .reloadBtn.active { color: #7c5cff; }
+/* A tab shown in the other pane is greyed out + unclickable here */
+.tabDisabled { opacity: 0.25; pointer-events: none; }
 
 .hidden { display: none !important; }
 
@@ -550,10 +552,11 @@ body {
 }
 
 /* ---- HOME FOOTER ---- */
+#homeView { position: relative; }
 .homeFooter {
   padding: 8px 10px;
   border-top: 1px solid #1a1a26;
-  position: fixed;
+  position: absolute; /* anchored to the Library pane, not the window */
   bottom: 0;
   left: 0;
   right: 0;
@@ -580,7 +583,7 @@ body {
 }
 
 .addClientFormWrap {
-  position: fixed;
+  position: absolute;
   bottom: 44px;
   left: 0;
   right: 0;

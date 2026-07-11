@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.12.0
+// DopeTool main.js — v2.12.1
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -167,6 +167,19 @@ function showTabInHost(tab, isBottom) {
   }
   loadForTab(tab);
 }
+// Grey out (in each selector) the tab already shown in the other pane, so the
+// two panes can never collide and neither one gets swapped out from under you.
+function updateTabDisabled() {
+  var topBtns = document.querySelectorAll(".topTabBtn");
+  for (var i = 0; i < topBtns.length; i++) topBtns[i].classList.toggle("tabDisabled", splitMode && topBtns[i].getAttribute("data-toptab") === bottomTab);
+  var bBtns = document.querySelectorAll(".paneBTab");
+  for (var k = 0; k < bBtns.length; k++) bBtns[k].classList.toggle("tabDisabled", bBtns[k].getAttribute("data-toptab") === currentTopTab);
+}
+function markBottomActive() {
+  var bt = document.querySelectorAll(".paneBTab");
+  for (var k = 0; k < bt.length; k++) bt[k].classList.toggle("active", splitMode && bt[k].getAttribute("data-toptab") === bottomTab);
+}
+// Full (re)layout — used when toggling split and on restore
 function applyPanes() {
   var topHost = document.getElementById("paneABody"), botHost = document.getElementById("paneBBody");
   var botViews = (splitMode && bottomTab) ? viewsFor(bottomTab) : [];
@@ -174,14 +187,20 @@ function applyPanes() {
   showTabInHost(currentTopTab, false);
   if (splitMode && bottomTab) showTabInHost(bottomTab, true);
   setActiveTopTab(currentTopTab);
-  var bt = document.querySelectorAll(".paneBTab");
-  for (var k = 0; k < bt.length; k++) bt[k].classList.toggle("active", splitMode && bt[k].getAttribute("data-toptab") === bottomTab);
+  markBottomActive();
+  updateTabDisabled();
 }
 function setBottomTab(tab) {
   if (!splitMode) return;
-  if (tab === currentTopTab) { currentTopTab = bottomTab || firstOtherTab(tab); } // swap so both panes differ
+  if (tab === currentTopTab) return; // already shown in the top pane
+  var topHost = document.getElementById("paneABody"), botHost = document.getElementById("paneBBody");
+  // Return the previous bottom view(s) to the top host, hidden (doesn't disturb the top's visible view)
+  if (bottomTab) viewsFor(bottomTab).forEach(function (id) { placeView(id, topHost); var e = document.getElementById(id); if (e) e.classList.add("hidden"); });
   bottomTab = tab;
-  applyPanes();
+  viewsFor(tab).forEach(function (id) { placeView(id, botHost); });
+  showTabInHost(tab, true); // refresh ONLY the bottom pane
+  markBottomActive();
+  updateTabDisabled();
   try { localStorage.setItem("dopetool_bottomTab", bottomTab || ""); } catch (e) {}
 }
 function setSplit(on) {
@@ -1571,12 +1590,12 @@ function updateTopTabFades() {
 }
 
 function switchTopTab(tab) {
-  var old = currentTopTab;
-  // In split mode the two panes can't show the same tab — hand the old top tab
-  // down to the bottom pane instead.
-  if (splitMode && tab === bottomTab && tab !== old) bottomTab = old;
+  if (splitMode && tab === bottomTab) return; // that tab is shown in the bottom pane
   currentTopTab = tab;
-  applyPanes();
+  // Only refresh the top pane — the bottom pane is left completely untouched.
+  showTabInHost(tab, false);
+  setActiveTopTab(tab);
+  updateTabDisabled();
 }
 
 // ---- DRAG-TO-REORDER TABS (per-editor, saved in localStorage) ----
@@ -1652,13 +1671,11 @@ function initTabDrag() {
     // Mouse wheel steps through the tabs (the active one centers itself)
     strip.addEventListener("wheel", function (e) {
       e.preventDefault();
-      var activeBtn = document.querySelector(".topTabBtn.active");
-      var current = activeBtn ? activeBtn.getAttribute("data-toptab") : "library";
-      var idx = topTabOrder.indexOf(current);
-      var dir = (e.deltaY || e.deltaX);
-      if (dir > 0 && idx < topTabOrder.length - 1) idx++;
-      else if (dir < 0 && idx > 0) idx--;
-      switchTopTab(topTabOrder[idx]);
+      var idx = topTabOrder.indexOf(currentTopTab);
+      var dir = (e.deltaY || e.deltaX) > 0 ? 1 : -1;
+      var ni = idx;
+      do { ni += dir; } while (ni >= 0 && ni < topTabOrder.length && splitMode && topTabOrder[ni] === bottomTab);
+      if (ni >= 0 && ni < topTabOrder.length) switchTopTab(topTabOrder[ni]);
     });
     strip.addEventListener("scroll", updateTopTabFades);
     window.addEventListener("resize", updateTopTabFades);
