@@ -1,4 +1,8 @@
 {
+  "2.12.0": [
+    "Split view — click the split icon (top right) to show two tabs at once, top and bottom",
+    "Pick any tab for the bottom pane, drag the divider to resize, and your split layout is remembered"
+  ],
   "2.11.1": [
     "Drag the top tabs to reorder them however you like — your order is remembered on your machine"
   ],

@@ -21,6 +21,69 @@ body {
   flex-direction: column;
 }
 
+/* ---- SPLIT VIEW ---- */
+/* Each pane's body hosts the active view element and fills its share. */
+.paneBody {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+.splitDivider {
+  flex: 0 0 auto;
+  height: 7px;
+  background: #16161f;
+  border-top: 1px solid #23233a;
+  border-bottom: 1px solid #23233a;
+  cursor: ns-resize;
+  position: relative;
+}
+.splitDivider::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 30px;
+  height: 2px;
+  border-radius: 2px;
+  background: #3a3a55;
+}
+.splitDivider:hover { background: #1c2440; }
+.splitDivider:hover::after { background: #4c72ff; }
+.paneB {
+  flex: 0 0 auto;
+  height: 42%;
+  min-height: 90px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #0f0f18;
+}
+.paneBBar {
+  flex: 0 0 auto;
+  display: flex;
+  background: #0d0d14;
+  border-bottom: 1px solid #1a1a26;
+}
+.paneBTab {
+  flex: 1;
+  padding: 7px 3px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #6b6b80;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.paneBTab:hover { color: #9999b8; }
+.paneBTab.active { color: #ffffff; border-bottom-color: #7c5cff; }
+.reloadBtn.active { color: #7c5cff; }
+
 .hidden { display: none !important; }
 
 /* ---- TOPBAR ---- */

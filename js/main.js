@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.11.1
+// DopeTool main.js — v2.12.0
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -123,12 +123,83 @@ function clientColor(name) {
 function clientInitial(name) { return name.trim().charAt(0).toUpperCase(); }
 
 // ---- VIEW NAVIGATION ----
+// Host-aware: shows viewId and hides only the OTHER views living in the same
+// pane body, so each split pane navigates independently.
 function showView(viewId) {
+  var el = document.getElementById(viewId);
+  if (!el) return;
+  var host = el.parentNode;
   var views = ["hubView","homeView","clientView","captionView","toolkitView","smoothView"];
   views.forEach(function (v) {
-    document.getElementById(v).classList.toggle("hidden", v !== viewId);
+    var e = document.getElementById(v);
+    if (e && e.parentNode === host) e.classList.toggle("hidden", v !== viewId);
   });
 }
+
+// ---- SPLIT VIEW ----
+var currentTopTab = "library";
+var splitMode = false;
+var bottomTab = null;
+var TAB_VIEWS = { library: ["homeView", "clientView"], captions: ["captionView"], toolkit: ["toolkitView"], smooth: ["smoothView"] };
+var ALL_VIEWS = ["hubView", "homeView", "clientView", "captionView", "toolkitView", "smoothView"];
+
+function viewsFor(tab) { return TAB_VIEWS[tab] || []; }
+function firstOtherTab(tab) { for (var i = 0; i < topTabOrder.length; i++) { if (topTabOrder[i] !== tab) return topTabOrder[i]; } return "toolkit"; }
+function activeViewId(tab) {
+  if (tab === "library") return currentClient ? "clientView" : "homeView";
+  if (tab === "captions") return "captionView";
+  if (tab === "toolkit") return "toolkitView";
+  if (tab === "smooth") return "smoothView";
+  return "homeView";
+}
+function placeView(id, host) { var el = document.getElementById(id); if (el && el.parentNode !== host) host.appendChild(el); }
+function loadForTab(tab) {
+  if (tab === "library") { if (!currentClient) loadAllClients(); }
+  else if (tab === "captions") loadCaptionStyles();
+  else if (tab === "smooth") { if (typeof smoothDraw === "function") smoothDraw(); if (typeof loadSmoothPresets === "function") loadSmoothPresets(); }
+}
+function showTabInHost(tab, isBottom) {
+  var showId = activeViewId(tab);
+  var host = document.getElementById(isBottom ? "paneBBody" : "paneABody");
+  for (var i = 0; i < ALL_VIEWS.length; i++) {
+    var e = document.getElementById(ALL_VIEWS[i]);
+    if (e && e.parentNode === host) e.classList.toggle("hidden", ALL_VIEWS[i] !== showId);
+  }
+  loadForTab(tab);
+}
+function applyPanes() {
+  var topHost = document.getElementById("paneABody"), botHost = document.getElementById("paneBBody");
+  var botViews = (splitMode && bottomTab) ? viewsFor(bottomTab) : [];
+  for (var i = 0; i < ALL_VIEWS.length; i++) { var id = ALL_VIEWS[i]; placeView(id, (botViews.indexOf(id) !== -1) ? botHost : topHost); }
+  showTabInHost(currentTopTab, false);
+  if (splitMode && bottomTab) showTabInHost(bottomTab, true);
+  setActiveTopTab(currentTopTab);
+  var bt = document.querySelectorAll(".paneBTab");
+  for (var k = 0; k < bt.length; k++) bt[k].classList.toggle("active", splitMode && bt[k].getAttribute("data-toptab") === bottomTab);
+}
+function setBottomTab(tab) {
+  if (!splitMode) return;
+  if (tab === currentTopTab) { currentTopTab = bottomTab || firstOtherTab(tab); } // swap so both panes differ
+  bottomTab = tab;
+  applyPanes();
+  try { localStorage.setItem("dopetool_bottomTab", bottomTab || ""); } catch (e) {}
+}
+function setSplit(on) {
+  splitMode = on;
+  document.getElementById("paneB").classList.toggle("hidden", !on);
+  document.getElementById("splitDivider").classList.toggle("hidden", !on);
+  var sb = document.getElementById("splitBtn");
+  if (sb) sb.classList.toggle("active", on);
+  if (on && (!bottomTab || bottomTab === currentTopTab)) bottomTab = firstOtherTab(currentTopTab);
+  applyPanes();
+  try { localStorage.setItem("dopetool_split", on ? "1" : "0"); localStorage.setItem("dopetool_bottomTab", bottomTab || ""); } catch (e) {}
+}
+// Move all view elements into the top pane host at load
+(function initPanes() {
+  var topHost = document.getElementById("paneABody");
+  if (!topHost) return;
+  for (var i = 0; i < ALL_VIEWS.length; i++) { var el = document.getElementById(ALL_VIEWS[i]); if (el) topHost.appendChild(el); }
+})();
 
 // ---- TOOL HUB ----
 document.getElementById("openLibraryBtn").addEventListener("click", function () {
@@ -1500,27 +1571,12 @@ function updateTopTabFades() {
 }
 
 function switchTopTab(tab) {
-  if (tab === "library") {
-    setActiveTopTab("library");
-    if (typeof currentClient !== "undefined" && currentClient) {
-      showView("clientView");
-    } else {
-      showView("homeView");
-      loadAllClients();
-    }
-  } else if (tab === "captions") {
-    setActiveTopTab("captions");
-    showView("captionView");
-    loadCaptionStyles();
-  } else if (tab === "toolkit") {
-    setActiveTopTab("toolkit");
-    showView("toolkitView");
-  } else if (tab === "smooth") {
-    setActiveTopTab("smooth");
-    showView("smoothView");
-    if (typeof smoothDraw === "function") smoothDraw();
-    if (typeof loadSmoothPresets === "function") loadSmoothPresets();
-  }
+  var old = currentTopTab;
+  // In split mode the two panes can't show the same tab — hand the old top tab
+  // down to the bottom pane instead.
+  if (splitMode && tab === bottomTab && tab !== old) bottomTab = old;
+  currentTopTab = tab;
+  applyPanes();
 }
 
 // ---- DRAG-TO-REORDER TABS (per-editor, saved in localStorage) ----
@@ -1608,6 +1664,44 @@ function initTabDrag() {
     window.addEventListener("resize", updateTopTabFades);
     updateTopTabFades();
   }
+
+  // Split toggle + bottom-pane tab buttons
+  var splitBtn = document.getElementById("splitBtn");
+  if (splitBtn) splitBtn.addEventListener("click", function () { setSplit(!splitMode); });
+  var pbtabs = document.querySelectorAll(".paneBTab");
+  for (var b = 0; b < pbtabs.length; b++) {
+    pbtabs[b].addEventListener("click", function () { setBottomTab(this.getAttribute("data-toptab")); });
+  }
+
+  // Resizable divider between the two panes
+  var divider = document.getElementById("splitDivider");
+  var paneB = document.getElementById("paneB");
+  if (divider && paneB) {
+    var dragging = false;
+    divider.addEventListener("mousedown", function (e) { dragging = true; e.preventDefault(); document.body.style.userSelect = "none"; });
+    window.addEventListener("mousemove", function (e) {
+      if (!dragging) return;
+      var h = window.innerHeight - e.clientY;
+      h = Math.max(90, Math.min(window.innerHeight - 140, h));
+      paneB.style.height = h + "px";
+      if (typeof smoothDraw === "function") smoothDraw();
+    });
+    window.addEventListener("mouseup", function () {
+      if (!dragging) return;
+      dragging = false;
+      document.body.style.userSelect = "";
+      try { localStorage.setItem("dopetool_paneBH", paneB.style.height); } catch (e) {}
+    });
+  }
+
+  // Restore saved split state (per editor)
+  try {
+    var savedBottom = localStorage.getItem("dopetool_bottomTab");
+    if (savedBottom && TAB_VIEWS[savedBottom]) bottomTab = savedBottom;
+    var savedH = localStorage.getItem("dopetool_paneBH");
+    if (savedH && paneB) paneB.style.height = savedH;
+    if (localStorage.getItem("dopetool_split") === "1") setSplit(true);
+  } catch (e) {}
 })();
 
 // ---- TOOLKIT (comp & layer utilities) ----

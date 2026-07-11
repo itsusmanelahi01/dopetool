@@ -16,8 +16,14 @@
       <button class="topTabBtn" data-toptab="toolkit">Toolkit</button>
       <button class="topTabBtn" data-toptab="smooth">Smoooth</button>
     </div>
+    <button id="splitBtn" class="reloadBtn" title="Split view — show two tabs at once">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="7" rx="1"/><rect x="3" y="13" width="18" height="7" rx="1"/></svg>
+    </button>
     <button id="reloadBtn" class="reloadBtn" title="Reload panel (re-loads code without closing)">⟳</button>
   </div>
+
+  <!-- Top pane body (holds the active view; views move between panes in split mode) -->
+  <div id="paneABody" class="paneBody"></div>
 
   <!-- ═══════════════════════════════════════ -->
   <!-- TOOL HUB HOME                          -->
@@ -436,6 +442,20 @@
       <div class="smoothPresetsLabel">Built-in Presets <span class="tkHint">click to apply</span></div>
       <div id="smoothPresets" class="smoothPresets"></div>
     </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- SPLIT VIEW — resizable second pane      -->
+  <!-- ═══════════════════════════════════════ -->
+  <div id="splitDivider" class="splitDivider hidden"></div>
+  <div id="paneB" class="paneB hidden">
+    <div class="paneBBar" id="paneBTabs">
+      <button class="paneBTab" data-toptab="library">Library</button>
+      <button class="paneBTab" data-toptab="captions">Captions</button>
+      <button class="paneBTab" data-toptab="toolkit">Toolkit</button>
+      <button class="paneBTab" data-toptab="smooth">Smoooth</button>
+    </div>
+    <div class="paneBody" id="paneBBody"></div>
   </div>
 
   <!-- Context menu -->
