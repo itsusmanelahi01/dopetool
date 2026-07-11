@@ -871,6 +871,8 @@ body {
   color: #ffffff;
   border-bottom: 2px solid #7c5cff;
 }
+.topTabBtn.dragging { opacity: 0.4; }
+.topTabBtn:active { cursor: grabbing; }
 .topTabBtnSoon {
   opacity: 0.35;
   cursor: default;

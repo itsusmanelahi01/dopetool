@@ -1,4 +1,7 @@
 {
+  "2.11.1": [
+    "Drag the top tabs to reorder them however you like — your order is remembered on your machine"
+  ],
   "2.11.0": [
     "Smoooth: save your own easing presets — shared with the whole team, shown in a My Presets panel on top of the graph",
     "Smoooth: Start / End value boxes to type the handle influence directly (and they update as you drag)"

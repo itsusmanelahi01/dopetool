@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.11.0
+// DopeTool main.js — v2.11.1
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -1523,6 +1523,62 @@ function switchTopTab(tab) {
   }
 }
 
+// ---- DRAG-TO-REORDER TABS (per-editor, saved in localStorage) ----
+var tabDragEl = null;
+
+function saveTabOrder() {
+  var strip = document.getElementById("topTabScroll");
+  if (!strip) return;
+  var order = [];
+  var tabs = strip.querySelectorAll(".topTabBtn");
+  for (var i = 0; i < tabs.length; i++) order.push(tabs[i].getAttribute("data-toptab"));
+  topTabOrder = order; // keep wheel-stepping in sync with the visual order
+  try { localStorage.setItem("dopetool_tabOrder", JSON.stringify(order)); } catch (e) {}
+}
+
+function applyTabOrder() {
+  var strip = document.getElementById("topTabScroll");
+  if (!strip) return;
+  try {
+    var saved = JSON.parse(localStorage.getItem("dopetool_tabOrder") || "null");
+    if (saved && saved.length) {
+      saved.forEach(function (key) {
+        var btn = strip.querySelector('.topTabBtn[data-toptab="' + key + '"]');
+        if (btn) strip.appendChild(btn); // re-append in saved order
+      });
+    }
+  } catch (e) {}
+  saveTabOrder();
+}
+
+function initTabDrag() {
+  var strip = document.getElementById("topTabScroll");
+  if (!strip) return;
+  var tabs = strip.querySelectorAll(".topTabBtn");
+  for (var i = 0; i < tabs.length; i++) {
+    (function (t) {
+      t.setAttribute("draggable", "true");
+      t.addEventListener("dragstart", function (e) {
+        tabDragEl = t;
+        t.classList.add("dragging");
+        try { e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", ""); } catch (err) {}
+      });
+      t.addEventListener("dragend", function () {
+        t.classList.remove("dragging");
+        tabDragEl = null;
+        saveTabOrder();
+      });
+      t.addEventListener("dragover", function (e) {
+        e.preventDefault();
+        if (!tabDragEl || tabDragEl === t) return;
+        var rect = t.getBoundingClientRect();
+        var before = e.clientX < rect.left + rect.width / 2;
+        strip.insertBefore(tabDragEl, before ? t : t.nextSibling);
+      });
+    })(tabs[i]);
+  }
+}
+
 (function () {
   var btns = document.querySelectorAll(".topTabBtn");
   for (var i = 0; i < btns.length; i++) {
@@ -1531,6 +1587,9 @@ function switchTopTab(tab) {
       switchTopTab(tab);
     });
   }
+
+  applyTabOrder();
+  initTabDrag();
 
   var strip = document.getElementById("topTabScroll");
   if (strip) {
