@@ -1,4 +1,7 @@
 {
+  "2.14.5": [
+    "Docking: cleaner split divider — a subtle centered grip handle on a hairline that turns blue and widens when you hover it"
+  ],
   "2.14.4": [
     "Docking: the split divider is now a visible thin blue line (brightens on hover) so it's easy to find and drag"
   ],

@@ -98,17 +98,30 @@ body {
 }
 .dockPaneBody { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; overflow: hidden; position: relative; }
 .dockDivider { flex: 0 0 auto; background: transparent; position: relative; }
-.dockDivHorz { height: 6px; cursor: ns-resize; }
-/* Thin blue line centered in the grab area */
+.dockDivHorz { height: 9px; cursor: ns-resize; }
+/* Subtle full-width separator line */
 .dockDivHorz::before {
   content: "";
   position: absolute;
   left: 0; right: 0; top: 50%;
-  height: 2px;
+  height: 1px;
   transform: translateY(-50%);
-  background: #4c72ff;
+  background: #1e1e2c;
+  transition: background 0.12s;
 }
-.dockDivider:hover::before { background: #6c8cff; height: 3px; }
+/* Centered rounded grip handle — signals it's draggable */
+.dockDivHorz::after {
+  content: "";
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 34px; height: 4px;
+  transform: translate(-50%, -50%);
+  border-radius: 3px;
+  background: #33334d;
+  transition: background 0.12s, width 0.12s;
+}
+.dockDivHorz:hover::before { background: #2b3a6b; }
+.dockDivHorz:hover::after { background: #4c72ff; width: 46px; }
 
 /* Bottom pane's own tab strip */
 .paneStrip {
