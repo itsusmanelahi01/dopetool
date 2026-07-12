@@ -1,4 +1,8 @@
 {
+  "2.14.1": [
+    "Split now drops the tab you're on into the bottom panel (the rest stay up top)",
+    "Switching tabs no longer reloads anything — each panel loads its data once and keeps its state (Library scroll, saved graph presets, etc.)"
+  ],
   "2.14.0": [
     "Reworked docking — two stacked panels: the main one on top, a second one you open below with the split button",
     "Each panel has its own tab strip and can hold several tabs — use the + on a panel to pull another tab into it, so you can have two-up top and two-up bottom",

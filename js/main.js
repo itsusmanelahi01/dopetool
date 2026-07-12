@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.14.0
+// DopeTool main.js — v2.14.1
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -163,10 +163,18 @@ function activeViewId(tab) {
   if (tab === "smooth") return "smoothView";
   return "homeView";
 }
+// Each tab's data is fetched ONCE (the first time it becomes visible) and then
+// left alone — switching tabs or re-docking never re-fetches or re-renders it.
+var loadedTabs = {};
 function loadForTab(tab) {
+  // Smoooth's canvas must be re-drawn whenever it's shown (its size depends on
+  // the current layout) — but that's a cheap local redraw, not a data reload.
+  if (tab === "smooth" && typeof smoothDraw === "function") smoothDraw();
+  if (loadedTabs[tab]) return;
+  loadedTabs[tab] = true;
   if (tab === "library") { if (!currentClient) loadAllClients(); }
   else if (tab === "captions") loadCaptionStyles();
-  else if (tab === "smooth") { if (typeof smoothDraw === "function") smoothDraw(); if (typeof loadSmoothPresets === "function") loadSmoothPresets(); }
+  else if (tab === "smooth") { if (typeof loadSmoothPresets === "function") loadSmoothPresets(); }
 }
 function paneOf(tab) {
   if (panes.top.tabs.indexOf(tab) !== -1) return "top";
@@ -181,13 +189,46 @@ function currentActiveTab() {
   return (panes[focusedPane] && panes[focusedPane].active) || panes.top.active || "library";
 }
 
-// Activate a tab within its pane and focus that pane.
+// Activate a tab within its pane and focus that pane. This is a LIGHT update:
+// it just flips the active tab-button and shows/hides views — no DOM rebuild and
+// no data reload — so switching tabs never re-fetches or re-renders a panel.
 function activateTab(tab) {
   var pane = paneOf(tab);
   if (!pane) return;
   panes[pane].active = tab;
   focusedPane = pane;
-  buildDock();
+  refreshPaneActive(pane);
+  persistDock();
+}
+
+function refreshPaneActive(pane) {
+  var p = panes[pane];
+  // active tab-button in this pane's strip
+  var strip = document.querySelector(pane === "top" ? "#topTabScroll" : '[data-strip="bottom"]');
+  if (strip) {
+    var btns = strip.querySelectorAll(".paneTabBtn");
+    for (var i = 0; i < btns.length; i++) {
+      var t = btns[i].getAttribute("data-tab");
+      btns[i].classList.toggle("active", t === p.active);
+      if (t === p.active && pane === "top") { try { btns[i].scrollIntoView({ inline: "center", block: "nearest" }); } catch (e) {} }
+    }
+  }
+  // show only the active tab's view in this pane's body
+  var body = document.querySelector('[data-pane-body="' + pane + '"]');
+  if (body) {
+    p.tabs.forEach(function (tab) {
+      var showId = (tab === p.active) ? activeViewId(tab) : null;
+      viewsFor(tab).forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.classList.toggle("hidden", id !== showId);
+      });
+    });
+  }
+  // move the focus ring to this pane
+  var all = document.querySelectorAll(".dockPane");
+  for (var k = 0; k < all.length; k++) all[k].classList.toggle("focused", all[k].contains(body));
+  loadForTab(p.active);
+  if (typeof updateTopTabFades === "function") updateTopTabFades();
 }
 
 // Move a tab into a pane (single-instance). `index` is optional insert position.
@@ -211,17 +252,13 @@ function moveTab(tab, dest, index) {
   buildDock();
 }
 
-// Split button: open the bottom pane (moving a non-active tab down so the main
-// tab stays on top), or close it if already open.
+// Split button: send the CURRENT (active) tab down into a new bottom pane,
+// leaving the remaining tabs up top. Or close the split if already open.
 function openSplit() {
   if (splitOpen && panes.bottom.tabs.length) return;
-  var move = null;
-  for (var i = 0; i < panes.top.tabs.length; i++) {
-    if (panes.top.tabs[i] !== panes.top.active) { move = panes.top.tabs[i]; break; }
-  }
-  if (!move) return; // only one tab total — nothing to split
+  if (panes.top.tabs.length <= 1) return; // only one tab total — nothing to split
   splitOpen = true;
-  moveTab(move, "bottom");
+  moveTab(panes.top.active, "bottom");
 }
 function closeSplit() {
   panes.bottom.tabs.slice().forEach(function (t) {
