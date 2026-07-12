@@ -97,9 +97,18 @@ body {
   position: relative;
 }
 .dockPaneBody { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; overflow: hidden; position: relative; }
-.dockDivider { flex: 0 0 auto; background: #16161f; }
+.dockDivider { flex: 0 0 auto; background: transparent; position: relative; }
 .dockDivHorz { height: 6px; cursor: ns-resize; }
-.dockDivider:hover { background: #4c72ff; }
+/* Thin blue line centered in the grab area */
+.dockDivHorz::before {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; top: 50%;
+  height: 2px;
+  transform: translateY(-50%);
+  background: #4c72ff;
+}
+.dockDivider:hover::before { background: #6c8cff; height: 3px; }
 
 /* Bottom pane's own tab strip */
 .paneStrip {

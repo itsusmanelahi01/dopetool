@@ -1,4 +1,7 @@
 {
+  "2.14.4": [
+    "Docking: the split divider is now a visible thin blue line (brightens on hover) so it's easy to find and drag"
+  ],
   "2.14.3": [
     "Smoooth: the Speed Graph now has draggable ease handles too — drag sideways for influence, up/down for velocity (mirrors the Value graph)"
   ],
