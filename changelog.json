@@ -1,4 +1,11 @@
 {
+  "2.14.0": [
+    "Reworked docking — two stacked panels: the main one on top, a second one you open below with the split button",
+    "Each panel has its own tab strip and can hold several tabs — use the + on a panel to pull another tab into it, so you can have two-up top and two-up bottom",
+    "A tab lives in exactly one panel: opening it below removes it from the top bar, and closing the split (×) sends its tabs back up",
+    "Drag a tab between the two strips to move or reorder it; the active tab stays highlighted and centered; drag the divider to resize",
+    "Your layout is remembered on your machine"
+  ],
   "2.13.2": [
     "Docking fixes: the active tab no longer disappears from the top bar — it stays and is highlighted; only tabs open in another pane leave the bar",
     "Click a pane to focus it — the highlight and the top bar now follow the focused pane",

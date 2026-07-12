@@ -10,14 +10,9 @@
   <!-- PERSISTENT TOP TAB BAR                 -->
   <!-- ═══════════════════════════════════════ -->
   <div id="topTabBar" class="topTabBar">
-    <div id="topTabScroll" class="topTabScroll">
-      <button class="topTabBtn active" data-toptab="library">Library</button>
-      <button class="topTabBtn" data-toptab="captions">Captions</button>
-      <button class="topTabBtn" data-toptab="toolkit">Toolkit</button>
-      <button class="topTabBtn" data-toptab="smooth">Smoooth</button>
-    </div>
-    <button id="splitBtn" class="reloadBtn" title="Reset layout to a single pane">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+    <div id="topTabScroll" class="topTabScroll"><!-- tabs rendered by main.js --></div>
+    <button id="splitBtn" class="reloadBtn" title="Split — show a second panel below">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="12" x2="21" y2="12"/></svg>
     </button>
     <button id="reloadBtn" class="reloadBtn" title="Reload panel (re-loads code without closing)">⟳</button>
   </div>
