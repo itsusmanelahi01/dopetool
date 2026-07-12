@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.17.1
+// DopeTool main.js — v2.17.2
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -1295,9 +1295,15 @@ function acRenderUsage() {
   var parts = [];
   if (rl.remAudio != null) {
     var a = acFmtSeconds(rl.remAudio);
-    if (a) parts.push(a + " of audio left" + (rl.resetAudio ? " (resets in " + rl.resetAudio + ")" : ""));
+    // Groq's audio budget is a rolling bucket that refills continuously — only
+    // surface the reset countdown when you're actually running low.
+    var lowAudio = rl.limAudio && parseFloat(rl.remAudio) < parseFloat(rl.limAudio) * 0.25;
+    if (a) parts.push(a + " of audio left" + (lowAudio && rl.resetAudio ? " (resets in " + rl.resetAudio + ")" : ""));
   }
-  if (rl.remReq != null) parts.push(rl.remReq + (rl.limReq ? " / " + rl.limReq : "") + " requests left");
+  if (rl.remReq != null) {
+    var lowReq = rl.limReq && parseFloat(rl.remReq) < parseFloat(rl.limReq) * 0.25;
+    parts.push(rl.remReq + (rl.limReq ? " / " + rl.limReq : "") + " requests left" + (lowReq && rl.resetReq ? " (resets in " + rl.resetReq + ")" : ""));
+  }
   el.innerText = parts.length ? "Groq quota — " + parts.join(" · ") : "";
 }
 

@@ -1,4 +1,7 @@
 {
+  "2.17.2": [
+    "Auto Captions: the Groq quota line now only shows the reset countdown when you're actually running low (the audio budget refills continuously, so the countdown was misleading when you're full)"
+  ],
   "2.17.1": [
     "Auto Captions: shows your live Groq quota — audio-seconds and requests left (with reset time) — read straight from Groq after each transcription, so editors can see how much they have before hitting the free-tier limit"
   ],
