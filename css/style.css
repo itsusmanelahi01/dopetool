@@ -1271,6 +1271,12 @@ body {
 .acReviewInput:focus { border-color: #4c72ff; }
 .acReviewActions { display: flex; gap: 8px; margin-top: 10px; }
 .acReviewActions .importBtn { flex: 1; }
+.acUsage {
+  font-size: 10px;
+  color: #6b6b86;
+  padding: 2px 2px 0;
+}
+.acUsage:not(:empty) { color: #8f9bd0; }
 
 /* Start / End value inputs */
 .smoothValues {

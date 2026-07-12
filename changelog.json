@@ -1,4 +1,7 @@
 {
+  "2.17.1": [
+    "Auto Captions: shows your live Groq quota — audio-seconds and requests left (with reset time) — read straight from Groq after each transcription, so editors can see how much they have before hitting the free-tier limit"
+  ],
   "2.17.0": [
     "Auto Captions: new Review & Edit step — after transcribing you see every caption in an editable list (with timecodes); fix any wrong words, then hit Create Captions for perfect results",
     "No transcription model is flawless on Hinglish/Urdu, so this is the reliable way to 100% correct captions; turn it off with the 'Review & edit' checkbox if you want one-click creation"

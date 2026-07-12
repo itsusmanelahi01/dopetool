@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.17.0
+// DopeTool main.js — v2.17.1
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -1164,6 +1164,7 @@ function loadAutoCapStyles() {
   if (!grid) return;
   refreshGroqKeyState();
   acRefreshFfmpegState();
+  acRenderUsage();
   grid.innerHTML = '<div style="color:#333348;font-size:11px;padding:8px;">Loading styles...</div>';
   selectedAutoStyle = null;
   db.collection("textstyles").get().then(function (snapshot) {
@@ -1220,8 +1221,10 @@ function setAutoCapFile(path) {
 
 // ---- Groq requests via curl ----
 function groqTranscribe(key, audioPath, lang, cb) {
+  var hdr = require("path").join(require("os").tmpdir(), "dopetool_hdr_" + Date.now() + ".txt");
   var args = [
     "-s", "-S", "--max-time", "600",
+    "-D", hdr,
     "https://api.groq.com/openai/v1/audio/transcriptions",
     "-H", "Authorization: Bearer " + key,
     "-F", "file=@" + audioPath,
@@ -1232,7 +1235,7 @@ function groqTranscribe(key, audioPath, lang, cb) {
     "-F", "timestamp_granularities[]=segment"
   ];
   if (lang && lang !== "auto") args.push("-F", "language=" + lang);
-  acExecJson(args, cb);
+  acExecJson(args, cb, hdr);
 }
 
 function groqChat(key, systemPrompt, userContent, cb) {
@@ -1249,14 +1252,53 @@ function groqChat(key, systemPrompt, userContent, cb) {
   ], cb);
 }
 
-function acExecJson(args, cb) {
+function acExecJson(args, cb, headerPath) {
   acChild.execFile("curl", args, { maxBuffer: 1024 * 1024 * 64 }, function (err, stdout, stderr) {
+    if (headerPath) { try { acParseRateLimits(require("fs").readFileSync(headerPath, "utf8")); } catch (e) {} try { require("fs").unlinkSync(headerPath); } catch (e2) {} }
     if (err && !stdout) { cb(stderr || err.message || "Request failed"); return; }
     var data;
     try { data = JSON.parse(stdout); } catch (e) { cb("Bad response: " + (stdout || "").slice(0, 200)); return; }
     if (data && data.error) { cb(data.error.message || JSON.stringify(data.error)); return; }
     cb(null, data);
   });
+}
+
+// ---- Groq usage (read live from rate-limit response headers) ----
+var acRateLimits = null;
+try { acRateLimits = JSON.parse(localStorage.getItem("dopetool_groq_limits") || "null"); } catch (e) {}
+
+function acParseRateLimits(txt) {
+  function g(name) { var m = new RegExp(name + ":\\s*([^\\r\\n]+)", "i").exec(txt); return m ? m[1].replace(/^\s+|\s+$/g, "") : null; }
+  acRateLimits = {
+    remReq: g("x-ratelimit-remaining-requests"),
+    limReq: g("x-ratelimit-limit-requests"),
+    resetReq: g("x-ratelimit-reset-requests"),
+    remAudio: g("x-ratelimit-remaining-audio-seconds"),
+    limAudio: g("x-ratelimit-limit-audio-seconds"),
+    resetAudio: g("x-ratelimit-reset-audio-seconds")
+  };
+  try { localStorage.setItem("dopetool_groq_limits", JSON.stringify(acRateLimits)); } catch (e) {}
+  acRenderUsage();
+}
+function acFmtSeconds(s) {
+  var n = parseFloat(s);
+  if (isNaN(n)) return null;
+  if (n >= 3600) return (n / 3600).toFixed(1) + " hr";
+  if (n >= 60) return Math.round(n / 60) + " min";
+  return Math.round(n) + " s";
+}
+function acRenderUsage() {
+  var el = document.getElementById("acUsage");
+  if (!el) return;
+  var rl = acRateLimits;
+  if (!rl || (rl.remReq == null && rl.remAudio == null)) { el.innerText = ""; return; }
+  var parts = [];
+  if (rl.remAudio != null) {
+    var a = acFmtSeconds(rl.remAudio);
+    if (a) parts.push(a + " of audio left" + (rl.resetAudio ? " (resets in " + rl.resetAudio + ")" : ""));
+  }
+  if (rl.remReq != null) parts.push(rl.remReq + (rl.limReq ? " / " + rl.limReq : "") + " requests left");
+  el.innerText = parts.length ? "Groq quota — " + parts.join(" · ") : "";
 }
 
 // ---- Audio prep: compress to 16kHz mono MP3 with ffmpeg (also extracts audio
