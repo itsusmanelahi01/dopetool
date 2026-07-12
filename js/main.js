@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.17.2
+// DopeTool main.js — v2.17.3
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -1554,20 +1554,30 @@ function acImportSegments(segs) {
   });
 }
 
-// Romanize each segment's text to Hinglish/Roman, preserving segmentation & timing
+// Roman-Urdu house style (from the Adeel Burki caption guide) — the exact
+// spelling fingerprint the romanizer should follow.
+var ROMAN_URDU_STYLE =
+  "SPELLING STYLE — casual Roman Urdu (Pakistani), Latin letters ONLY:\n" +
+  "- all lowercase, EXCEPT proper nouns (Abba, Lahore, Patriata). Never auto-capitalize the first word of a line.\n" +
+  "- Spell these function words EXACTLY like this: tou (=to/then, never 'to' or 'toh'); keh (=that/ke); aap/ap/apka/apki/apko; hai/hain/hoon; tha/thi/thay (never 'the'); mai/main/mainay/meine; nahi (never 'nahin'/'nhi'); he or hi (=only/just); per (=on, never 'par'); se; ka/ki; bohut (never 'bahut'); itna/itni; zyada (not 'ziada'); aur; phir; lekin; kyun keh (=because); yeh/ye; woh/wohi; aik (=one, prefer over 'ek'); beta.\n" +
+  "- Long vowels: aa (aap, yaad, maangi, awaaz), oo (pooray, sukoon, hoon, zaroor), ee/i (cheez, achi). Use '-ay' endings (pooray, hamaray, kaisay, thay, gey). Diphthong ai (aisa, hai, aik).\n" +
+  "- Aspiration as digraphs: kh, gh, ph, bh, ch, th, jh, sh (khawab, ghar, phir, bhi, mujhe, shishay). Double a consonant for hard sounds (abba, takk). Apostrophe only for a syllable break (ban'nay).\n" +
+  "- Nasal endings vary — dropped (doosro, logo, nahi), '-ein' (cheezein, karein, milein), or '-on/-un/-an/-in' (cheezon, kahan, hoon, hain, mein). Do NOT over-normalize; this casual inconsistency is correct.\n" +
+  "- English loanwords stay in normal English spelling, inline, no italics (book, venue, decide, deserve, stage, moisturiser, management, bill). Fix mis-heard English back to the real word using context (seve->save, inwest->invest, kansistantli->consistently).\n" +
+  "- Minimal punctuation: no commas or periods between phrases; keep question marks (kaisay ban sakti hoon?).\n";
+
+// Romanize each segment's text to Roman Urdu / Hinglish, preserving segmentation & timing
 function acRomanize(key, segs, cb) {
-  acTick("Romanizing to Hinglish");
+  acTick("Romanizing to Roman Urdu");
   var lines = segs.map(function (s, i) { return (i + 1) + ". " + s.text; }).join("\n");
   var sys =
-    "You transliterate Hindi/Urdu subtitle lines into ROMAN (Latin) script — Hinglish.\n" +
-    "MOST IMPORTANT RULE: the output must contain ONLY Latin letters (a-z). NEVER output any Devanagari (e.g. हिंदी) or Urdu/Arabic (e.g. اردو) characters. Every single line must be fully romanized.\n" +
-    "For each numbered line:\n" +
-    "- Transliterate every Hindi/Urdu word into Roman letters, spelled the casual way creators type (मैं->main, चाहता->chahta, हूं->hun, पैसे->paise, करूं->karun, کرنا->karna).\n" +
-    "- Words that are genuinely English stay in correct English spelling. If the transcription mangled an English word phonetically, fix it to the real word using context: seve->save, inwest->invest, kansistantli->consistently, bijness->business, kantent->content.\n" +
-    "- Do NOT translate to English, and do NOT add, drop, merge or reorder words.\n" +
-    "Example input: 1. मैं अपना पैसा seve करके business में invest करना चाहता हूं consistently\n" +
-    "Example output: 1. main apna paisa save karke business me invest karna chahta hun consistently\n" +
-    "Return EXACTLY the same number of lines, each prefixed with its number and a period, in the same order, Latin letters only. No commentary.";
+    "You transliterate spoken Urdu/Hindi subtitle lines into ROMAN (Latin) script, in a specific channel's house style.\n" +
+    "MOST IMPORTANT: output ONLY Latin letters (a-z). NEVER output Devanagari (e.g. हिंदी) or Urdu/Arabic (e.g. اردو) characters. Every line fully romanized.\n" +
+    ROMAN_URDU_STYLE +
+    "Do NOT translate Urdu/Hindi to English, and do NOT add, drop, merge or reorder words.\n" +
+    "Example input: 1. मैं ने तो आप से एक चीज़ मांगी थी consistently\n" +
+    "Example output: 1. mainay tou aap se aik cheez maangi thi consistently\n" +
+    "Return EXACTLY the same number of lines, each prefixed with its number and a period, same order, Latin letters only. No commentary.";
   var NON_LATIN = /[\u0900-\u097F\u0600-\u06FF]/; // Devanagari or Arabic/Urdu
   function attempt(triesLeft) {
     groqChat(key, sys, lines, function (err, data) {
