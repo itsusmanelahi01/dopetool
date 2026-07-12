@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.15.1
+// DopeTool main.js — v2.15.2
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -1132,7 +1132,7 @@ document.getElementById("importCaptionsBtn").addEventListener("click", function 
 // ═══════════════════════════════════════════════════════════
 var autoCapAudioPath = "";
 var selectedAutoStyle = null;
-var GROQ_STT_MODEL = "whisper-large-v3-turbo";
+var GROQ_STT_MODEL = "whisper-large-v3"; // faithful multilingual transcription (turbo tends to translate to English)
 var GROQ_LLM_MODEL = "llama-3.3-70b-versatile";
 var acChild = require("child_process");
 
@@ -1305,7 +1305,16 @@ function acGroupWords(words, n) {
     var chunk = words.slice(i, i + n);
     var txt = chunk.map(function (w) { return (w.word || "").replace(/^\s+|\s+$/g, ""); }).join(" ").replace(/\s+/g, " ").replace(/^\s+|\s+$/g, "");
     if (!txt) continue;
-    segs.push({ inSec: chunk[0].start, outSec: chunk[chunk.length - 1].end, text: txt });
+    var a = chunk[0].start, b = chunk[chunk.length - 1].end;
+    if (typeof a !== "number") a = (segs.length ? segs[segs.length - 1].outSec : 0);
+    if (typeof b !== "number" || b <= a) b = a + 0.3;
+    segs.push({ inSec: a, outSec: b, text: txt });
+  }
+  // Hold each caption until the next one starts (removes flicker on tiny gaps),
+  // but don't linger more than ~1.2s into a real pause.
+  for (var k = 0; k < segs.length - 1; k++) {
+    var gap = segs[k + 1].inSec - segs[k].outSec;
+    if (gap > 0) segs[k].outSec = (gap <= 1.2) ? segs[k + 1].inSec : segs[k].outSec + 0.4;
   }
   return segs;
 }

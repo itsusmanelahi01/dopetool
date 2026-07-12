@@ -1,4 +1,9 @@
 {
+  "2.15.2": [
+    "Auto Captions: switched to the whisper-large-v3 model so Urdu/Hindi audio is transcribed in its own language instead of being translated to English",
+    "Auto Captions: added Urdu as its own language option (separate from Hindi) — pick your language for the most accurate result",
+    "Auto Captions: captions now hold until the next one starts, fixing flicker and off-feeling gaps between lines"
+  ],
   "2.15.1": [
     "Auto Captions: big files & videos are now auto-compressed to 16 kHz mono with ffmpeg before upload — fixes 'Request Entity Too Large' and lets you feed full video files",
     "Auto Captions: live progress with elapsed seconds for each stage (preparing audio, transcribing, romanizing)"
