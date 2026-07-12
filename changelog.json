@@ -1,4 +1,8 @@
 {
+  "2.15.1": [
+    "Auto Captions: big files & videos are now auto-compressed to 16 kHz mono with ffmpeg before upload — fixes 'Request Entity Too Large' and lets you feed full video files",
+    "Auto Captions: live progress with elapsed seconds for each stage (preparing audio, transcribing, romanizing)"
+  ],
   "2.15.0": [
     "New Auto Captions tab — transcribe an audio/video file and turn it into styled, timed caption layers automatically",
     "Powered by Groq (Whisper) — paste your own free Groq API key once (console.groq.com/keys); it's stored only on your machine",

@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.15.0
+// DopeTool main.js — v2.15.1
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -1140,6 +1140,16 @@ function getGroqKey() { try { return localStorage.getItem("dopetool_groq_key") |
 function acProgress(msg) { var el = document.getElementById("autoCapProgress"); if (el) el.innerText = msg; }
 function acStatus(msg) { var el = document.getElementById("autoCapStatus"); if (el) el.innerText = msg; }
 
+// Live elapsed-time ticker for long steps (Groq gives no upload progress)
+var acTimer = null, acT0 = 0;
+function acTick(label) {
+  acStopTick();
+  acT0 = Date.now();
+  acProgress(label + " — 0s");
+  acTimer = setInterval(function () { acProgress(label + " — " + Math.round((Date.now() - acT0) / 1000) + "s"); }, 500);
+}
+function acStopTick() { if (acTimer) { clearInterval(acTimer); acTimer = null; } }
+
 function refreshGroqKeyState() {
   var st = document.getElementById("autoCapKeyState");
   var input = document.getElementById("autoCapKey");
@@ -1247,6 +1257,47 @@ function acExecJson(args, cb) {
   });
 }
 
+// ---- Audio prep: compress to 16kHz mono MP3 with ffmpeg (also extracts audio
+// from video) so we stay under Groq's ~25 MB upload limit and Whisper gets its
+// preferred format. Returns the original path if ffmpeg isn't available. ----
+var GROQ_MAX_BYTES = 24 * 1024 * 1024;
+function acFindFfmpeg(cb) {
+  var candidates = ["ffmpeg", "/opt/homebrew/bin/ffmpeg", "/usr/local/bin/ffmpeg", "/usr/bin/ffmpeg"];
+  var i = 0;
+  (function tryNext() {
+    if (i >= candidates.length) { cb(null); return; }
+    var c = candidates[i++];
+    acChild.execFile(c, ["-version"], { timeout: 8000 }, function (err) { if (err) tryNext(); else cb(c); });
+  })();
+}
+function acPrepareAudio(inputPath, cb) {
+  var os = require("os"), fsx = require("fs"), pathx = require("path");
+  var size = 0;
+  try { size = fsx.statSync(inputPath).size; } catch (e) {}
+  acFindFfmpeg(function (ff) {
+    if (!ff) {
+      // No ffmpeg — send the file as-is, but warn early if it's clearly too big
+      if (size > GROQ_MAX_BYTES) {
+        cb("File is " + Math.round(size / 1048576) + " MB — over Groq's ~25 MB limit. Install ffmpeg so DopeTool can compress it, or use a smaller/compressed audio file.");
+      } else { cb(null, inputPath, null); }
+      return;
+    }
+    acTick("Preparing audio");
+    var out = pathx.join(os.tmpdir(), "dopetool_ac_" + Date.now() + ".mp3");
+    var args = ["-y", "-i", inputPath, "-vn", "-ac", "1", "-ar", "16000", "-b:a", "64k", out];
+    acChild.execFile(ff, args, { maxBuffer: 1024 * 1024 * 16, timeout: 300000 }, function (err) {
+      acStopTick();
+      if (err) { cb(null, inputPath, null); return; } // fall back to original on transcode failure
+      var osize = 0; try { osize = fsx.statSync(out).size; } catch (e2) {}
+      if (osize > GROQ_MAX_BYTES) {
+        cb("Even compressed, this is " + Math.round(osize / 1048576) + " MB (over ~25 MB). Try a shorter clip.");
+        return;
+      }
+      cb(null, out, out); // third arg = temp file to clean up later
+    });
+  });
+}
+
 // Group Whisper words into N-word caption segments
 function acGroupWords(words, n) {
   var segs = [];
@@ -1307,10 +1358,11 @@ function acImportSegments(segs) {
 
 // Romanize each segment's text to Hinglish/Roman, preserving segmentation & timing
 function acRomanize(key, segs, cb) {
-  acProgress("Romanizing to Hinglish…");
+  acTick("Romanizing to Hinglish");
   var lines = segs.map(function (s, i) { return (i + 1) + ". " + s.text; }).join("\n");
   var sys = "You convert Hindi/Urdu subtitle lines into natural Roman script (Hinglish) exactly as Indian/Pakistani content creators type on social media. Rules: keep the SAME language, do NOT translate to English — only transliterate to Roman letters. Keep existing English words as-is. Return EXACTLY the same number of lines, each prefixed with its number and a period, same order. No extra commentary.";
   groqChat(key, sys, lines, function (err, data) {
+    acStopTick();
     if (err) { cb(err); return; }
     var content = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
     if (!content) { cb("Empty romanize response"); return; }
@@ -1329,20 +1381,28 @@ function autoCapRun() {
   var lang = document.getElementById("autoCapLang").value;
   var roman = document.getElementById("autoCapRoman").checked;
 
-  acProgress("Transcribing with Groq Whisper… (larger files take longer)");
-  groqTranscribe(key, autoCapAudioPath, lang, function (err, data) {
-    if (err) { acProgress("Transcription failed: " + err); return; }
-    var words = (data && data.words) || [];
-    var segs;
-    if (words.length) {
-      segs = acGroupWords(words, n);
-    } else {
-      var segsOnly = (data && data.segments) || [];
-      if (!segsOnly.length) { acProgress("No speech detected."); return; }
-      segs = segsOnly.map(function (s) { return { inSec: s.start, outSec: s.end, text: (s.text || "").replace(/^\s+|\s+$/g, "") }; });
-    }
-    if (roman) acRomanize(key, segs, function (e2, r) { if (e2) acProgress("Romanize failed: " + e2); else acImportSegments(r); });
-    else acImportSegments(segs);
+  function cleanup(tmp) { if (!tmp) return; try { require("fs").unlinkSync(tmp); } catch (e) {} }
+
+  acProgress("Preparing audio…");
+  acPrepareAudio(autoCapAudioPath, function (prepErr, uploadPath, tmpFile) {
+    if (prepErr) { acStopTick(); acProgress(prepErr); return; }
+    acTick("Transcribing with Groq Whisper");
+    groqTranscribe(key, uploadPath, lang, function (err, data) {
+      acStopTick();
+      cleanup(tmpFile);
+      if (err) { acProgress("Transcription failed: " + err); return; }
+      var words = (data && data.words) || [];
+      var segs;
+      if (words.length) {
+        segs = acGroupWords(words, n);
+      } else {
+        var segsOnly = (data && data.segments) || [];
+        if (!segsOnly.length) { acProgress("No speech detected."); return; }
+        segs = segsOnly.map(function (s) { return { inSec: s.start, outSec: s.end, text: (s.text || "").replace(/^\s+|\s+$/g, "") }; });
+      }
+      if (roman) acRomanize(key, segs, function (e2, r) { if (e2) acProgress("Romanize failed: " + e2); else acImportSegments(r); });
+      else acImportSegments(segs);
+    });
   });
 }
 
