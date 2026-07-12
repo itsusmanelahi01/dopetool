@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.16.2
+// DopeTool main.js — v2.17.0
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -1416,6 +1416,65 @@ function acBuildSrt(segs) {
   return out.join("\n\n") + "\n";
 }
 
+// After transcription: either show the editable review, or create straight away.
+var acSegments = [];
+function acFinish(segs) {
+  var chk = document.getElementById("autoCapReviewChk");
+  if (chk && chk.checked) acShowReview(segs);
+  else acImportSegments(segs);
+}
+
+function acShortTC(s) {
+  if (s < 0 || isNaN(s)) s = 0;
+  var t = Math.floor(s), mm = Math.floor(t / 60), ss = t % 60;
+  return (mm < 10 ? "0" : "") + mm + ":" + (ss < 10 ? "0" : "") + ss;
+}
+
+// Editable review: one row per caption (timecode + text field). Fix words, then create.
+function acShowReview(segs) {
+  acSegments = segs.slice();
+  var list = document.getElementById("autoCapReviewList");
+  var panel = document.getElementById("autoCapReview");
+  if (!list || !panel) { acImportSegments(segs); return; }
+  list.innerHTML = "";
+  acSegments.forEach(function (seg, i) {
+    var row = document.createElement("div");
+    row.className = "acReviewRow";
+    var tc = document.createElement("span");
+    tc.className = "acReviewTC";
+    tc.innerText = acShortTC(seg.inSec);
+    var inp = document.createElement("input");
+    inp.type = "text";
+    inp.className = "acReviewInput";
+    inp.value = seg.text;
+    inp.setAttribute("data-idx", i);
+    row.appendChild(tc);
+    row.appendChild(inp);
+    list.appendChild(row);
+  });
+  panel.classList.remove("hidden");
+  acProgress("Review " + acSegments.length + " captions, fix any words, then Create.");
+  try { panel.scrollIntoView({ block: "start", behavior: "smooth" }); } catch (e) {}
+}
+
+function acHideReview() {
+  var panel = document.getElementById("autoCapReview");
+  if (panel) panel.classList.add("hidden");
+  acSegments = [];
+}
+
+function acCreateFromReview() {
+  var inputs = document.querySelectorAll("#autoCapReviewList .acReviewInput");
+  for (var i = 0; i < inputs.length; i++) {
+    var idx = parseInt(inputs[i].getAttribute("data-idx"), 10);
+    if (acSegments[idx]) acSegments[idx].text = (inputs[i].value || "").replace(/^\s+|\s+$/g, "");
+  }
+  var segs = acSegments.filter(function (s) { return s.text; });
+  var panel = document.getElementById("autoCapReview");
+  if (panel) panel.classList.add("hidden");
+  acImportSegments(segs);
+}
+
 // Write a temp SRT and reuse importCaptions() with the picked style
 function acImportSegments(segs) {
   if (!segs.length) { acProgress("No speech found in the audio."); return; }
@@ -1531,8 +1590,8 @@ function autoCapRun() {
         if (!segsOnly.length) { acProgress("No speech detected."); return; }
         segs = segsOnly.map(function (s) { return { inSec: s.start, outSec: s.end, text: (s.text || "").replace(/^\s+|\s+$/g, "") }; });
       }
-      if (roman) acRomanize(key, segs, function (e2, r) { if (e2) acProgress("Romanize failed: " + e2); else acImportSegments(r); });
-      else acCorrect(key, segs, function (e2, r) { acImportSegments(r || segs); });
+      if (roman) acRomanize(key, segs, function (e2, r) { if (e2) acProgress("Romanize failed: " + e2); else acFinish(r); });
+      else acCorrect(key, segs, function (e2, r) { acFinish(r || segs); });
     });
   });
 }
@@ -1584,7 +1643,12 @@ function autoCapRun() {
   }
 
   var runBtn = document.getElementById("autoCapRunBtn");
-  if (runBtn) runBtn.addEventListener("click", autoCapRun);
+  if (runBtn) runBtn.addEventListener("click", function () { acHideReview(); autoCapRun(); });
+
+  var createBtn = document.getElementById("autoCapCreateBtn");
+  if (createBtn) createBtn.addEventListener("click", acCreateFromReview);
+  var reviewCancel = document.getElementById("autoCapReviewCancel");
+  if (reviewCancel) reviewCancel.addEventListener("click", function () { acHideReview(); acProgress("Ready"); });
 })();
 
 // ---- SORT CONTROL ----

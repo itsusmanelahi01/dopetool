@@ -519,11 +519,26 @@
               Group under Null (CAPTIONS_CTRL)
             </label>
           </div>
+          <div class="settingRow">
+            <label class="settingLabel">
+              <input type="checkbox" id="autoCapReviewChk" checked style="margin-right:6px;" />
+              Review &amp; edit before creating captions
+            </label>
+          </div>
         </div>
       </div>
 
-      <button id="autoCapRunBtn" class="importBtn">✨ Transcribe &amp; Create Captions</button>
+      <button id="autoCapRunBtn" class="importBtn">✨ Transcribe</button>
       <div id="autoCapProgress" class="captionStatus">Ready</div>
+
+      <div id="autoCapReview" class="captionSection hidden">
+        <div class="captionLabel">Review &amp; Edit <span style="color:#444458;font-weight:400;">— fix any wrong words, then create</span></div>
+        <div id="autoCapReviewList" class="acReviewList"></div>
+        <div class="acReviewActions">
+          <button id="autoCapCreateBtn" class="importBtn">↓ Create Captions</button>
+          <button id="autoCapReviewCancel" class="btnSecondary">Start over</button>
+        </div>
+      </div>
 
     </div>
   </div>

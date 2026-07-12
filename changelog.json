@@ -1,4 +1,8 @@
 {
+  "2.17.0": [
+    "Auto Captions: new Review & Edit step — after transcribing you see every caption in an editable list (with timecodes); fix any wrong words, then hit Create Captions for perfect results",
+    "No transcription model is flawless on Hinglish/Urdu, so this is the reliable way to 100% correct captions; turn it off with the 'Review & edit' checkbox if you want one-click creation"
+  ],
   "2.16.2": [
     "Auto Captions: fixed Hinglish sometimes coming out in Hindi/Urdu script — the romanizer now forces Latin-only output and automatically retries if any script slips through"
   ],
