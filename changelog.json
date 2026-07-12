@@ -1,4 +1,7 @@
 {
+  "2.16.1": [
+    "Auto Captions: fixes garbled English words (e.g. “seve” → “save”, “kansistantli” → “consistently”) — the Hinglish pass now corrects mis-heard English using context, and a light auto-cleanup runs on non-Hinglish captions too"
+  ],
   "2.16.0": [
     "Auto Captions: moved the Groq API key into a clean Setup popup (⚙) so it no longer eats space in the tab",
     "Auto Captions: one-click ffmpeg install — downloads a private copy just for DopeTool (no admin, survives updates); auto-used for compressing/extracting audio",

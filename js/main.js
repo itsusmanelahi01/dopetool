@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.16.0
+// DopeTool main.js — v2.16.1
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -1455,16 +1455,39 @@ function acRomanize(key, segs, cb) {
     "You format subtitles for Hindi/Urdu speech that mixes in English words (code-switching). " +
     "Rewrite each numbered line as natural HINGLISH, the way Indian/Pakistani creators type on Instagram/YouTube:\n" +
     "- Write the Hindi/Urdu words in Roman (Latin) letters, spelled the common casual way.\n" +
-    "- Keep English words and phrases in normal English spelling. Do NOT transliterate English into phonetic Roman, and do NOT translate Hindi/Urdu into English.\n" +
-    "- Preserve the exact meaning, word order, and every word — do not add, drop, merge or reorder words.\n" +
-    "Example input: 1. मैं चाहता हूं कि मैं पैसे invest करूं consistently\n" +
-    "Example output: 1. main chahta hun ke main paise invest karun consistently\n" +
+    "- English words/phrases must use CORRECT English spelling. The transcription often mis-spells English words phonetically — fix them back to the real word using context. Examples: 'seve' -> 'save', 'kansistantli' -> 'consistently', 'bijness' -> 'business', 'kantent' -> 'content', 'inwest' -> 'invest', 'vidiyo' -> 'video'.\n" +
+    "- Do NOT translate Hindi/Urdu into English, and do NOT transliterate a genuinely English word into phonetic spelling.\n" +
+    "- Preserve the meaning, word order, and every word — do not add, drop, merge or reorder words.\n" +
+    "Example input: 1. mujhe apna paisa seve karke bijness me inwest karna hai consistently\n" +
+    "Example output: 1. mujhe apna paisa save karke business me invest karna hai consistently\n" +
     "Return EXACTLY the same number of lines, each prefixed with its number and a period, in the same order. No commentary.";
   groqChat(key, sys, lines, function (err, data) {
     acStopTick();
     if (err) { cb(err); return; }
     var content = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
     if (!content) { cb("Empty romanize response"); return; }
+    var map = {};
+    content.split(/\n+/).forEach(function (ln) { var m = ln.match(/^\s*(\d+)\.\s*(.+)$/); if (m) map[parseInt(m[1], 10)] = m[2].replace(/^\s+|\s+$/g, ""); });
+    cb(null, segs.map(function (s, i) { return { inSec: s.inSec, outSec: s.outSec, text: map[i + 1] || s.text }; }));
+  });
+}
+
+// Conservative cleanup: fix clear mis-transcriptions without romanizing,
+// translating, or altering the language/script/word order.
+function acCorrect(key, segs, cb) {
+  acTick("Cleaning up transcript");
+  var lines = segs.map(function (s, i) { return (i + 1) + ". " + s.text; }).join("\n");
+  var sys =
+    "You lightly clean subtitle lines from a speech transcript. Fix ONLY clear errors: " +
+    "mis-spelled or phonetically-wrong words (e.g. 'seve' -> 'save', 'kansistantli' -> 'consistently'), " +
+    "wrong homophones, and obvious capitalization/punctuation. Keep the SAME language and script, the SAME words in the SAME order — " +
+    "do not translate, rephrase, add, drop, merge or reorder words. " +
+    "Return EXACTLY the same number of lines, each prefixed with its number and a period, in the same order. No commentary.";
+  groqChat(key, sys, lines, function (err, data) {
+    acStopTick();
+    if (err) { cb(null, segs); return; } // never block on cleanup — fall back to raw
+    var content = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+    if (!content) { cb(null, segs); return; }
     var map = {};
     content.split(/\n+/).forEach(function (ln) { var m = ln.match(/^\s*(\d+)\.\s*(.+)$/); if (m) map[parseInt(m[1], 10)] = m[2].replace(/^\s+|\s+$/g, ""); });
     cb(null, segs.map(function (s, i) { return { inSec: s.inSec, outSec: s.outSec, text: map[i + 1] || s.text }; }));
@@ -1500,7 +1523,7 @@ function autoCapRun() {
         segs = segsOnly.map(function (s) { return { inSec: s.start, outSec: s.end, text: (s.text || "").replace(/^\s+|\s+$/g, "") }; });
       }
       if (roman) acRomanize(key, segs, function (e2, r) { if (e2) acProgress("Romanize failed: " + e2); else acImportSegments(r); });
-      else acImportSegments(segs);
+      else acCorrect(key, segs, function (e2, r) { acImportSegments(r || segs); });
     });
   });
 }
