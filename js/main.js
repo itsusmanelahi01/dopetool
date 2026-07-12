@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.14.1
+// DopeTool main.js — v2.14.2
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -1953,19 +1953,20 @@ function tkEval(script) {
 // ═══════════════════════════════════════════════════════════
 var smoothCP = [0.42, 0, 0.58, 1]; // x1, y1, x2, y2
 var smoothDragIdx = -1;
+var smoothGraphMode = "value"; // "value" | "speed"
 var SMOOTH_PRESETS = [
-  [0.25, 0.10, 0.25, 1.0],  // gentle
-  [0.42, 0.00, 0.58, 1.0],  // smooth
-  [0.50, 0.00, 0.50, 1.0],  // even S
-  [0.65, 0.00, 0.35, 1.0],  // strong S
-  [0.80, 0.00, 0.20, 1.0],  // heavy S
-  [0.90, 0.00, 0.10, 1.0],  // snappy
-  [0.00, 0.00, 0.58, 1.0],  // ease out
-  [0.16, 1.00, 0.30, 1.0],  // fast-out
-  [0.42, 0.00, 1.00, 1.0],  // ease in
-  [0.70, 0.00, 1.00, 1.0],  // ease in hard
-  [0.33, 0.00, 0.67, 1.0],  // soft
-  [0.00, 0.00, 1.00, 1.0]   // linear
+  { name: "Gentle",   cp: [0.25, 0.10, 0.25, 1.0] },
+  { name: "Smooth",   cp: [0.42, 0.00, 0.58, 1.0] },
+  { name: "Ease",     cp: [0.50, 0.00, 0.50, 1.0] },
+  { name: "Ease +",   cp: [0.65, 0.00, 0.35, 1.0] },
+  { name: "Ease ++",  cp: [0.80, 0.00, 0.20, 1.0] },
+  { name: "Snappy",   cp: [0.90, 0.00, 0.10, 1.0] },
+  { name: "Ease Out", cp: [0.00, 0.00, 0.58, 1.0] },
+  { name: "Out Fast", cp: [0.16, 1.00, 0.30, 1.0] },
+  { name: "Ease In",  cp: [0.42, 0.00, 1.00, 1.0] },
+  { name: "In Hard",  cp: [0.70, 0.00, 1.00, 1.0] },
+  { name: "Soft",     cp: [0.33, 0.00, 0.67, 1.0] },
+  { name: "Linear",   cp: [0.00, 0.00, 1.00, 1.0] }
 ];
 
 function smoothMap(canvas) {
@@ -1992,6 +1993,31 @@ function smoothDrawInto(canvas, cp, opts) {
       var gy = m.pad + (i / 4) * m.gh;
       ctx.beginPath(); ctx.moveTo(m.pad, gy); ctx.lineTo(m.pad + m.gw, gy); ctx.stroke();
     }
+  }
+
+  // Speed graph: plot dy/dx (velocity) vs time instead of value vs time.
+  if (opts.mode === "speed") {
+    var N = 64, pts = [], maxS = 0.0001;
+    for (var s = 0; s <= N; s++) {
+      var u = s / N, mt = 1 - u;
+      var dxu = 3 * mt * mt * cp[0] + 6 * mt * u * (cp[2] - cp[0]) + 3 * u * u * (1 - cp[2]);
+      var dyu = 3 * mt * mt * cp[1] + 6 * mt * u * (cp[3] - cp[1]) + 3 * u * u * (1 - cp[3]);
+      var xu = 3 * mt * mt * u * cp[0] + 3 * mt * u * u * cp[2] + u * u * u;
+      var spd = (dxu > 1e-6) ? dyu / dxu : 0;
+      if (spd < 0) spd = 0;
+      pts.push([xu, spd]);
+      if (spd > maxS) maxS = spd;
+    }
+    ctx.strokeStyle = opts.curveColor || "#ffffff";
+    ctx.lineWidth = opts.lineWidth || 2;
+    ctx.lineJoin = "round"; ctx.lineCap = "round";
+    ctx.beginPath();
+    for (var k = 0; k < pts.length; k++) {
+      var pv = smoothPx(canvas, pts[k][0], pts[k][1] / maxS);
+      if (k === 0) ctx.moveTo(pv[0], pv[1]); else ctx.lineTo(pv[0], pv[1]);
+    }
+    ctx.stroke();
+    return;
   }
 
   var p0 = smoothPx(canvas, 0, 0);
@@ -2028,7 +2054,9 @@ function smoothDraw() {
   if (!canvas) return;
   // Keep the on-screen aspect ratio correct once the canvas is actually visible
   if (canvas.clientWidth > 0) canvas.style.height = (canvas.clientWidth * (canvas.height / canvas.width)) + "px";
-  smoothDrawInto(canvas, smoothCP, { handles: true, grid: true, curveColor: "#ffffff", lineWidth: 2 });
+  var isValue = smoothGraphMode === "value";
+  smoothDrawInto(canvas, smoothCP, { handles: isValue, grid: true, curveColor: "#ffffff", lineWidth: 2, mode: smoothGraphMode });
+  canvas.style.cursor = isValue ? "crosshair" : "default";
   var b = document.getElementById("smoothBezier");
   if (b) {
     var r = smoothCP.map(function (n) { return Math.round(n * 100) / 100; });
@@ -2093,6 +2121,10 @@ function loadSmoothPresets() {
         c.width = 64; c.height = 42;
         d.appendChild(c);
         smoothDrawInto(c, item.cp, { handles: false, grid: false, curveColor: "#8fe0c0", lineWidth: 1.6 });
+        var nm = document.createElement("div");
+        nm.className = "smoothPresetName";
+        nm.innerText = item.name;
+        d.appendChild(nm);
         var del = document.createElement("div");
         del.className = "smoothDel";
         del.innerHTML = "&times;";
@@ -2119,20 +2151,37 @@ function loadSmoothPresets() {
   if (!canvas) return;
 
   var host = document.getElementById("smoothPresets");
-  SMOOTH_PRESETS.forEach(function (cp) {
+  SMOOTH_PRESETS.forEach(function (preset) {
     var d = document.createElement("div");
     d.className = "smoothPreset";
+    d.title = preset.name;
     var c = document.createElement("canvas");
     c.width = 64; c.height = 42;
     d.appendChild(c);
-    smoothDrawInto(c, cp, { handles: false, grid: false, curveColor: "#c8ccff", lineWidth: 1.6 });
-    d.addEventListener("click", function () { smoothCP = cp.slice(); smoothDraw(); smoothApply(); });
+    smoothDrawInto(c, preset.cp, { handles: false, grid: false, curveColor: "#c8ccff", lineWidth: 1.6 });
+    var nm = document.createElement("div");
+    nm.className = "smoothPresetName";
+    nm.innerText = preset.name;
+    d.appendChild(nm);
+    d.addEventListener("click", function () { smoothCP = preset.cp.slice(); smoothDraw(); smoothApply(); });
     host.appendChild(d);
   });
 
+  // Value/Speed graph toggle
+  var modeBtns = document.querySelectorAll(".smoothModeBtn");
+  for (var mi = 0; mi < modeBtns.length; mi++) {
+    modeBtns[mi].addEventListener("click", function () {
+      smoothGraphMode = this.getAttribute("data-mode");
+      for (var j = 0; j < modeBtns.length; j++) modeBtns[j].classList.toggle("active", modeBtns[j] === this);
+      smoothDraw();
+    });
+  }
+
   // Mouse events (more reliable than pointer events in CEP); move/up on window
-  // so a drag continues even when the cursor leaves the canvas.
+  // so a drag continues even when the cursor leaves the canvas. Handles are only
+  // editable on the Value graph.
   canvas.addEventListener("mousedown", function (e) {
+    if (smoothGraphMode !== "value") return;
     e.preventDefault();
     var xy = smoothClientToXY(canvas, e.clientX, e.clientY);
     var d1 = Math.abs(xy[0] - smoothCP[0]) + Math.abs(xy[1] - smoothCP[1]);

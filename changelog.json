@@ -1,4 +1,9 @@
 {
+  "2.14.2": [
+    "Smoooth: the built-in presets now sit above the graph editor",
+    "Smoooth: new Value Graph / Speed Graph toggle — see the velocity curve like AE's speed graph",
+    "Smoooth: every preset (built-in and your saved ones) now shows its name under the thumbnail"
+  ],
   "2.14.1": [
     "Split now drops the tab you're on into the bottom panel (the rest stay up top)",
     "Switching tabs no longer reloads anything — each panel loads its data once and keeps its state (Library scroll, saved graph presets, etc.)"

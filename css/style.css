@@ -1119,6 +1119,42 @@ body {
 .smoothPreset:hover { border-color: #4c72ff; background: #181828; transform: translateY(-1px); }
 .smoothPreset:active { transform: translateY(0); }
 .smoothPreset canvas { width: 100%; height: auto; display: block; }
+.smoothPresetName {
+  margin-top: 3px;
+  font-size: 9px;
+  font-weight: 600;
+  color: #9a9ab8;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.smoothPreset:hover .smoothPresetName { color: #d8d8ee; }
+
+/* Value / Speed graph toggle */
+.smoothGraphToggle {
+  display: flex;
+  gap: 4px;
+  background: #10101a;
+  border: 1px solid #1c1c2a;
+  border-radius: 8px;
+  padding: 3px;
+}
+.smoothModeBtn {
+  flex: 1;
+  padding: 6px 8px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: #7b7b95;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+}
+.smoothModeBtn:hover { color: #b5b5d0; }
+.smoothModeBtn.active { background: #4c72ff; color: #fff; }
 
 /* Saved (shared) presets + delete button */
 .smoothSavedItem { position: relative; }

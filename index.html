@@ -419,6 +419,14 @@
         </div>
       </div>
 
+      <div class="smoothPresetsLabel">Built-in Presets <span class="tkHint">click to apply</span></div>
+      <div id="smoothPresets" class="smoothPresets"></div>
+
+      <div class="smoothGraphToggle">
+        <button id="smoothModeValue" class="smoothModeBtn active" data-mode="value">Value Graph</button>
+        <button id="smoothModeSpeed" class="smoothModeBtn" data-mode="speed">Speed Graph</button>
+      </div>
+
       <div class="smoothCanvasWrap">
         <canvas id="smoothCanvas" class="smoothCanvas" width="300" height="230"></canvas>
       </div>
@@ -434,9 +442,6 @@
 
       <div class="smoothBezier" id="smoothBezier">cubic-bezier(.42, 0, .58, 1)</div>
       <button id="smoothApplyBtn" class="importBtn">Apply Ease to Selected Keyframes</button>
-
-      <div class="smoothPresetsLabel">Built-in Presets <span class="tkHint">click to apply</span></div>
-      <div id="smoothPresets" class="smoothPresets"></div>
     </div>
   </div>
 
