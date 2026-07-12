@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.15.3
+// DopeTool main.js — v2.16.0
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -1163,6 +1163,7 @@ function loadAutoCapStyles() {
   var grid = document.getElementById("autoCapStyleGrid");
   if (!grid) return;
   refreshGroqKeyState();
+  acRefreshFfmpegState();
   grid.innerHTML = '<div style="color:#333348;font-size:11px;padding:8px;">Loading styles...</div>';
   selectedAutoStyle = null;
   db.collection("textstyles").get().then(function (snapshot) {
@@ -1226,6 +1227,7 @@ function groqTranscribe(key, audioPath, lang, cb) {
     "-F", "file=@" + audioPath,
     "-F", "model=" + GROQ_STT_MODEL,
     "-F", "response_format=verbose_json",
+    "-F", "temperature=0",
     "-F", "timestamp_granularities[]=word",
     "-F", "timestamp_granularities[]=segment"
   ];
@@ -1261,7 +1263,15 @@ function acExecJson(args, cb) {
 // from video) so we stay under Groq's ~25 MB upload limit and Whisper gets its
 // preferred format. Returns the original path if ffmpeg isn't available. ----
 var GROQ_MAX_BYTES = 24 * 1024 * 1024;
+
+// DopeTool keeps its own ffmpeg in the user's home dir (survives panel updates,
+// no admin needed). We check that first, then the system PATH / common dirs.
+function acFfmpegDir() { var os = require("os"), p = require("path"); return p.join(os.homedir(), ".dopetool", "bin"); }
+function acBundledFfmpegPath() { var os = require("os"), p = require("path"); return p.join(acFfmpegDir(), os.platform() === "win32" ? "ffmpeg.exe" : "ffmpeg"); }
+
 function acFindFfmpeg(cb) {
+  var bundled = acBundledFfmpegPath();
+  try { if (require("fs").existsSync(bundled)) { cb(bundled); return; } } catch (e) {}
   var candidates = ["ffmpeg", "/opt/homebrew/bin/ffmpeg", "/usr/local/bin/ffmpeg", "/usr/bin/ffmpeg"];
   var i = 0;
   (function tryNext() {
@@ -1269,6 +1279,78 @@ function acFindFfmpeg(cb) {
     var c = candidates[i++];
     acChild.execFile(c, ["-version"], { timeout: 8000 }, function (err) { if (err) tryNext(); else cb(c); });
   })();
+}
+
+// ---- One-click ffmpeg install (downloads a static build for this OS) ----
+function acFfmpegMsg(m) { var el = document.getElementById("acFfmpegProgress"); if (el) el.innerText = m; }
+function acFindFileRecursive(dir, name) {
+  var fsx = require("fs"), pathx = require("path"), stack = [dir];
+  while (stack.length) {
+    var d = stack.pop(), items;
+    try { items = fsx.readdirSync(d); } catch (e) { continue; }
+    for (var i = 0; i < items.length; i++) {
+      var full = pathx.join(d, items[i]), st;
+      try { st = fsx.statSync(full); } catch (e2) { continue; }
+      if (st.isDirectory()) stack.push(full);
+      else if (items[i].toLowerCase() === name.toLowerCase()) return full;
+    }
+  }
+  return null;
+}
+function acVerifyBundledFfmpeg(target) {
+  acChild.execFile(target, ["-version"], { timeout: 10000 }, function (err) {
+    if (err) { acFfmpegMsg("Installed, but couldn't run it: " + (err.message || "")); return; }
+    acFfmpegMsg("✓ ffmpeg ready!");
+    acRefreshFfmpegState();
+  });
+}
+function acInstallFfmpeg() {
+  var os = require("os"), fsx = require("fs"), pathx = require("path");
+  var isWin = os.platform() === "win32";
+  var dir = acFfmpegDir(), target = acBundledFfmpegPath();
+  try { fsx.mkdirSync(dir, { recursive: true }); } catch (e) { acFfmpegMsg("Can't create folder: " + e.message); return; }
+  var url = isWin
+    ? "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip"
+    : "https://evermeet.cx/ffmpeg/getrelease/ffmpeg/zip";
+  var zip = pathx.join(os.tmpdir(), "dopetool_ffmpeg_" + Date.now() + ".zip");
+  acFfmpegMsg("Downloading ffmpeg… (can take a minute)");
+  acChild.execFile("curl", ["-L", "-s", "-S", "--max-time", "600", "-o", zip, url], { maxBuffer: 1024 * 1024 * 8 }, function (err) {
+    if (err) { acFfmpegMsg("Download failed: " + (err.message || err)); return; }
+    acFfmpegMsg("Extracting…");
+    if (isWin) {
+      var outdir = pathx.join(os.tmpdir(), "dopetool_ff_" + Date.now());
+      try { fsx.mkdirSync(outdir, { recursive: true }); } catch (e2) {}
+      acChild.exec('tar -xf "' + zip + '" -C "' + outdir + '"', function (e3) {
+        if (e3) { acFfmpegMsg("Extract failed: " + e3.message); return; }
+        var found = acFindFileRecursive(outdir, "ffmpeg.exe");
+        if (!found) { acFfmpegMsg("Couldn't find ffmpeg.exe in the download."); return; }
+        try { fsx.copyFileSync(found, target); } catch (e4) { acFfmpegMsg("Copy failed: " + e4.message); return; }
+        acVerifyBundledFfmpeg(target);
+      });
+    } else {
+      acChild.exec('unzip -o "' + zip + '" -d "' + dir + '"', function (e3) {
+        if (e3) { acFfmpegMsg("Extract failed: " + e3.message); return; }
+        try { fsx.chmodSync(target, parseInt("755", 8)); } catch (e4) {}
+        acVerifyBundledFfmpeg(target);
+      });
+    }
+  });
+}
+
+// ---- Setup state (key + ffmpeg) reflected in the modal and the tab summary ----
+function acRefreshFfmpegState() {
+  acFindFfmpeg(function (ff) {
+    var st = document.getElementById("acFfmpegState");
+    if (st) { st.innerText = ff ? "✓ ready" : "not installed"; st.style.color = ff ? "#8fe0c0" : "#8888aa"; }
+    acUpdateSetupSummary(ff);
+  });
+}
+function acUpdateSetupSummary(ff) {
+  var el = document.getElementById("acSetupSummary");
+  if (!el) return;
+  var key = getGroqKey();
+  el.innerHTML = "Key " + (key ? "✓" : "✗") + " · ffmpeg " + (ff ? "✓" : "✗");
+  el.style.color = (key && ff) ? "#8fe0c0" : "#8888aa";
 }
 function acPrepareAudio(inputPath, cb) {
   var os = require("os"), fsx = require("fs"), pathx = require("path");
@@ -1430,8 +1512,24 @@ function autoCapRun() {
     var v = (keyInput.value || "").replace(/^\s+|\s+$/g, "");
     try { localStorage.setItem("dopetool_groq_key", v); } catch (e) {}
     refreshGroqKeyState();
+    acRefreshFfmpegState();
     acProgress(v ? "Groq key saved." : "Groq key cleared.");
   });
+
+  // Setup modal open / close
+  var setupOverlay = document.getElementById("acSetupOverlay");
+  var setupOpen = document.getElementById("acSetupOpen");
+  var setupClose = document.getElementById("acSetupClose");
+  if (setupOpen) setupOpen.addEventListener("click", function () {
+    if (setupOverlay) setupOverlay.classList.remove("hidden");
+    refreshGroqKeyState();
+    acRefreshFfmpegState();
+  });
+  if (setupClose) setupClose.addEventListener("click", function () { if (setupOverlay) setupOverlay.classList.add("hidden"); });
+  if (setupOverlay) setupOverlay.addEventListener("click", function (e) { if (e.target === setupOverlay) setupOverlay.classList.add("hidden"); });
+
+  var ffInstall = document.getElementById("acFfmpegInstall");
+  if (ffInstall) ffInstall.addEventListener("click", acInstallFfmpeg);
 
   var browse = document.getElementById("autoCapBrowse");
   if (browse) browse.addEventListener("click", function () {

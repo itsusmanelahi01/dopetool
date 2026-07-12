@@ -460,13 +460,9 @@
 
     <div class="captionBody">
 
-      <div class="captionSection">
-        <div class="captionLabel">Groq API Key <span id="autoCapKeyState" class="tkHint"></span></div>
-        <div class="srtRow">
-          <input type="password" id="autoCapKey" class="settingInput acKeyInput" placeholder="gsk_..." />
-          <button id="autoCapKeySave" class="srtBrowseBtn">Save</button>
-        </div>
-        <div class="tkHint acKeyHint">Free key from <b>console.groq.com/keys</b> — stored only on this machine.</div>
+      <div class="acSetupRow">
+        <button id="acSetupOpen" class="acSetupBtn">⚙ Setup — API key &amp; ffmpeg</button>
+        <span id="acSetupSummary" class="tkHint"></span>
       </div>
 
       <div class="captionSection">
@@ -475,7 +471,6 @@
           <div id="autoCapFile" class="srtFilePath">Drop audio/video here, or Browse →</div>
           <button id="autoCapBrowse" class="srtBrowseBtn">Browse</button>
         </div>
-        <div class="tkHint acKeyHint">Big files &amp; video are auto-compressed if <b>ffmpeg</b> is installed (recommended). Max ~25 MB without it.</div>
       </div>
 
       <div class="captionSection">
@@ -530,6 +525,27 @@
       <button id="autoCapRunBtn" class="importBtn">✨ Transcribe &amp; Create Captions</button>
       <div id="autoCapProgress" class="captionStatus">Ready</div>
 
+    </div>
+  </div>
+
+  <!-- Auto Captions setup modal -->
+  <div id="acSetupOverlay" class="whatsNewOverlay hidden">
+    <div class="whatsNewModal">
+      <div class="whatsNewTitle">Auto Captions Setup</div>
+
+      <div class="acModalLabel">Groq API Key <span id="autoCapKeyState" class="tkHint"></span></div>
+      <div class="srtRow">
+        <input type="password" id="autoCapKey" class="settingInput acKeyInput" placeholder="gsk_..." />
+        <button id="autoCapKeySave" class="srtBrowseBtn">Save</button>
+      </div>
+      <div class="tkHint acKeyHint">Free key from <b>console.groq.com/keys</b> — stored only on this machine.</div>
+
+      <div class="acModalLabel" style="margin-top:16px;">ffmpeg <span id="acFfmpegState" class="tkHint"></span></div>
+      <div class="tkHint acKeyHint">Compresses big files &amp; pulls audio out of video. One-click install downloads a private copy just for DopeTool — no admin rights needed.</div>
+      <button id="acFfmpegInstall" class="acSetupBtn" style="width:100%;margin-top:8px;">⬇ Install ffmpeg for DopeTool</button>
+      <div id="acFfmpegProgress" class="tkHint acKeyHint"></div>
+
+      <button id="acSetupClose" class="whatsNewCloseBtn" style="margin-top:18px;">Done</button>
     </div>
   </div>
 

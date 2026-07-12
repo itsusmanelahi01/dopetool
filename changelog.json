@@ -1,4 +1,10 @@
 {
+  "2.16.0": [
+    "Auto Captions: moved the Groq API key into a clean Setup popup (⚙) so it no longer eats space in the tab",
+    "Auto Captions: one-click ffmpeg install — downloads a private copy just for DopeTool (no admin, survives updates); auto-used for compressing/extracting audio",
+    "Auto Captions: the tab now scrolls properly, and a Key/ffmpeg status is shown at a glance",
+    "Auto Captions: steadier transcription (temperature 0)"
+  ],
   "2.15.3": [
     "Auto Captions: proper code-switched Hinglish — Hindi/Urdu words come out in Roman while English words stay in English (e.g. “mein chahta hun ke main paise invest karun consistently”)",
     "Tick the Hinglish option and set Language to Auto or Hindi for mixed speech"

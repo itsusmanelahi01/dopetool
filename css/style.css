@@ -14,7 +14,7 @@ body {
 
 /* The visible view fills the space under the top tab bar; its inner list
    scrolls. This keeps the last items reachable regardless of tab-bar height. */
-#hubView, #homeView, #clientView, #captionView, #toolkitView, #smoothView {
+#hubView, #homeView, #clientView, #captionView, #autoCapView, #toolkitView, #smoothView {
   flex: 1 1 auto;
   min-height: 0;
   display: flex;
@@ -1217,6 +1217,27 @@ body {
   outline: none;
 }
 .acSelect:focus { border-color: #4c72ff; }
+.acSetupRow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.acSetupBtn {
+  flex: 0 0 auto;
+  padding: 8px 14px;
+  background: #1a1a24;
+  border: 1px solid #2a2a3c;
+  border-radius: 8px;
+  color: #cfd0e6;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.acSetupBtn:hover { border-color: #4c72ff; color: #fff; }
+.acModalLabel {
+  font-size: 10px;
+  font-weight: 700;
+  color: #8888aa;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 6px;
+}
 
 /* Start / End value inputs */
 .smoothValues {
