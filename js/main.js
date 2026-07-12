@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.14.5
+// DopeTool main.js — v2.15.0
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -129,7 +129,7 @@ function showView(viewId) {
   var el = document.getElementById(viewId);
   if (!el) return;
   var host = el.parentNode;
-  var views = ["hubView","homeView","clientView","captionView","toolkitView","smoothView"];
+  var views = ["hubView","homeView","clientView","captionView","toolkitView","smoothView","autoCapView"];
   views.forEach(function (v) {
     var e = document.getElementById(v);
     if (e && e.parentNode === host) e.classList.toggle("hidden", v !== viewId);
@@ -141,13 +141,13 @@ function showView(viewId) {
 // Each pane holds one OR MORE tabs in its own strip; a tab lives
 // in exactly one pane. The top pane's strip IS the top tab bar.
 // ═══════════════════════════════════════════════════════════
-var TAB_TITLES = { library: "Library", captions: "Captions", toolkit: "Toolkit", smooth: "Smoooth" };
-var TAB_VIEWS = { library: ["homeView", "clientView"], captions: ["captionView"], toolkit: ["toolkitView"], smooth: ["smoothView"] };
-var ALL_VIEWS = ["hubView", "homeView", "clientView", "captionView", "toolkitView", "smoothView"];
-var ALL_TABS = ["library", "captions", "toolkit", "smooth"];
+var TAB_TITLES = { library: "Library", captions: "Captions", autocap: "Auto Captions", toolkit: "Toolkit", smooth: "Smoooth" };
+var TAB_VIEWS = { library: ["homeView", "clientView"], captions: ["captionView"], autocap: ["autoCapView"], toolkit: ["toolkitView"], smooth: ["smoothView"] };
+var ALL_VIEWS = ["hubView", "homeView", "clientView", "captionView", "autoCapView", "toolkitView", "smoothView"];
+var ALL_TABS = ["library", "captions", "autocap", "toolkit", "smooth"];
 
 var panes = {
-  top:    { tabs: ["library", "captions", "toolkit", "smooth"], active: "library" },
+  top:    { tabs: ["library", "captions", "autocap", "toolkit", "smooth"], active: "library" },
   bottom: { tabs: [], active: null }
 };
 var splitOpen = false;
@@ -159,6 +159,7 @@ function viewsFor(tab) { return TAB_VIEWS[tab] || []; }
 function activeViewId(tab) {
   if (tab === "library") return currentClient ? "clientView" : "homeView";
   if (tab === "captions") return "captionView";
+  if (tab === "autocap") return "autoCapView";
   if (tab === "toolkit") return "toolkitView";
   if (tab === "smooth") return "smoothView";
   return "homeView";
@@ -174,6 +175,7 @@ function loadForTab(tab) {
   loadedTabs[tab] = true;
   if (tab === "library") { if (!currentClient) loadAllClients(); }
   else if (tab === "captions") loadCaptionStyles();
+  else if (tab === "autocap") { if (typeof loadAutoCapStyles === "function") loadAutoCapStyles(); }
   else if (tab === "smooth") { if (typeof loadSmoothPresets === "function") loadSmoothPresets(); }
 }
 function paneOf(tab) {
@@ -1122,6 +1124,261 @@ document.getElementById("importCaptionsBtn").addEventListener("click", function 
     }
   });
 });
+
+// ═══════════════════════════════════════════════════════════
+// AUTO CAPTIONS — Groq Whisper transcription → styled captions
+// Runs curl on the editor's machine (Node child_process): no CORS, no manual
+// multipart, works on Mac + Windows 10+. Reuses importCaptions() for styling.
+// ═══════════════════════════════════════════════════════════
+var autoCapAudioPath = "";
+var selectedAutoStyle = null;
+var GROQ_STT_MODEL = "whisper-large-v3-turbo";
+var GROQ_LLM_MODEL = "llama-3.3-70b-versatile";
+var acChild = require("child_process");
+
+function getGroqKey() { try { return localStorage.getItem("dopetool_groq_key") || ""; } catch (e) { return ""; } }
+function acProgress(msg) { var el = document.getElementById("autoCapProgress"); if (el) el.innerText = msg; }
+function acStatus(msg) { var el = document.getElementById("autoCapStatus"); if (el) el.innerText = msg; }
+
+function refreshGroqKeyState() {
+  var st = document.getElementById("autoCapKeyState");
+  var input = document.getElementById("autoCapKey");
+  var key = getGroqKey();
+  if (st) { st.innerText = key ? "✓ saved" : "not set"; st.style.color = key ? "#8fe0c0" : "#8888aa"; }
+  if (input && key && !input.value) input.value = key;
+}
+
+// Style picker (mirrors the Caption Importer, rendered into the Auto Captions grid)
+function loadAutoCapStyles() {
+  var grid = document.getElementById("autoCapStyleGrid");
+  if (!grid) return;
+  refreshGroqKeyState();
+  grid.innerHTML = '<div style="color:#333348;font-size:11px;padding:8px;">Loading styles...</div>';
+  selectedAutoStyle = null;
+  db.collection("textstyles").get().then(function (snapshot) {
+    var styles = [];
+    snapshot.forEach(function (doc) { var d = doc.data(); if (d.placeholder || d.type === "ffx") return; styles.push(d); });
+    if (!styles.length) { grid.innerHTML = '<div style="color:#333348;font-size:11px;padding:8px;">No text styles saved yet.<br>Add styles in the Style Library first.</div>'; return; }
+    var clients = [];
+    styles.forEach(function (s) { var c = s.client || "Unassigned"; if (clients.indexOf(c) === -1) clients.push(c); });
+    clients.sort();
+    var filter = "All";
+    var filterBar = document.getElementById("autoCapClientFilter");
+    function pills() {
+      filterBar.innerHTML = "";
+      ["All"].concat(clients).forEach(function (c) {
+        var pill = document.createElement("div");
+        pill.className = "captionClientPill" + (filter === c ? " active" : "");
+        pill.innerText = c;
+        pill.addEventListener("click", function () { filter = c; pills(); render(); });
+        filterBar.appendChild(pill);
+      });
+    }
+    function render() {
+      grid.innerHTML = "";
+      var list = filter === "All" ? styles : styles.filter(function (s) { return (s.client || "Unassigned") === filter; });
+      if (!list.length) { grid.innerHTML = '<div style="color:#333348;font-size:11px;padding:8px;">No styles for this client.</div>'; return; }
+      list.forEach(function (style) {
+        var card = document.createElement("div");
+        card.className = "captionStyleCard";
+        card.innerHTML =
+          '<div class="captionSwatch" style="background-color:' + (style.color || "#888") + '"></div>' +
+          '<div class="captionStyleInfo"><div class="captionStyleName">' + style.name + '</div>' +
+          '<div class="captionStyleMeta">' + (style.font || "") + ' · ' + (style.fontSize || "") + 'px · ' + (style.client || "") + '</div></div>';
+        card.addEventListener("click", function () {
+          var cards = document.querySelectorAll("#autoCapStyleGrid .captionStyleCard");
+          for (var i = 0; i < cards.length; i++) cards[i].classList.remove("selected");
+          card.classList.add("selected");
+          selectedAutoStyle = style;
+          acStatus("Style: " + style.name);
+        });
+        grid.appendChild(card);
+      });
+    }
+    pills(); render();
+  }).catch(function (err) { grid.innerHTML = '<div style="color:#ff5566;font-size:11px;padding:8px;">Error: ' + err.message + '</div>'; });
+}
+
+function setAutoCapFile(path) {
+  autoCapAudioPath = path;
+  var parts = path.split(/[\/\\]/);
+  var el = document.getElementById("autoCapFile");
+  if (el) { el.innerText = parts[parts.length - 1]; el.title = path; }
+  acStatus("Audio: " + parts[parts.length - 1]);
+}
+
+// ---- Groq requests via curl ----
+function groqTranscribe(key, audioPath, lang, cb) {
+  var args = [
+    "-s", "-S", "--max-time", "600",
+    "https://api.groq.com/openai/v1/audio/transcriptions",
+    "-H", "Authorization: Bearer " + key,
+    "-F", "file=@" + audioPath,
+    "-F", "model=" + GROQ_STT_MODEL,
+    "-F", "response_format=verbose_json",
+    "-F", "timestamp_granularities[]=word",
+    "-F", "timestamp_granularities[]=segment"
+  ];
+  if (lang && lang !== "auto") args.push("-F", "language=" + lang);
+  acExecJson(args, cb);
+}
+
+function groqChat(key, systemPrompt, userContent, cb) {
+  var body = JSON.stringify({
+    model: GROQ_LLM_MODEL, temperature: 0.2,
+    messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userContent }]
+  });
+  acExecJson([
+    "-s", "-S", "--max-time", "120",
+    "https://api.groq.com/openai/v1/chat/completions",
+    "-H", "Authorization: Bearer " + key,
+    "-H", "Content-Type: application/json",
+    "-d", body
+  ], cb);
+}
+
+function acExecJson(args, cb) {
+  acChild.execFile("curl", args, { maxBuffer: 1024 * 1024 * 64 }, function (err, stdout, stderr) {
+    if (err && !stdout) { cb(stderr || err.message || "Request failed"); return; }
+    var data;
+    try { data = JSON.parse(stdout); } catch (e) { cb("Bad response: " + (stdout || "").slice(0, 200)); return; }
+    if (data && data.error) { cb(data.error.message || JSON.stringify(data.error)); return; }
+    cb(null, data);
+  });
+}
+
+// Group Whisper words into N-word caption segments
+function acGroupWords(words, n) {
+  var segs = [];
+  for (var i = 0; i < words.length; i += n) {
+    var chunk = words.slice(i, i + n);
+    var txt = chunk.map(function (w) { return (w.word || "").replace(/^\s+|\s+$/g, ""); }).join(" ").replace(/\s+/g, " ").replace(/^\s+|\s+$/g, "");
+    if (!txt) continue;
+    segs.push({ inSec: chunk[0].start, outSec: chunk[chunk.length - 1].end, text: txt });
+  }
+  return segs;
+}
+
+function acSecToTC(s) {
+  if (s < 0 || isNaN(s)) s = 0;
+  var ms = Math.floor((s % 1) * 1000), t = Math.floor(s);
+  function p(n, w) { n = "" + n; while (n.length < w) n = "0" + n; return n; }
+  return p(Math.floor(t / 3600), 2) + ":" + p(Math.floor((t % 3600) / 60), 2) + ":" + p(t % 60, 2) + "," + p(ms, 3);
+}
+
+function acBuildSrt(segs) {
+  var out = [];
+  for (var i = 0; i < segs.length; i++) {
+    out.push((i + 1) + "\n" + acSecToTC(segs[i].inSec) + " --> " + acSecToTC(segs[i].outSec) + "\n" + segs[i].text);
+  }
+  return out.join("\n\n") + "\n";
+}
+
+// Write a temp SRT and reuse importCaptions() with the picked style
+function acImportSegments(segs) {
+  if (!segs.length) { acProgress("No speech found in the audio."); return; }
+  var os = require("os"), fsx = require("fs"), pathx = require("path");
+  var tmp = pathx.join(os.tmpdir(), "dopetool_autocap_" + Date.now() + ".srt");
+  try { fsx.writeFileSync(tmp, acBuildSrt(segs), "utf8"); } catch (e) { acProgress("Couldn't write temp SRT: " + e.message); return; }
+  var style = selectedAutoStyle || {};
+  var cfg = {
+    srtPath: toJsxPath(tmp),
+    font: style.font || "Arial",
+    fontSize: style.fontSize || 72,
+    textColor: (style.color || "#FFFFFF").replace("#", ""),
+    strokeColor: style.strokeColor || "000000",
+    strokeWidth: style.strokeWidth || 0,
+    tracking: style.tracking || 0,
+    autoLeading: style.autoLeading !== false,
+    leading: style.leading || 0,
+    effects: style.effects || [],
+    layerStyles: style.layerStyles || [],
+    verticalOffset: parseFloat(document.getElementById("autoCapVOffset").value) || 200,
+    fadeFrames: parseInt(document.getElementById("autoCapFade").value) || 0,
+    useNull: document.getElementById("autoCapUseNull").checked
+  };
+  acProgress("Creating " + segs.length + " caption layers…");
+  var esc = JSON.stringify(cfg).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  csInterface.evalScript('importCaptions("' + esc + '")', function (result) {
+    if (result && result.indexOf("ok:") === 0) acProgress("✓ " + result.split(":")[1] + " captions created!");
+    else acProgress(result || "Caption import failed.");
+  });
+}
+
+// Romanize each segment's text to Hinglish/Roman, preserving segmentation & timing
+function acRomanize(key, segs, cb) {
+  acProgress("Romanizing to Hinglish…");
+  var lines = segs.map(function (s, i) { return (i + 1) + ". " + s.text; }).join("\n");
+  var sys = "You convert Hindi/Urdu subtitle lines into natural Roman script (Hinglish) exactly as Indian/Pakistani content creators type on social media. Rules: keep the SAME language, do NOT translate to English — only transliterate to Roman letters. Keep existing English words as-is. Return EXACTLY the same number of lines, each prefixed with its number and a period, same order. No extra commentary.";
+  groqChat(key, sys, lines, function (err, data) {
+    if (err) { cb(err); return; }
+    var content = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+    if (!content) { cb("Empty romanize response"); return; }
+    var map = {};
+    content.split(/\n+/).forEach(function (ln) { var m = ln.match(/^\s*(\d+)\.\s*(.+)$/); if (m) map[parseInt(m[1], 10)] = m[2].replace(/^\s+|\s+$/g, ""); });
+    cb(null, segs.map(function (s, i) { return { inSec: s.inSec, outSec: s.outSec, text: map[i + 1] || s.text }; }));
+  });
+}
+
+function autoCapRun() {
+  var key = getGroqKey();
+  if (!key) { acProgress("Enter your Groq API key first."); return; }
+  if (!autoCapAudioPath) { acProgress("Drop or browse an audio/video file first."); return; }
+  if (!selectedAutoStyle) { acProgress("Pick a text style first."); return; }
+  var n = Math.max(1, Math.min(12, parseInt(document.getElementById("autoCapWords").value, 10) || 4));
+  var lang = document.getElementById("autoCapLang").value;
+  var roman = document.getElementById("autoCapRoman").checked;
+
+  acProgress("Transcribing with Groq Whisper… (larger files take longer)");
+  groqTranscribe(key, autoCapAudioPath, lang, function (err, data) {
+    if (err) { acProgress("Transcription failed: " + err); return; }
+    var words = (data && data.words) || [];
+    var segs;
+    if (words.length) {
+      segs = acGroupWords(words, n);
+    } else {
+      var segsOnly = (data && data.segments) || [];
+      if (!segsOnly.length) { acProgress("No speech detected."); return; }
+      segs = segsOnly.map(function (s) { return { inSec: s.start, outSec: s.end, text: (s.text || "").replace(/^\s+|\s+$/g, "") }; });
+    }
+    if (roman) acRomanize(key, segs, function (e2, r) { if (e2) acProgress("Romanize failed: " + e2); else acImportSegments(r); });
+    else acImportSegments(segs);
+  });
+}
+
+(function () {
+  var keyInput = document.getElementById("autoCapKey");
+  var keySave = document.getElementById("autoCapKeySave");
+  if (keySave) keySave.addEventListener("click", function () {
+    var v = (keyInput.value || "").replace(/^\s+|\s+$/g, "");
+    try { localStorage.setItem("dopetool_groq_key", v); } catch (e) {}
+    refreshGroqKeyState();
+    acProgress(v ? "Groq key saved." : "Groq key cleared.");
+  });
+
+  var browse = document.getElementById("autoCapBrowse");
+  if (browse) browse.addEventListener("click", function () {
+    csInterface.evalScript("pickAudioFile()", function (r) { if (r && r !== "undefined" && r !== "") setAutoCapFile(r); });
+  });
+
+  var zone = document.getElementById("autoCapFile");
+  if (zone) {
+    function stop(e) { e.preventDefault(); e.stopPropagation(); }
+    ["dragenter", "dragover"].forEach(function (ev) { zone.addEventListener(ev, function (e) { stop(e); zone.classList.add("dropActive"); }); });
+    ["dragleave", "dragend"].forEach(function (ev) { zone.addEventListener(ev, function (e) { stop(e); zone.classList.remove("dropActive"); }); });
+    zone.addEventListener("drop", function (e) {
+      stop(e); zone.classList.remove("dropActive");
+      var files = e.dataTransfer && e.dataTransfer.files;
+      if (!files || !files.length) return;
+      var p = files[0].path || "";
+      if (!p) { acProgress("Couldn't read the dropped file's path."); return; }
+      setAutoCapFile(p);
+    });
+  }
+
+  var runBtn = document.getElementById("autoCapRunBtn");
+  if (runBtn) runBtn.addEventListener("click", autoCapRun);
+})();
 
 // ---- SORT CONTROL ----
 document.getElementById("sortSelect").addEventListener("change", function () {

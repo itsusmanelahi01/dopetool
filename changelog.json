@@ -1,4 +1,10 @@
 {
+  "2.15.0": [
+    "New Auto Captions tab — transcribe an audio/video file and turn it into styled, timed caption layers automatically",
+    "Powered by Groq (Whisper) — paste your own free Groq API key once (console.groq.com/keys); it's stored only on your machine",
+    "Set how many words go in each caption, pick any saved text style, and optionally romanize Hindi/Urdu to Hinglish / Roman Urdu",
+    "Drop the file or Browse; captions are created in the active comp using your existing caption styling (offset, fade, null group)"
+  ],
   "2.14.5": [
     "Docking: cleaner split divider — a subtle centered grip handle on a hairline that turns blue and widens when you hover it"
   ],

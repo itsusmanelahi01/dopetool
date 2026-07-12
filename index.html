@@ -445,6 +445,91 @@
     </div>
   </div>
 
+  <!-- ═══════════════════════════════════════ -->
+  <!-- AUTO CAPTIONS — transcribe & caption    -->
+  <!-- ═══════════════════════════════════════ -->
+  <div id="autoCapView" class="hidden">
+    <div class="clientHeader">
+      <div class="clientHeaderInfo">
+        <div class="clientViewName">Auto Captions</div>
+        <div class="clientViewCount">Transcribe audio → styled captions (Groq)</div>
+      </div>
+    </div>
+
+    <div id="autoCapStatus" class="statusBar">Add your Groq key, drop audio, then transcribe</div>
+
+    <div class="captionBody">
+
+      <div class="captionSection">
+        <div class="captionLabel">Groq API Key <span id="autoCapKeyState" class="tkHint"></span></div>
+        <div class="srtRow">
+          <input type="password" id="autoCapKey" class="settingInput acKeyInput" placeholder="gsk_..." />
+          <button id="autoCapKeySave" class="srtBrowseBtn">Save</button>
+        </div>
+        <div class="tkHint acKeyHint">Free key from <b>console.groq.com/keys</b> — stored only on this machine.</div>
+      </div>
+
+      <div class="captionSection">
+        <div class="captionLabel">Audio / Video File</div>
+        <div class="srtRow">
+          <div id="autoCapFile" class="srtFilePath">Drop audio/video here, or Browse →</div>
+          <button id="autoCapBrowse" class="srtBrowseBtn">Browse</button>
+        </div>
+      </div>
+
+      <div class="captionSection">
+        <div class="captionLabel">Text Style <span style="color:#444458;font-weight:400;">— click to select</span></div>
+        <div id="autoCapClientFilter" class="captionClientFilter"></div>
+        <div id="autoCapStyleGrid" class="captionStyleGrid">Loading styles...</div>
+      </div>
+
+      <div class="captionSection">
+        <div class="captionLabel">Settings</div>
+        <div class="captionSettings">
+          <div class="settingRow">
+            <span class="settingLabel">Words per caption</span>
+            <input type="number" id="autoCapWords" value="4" min="1" max="12" class="settingInput" />
+            <span class="settingUnit">words</span>
+          </div>
+          <div class="settingRow">
+            <span class="settingLabel">Language</span>
+            <select id="autoCapLang" class="settingInput acSelect">
+              <option value="auto">Auto-detect</option>
+              <option value="en">English</option>
+              <option value="hi">Hindi / Urdu</option>
+            </select>
+          </div>
+          <div class="settingRow">
+            <label class="settingLabel">
+              <input type="checkbox" id="autoCapRoman" style="margin-right:6px;" />
+              Romanize to Hinglish / Roman Urdu
+            </label>
+          </div>
+          <div class="settingRow">
+            <span class="settingLabel">Vertical Offset</span>
+            <input type="number" id="autoCapVOffset" value="200" class="settingInput" />
+            <span class="settingUnit">px</span>
+          </div>
+          <div class="settingRow">
+            <span class="settingLabel">Fade Frames</span>
+            <input type="number" id="autoCapFade" value="0" class="settingInput" />
+            <span class="settingUnit">fr</span>
+          </div>
+          <div class="settingRow">
+            <label class="settingLabel">
+              <input type="checkbox" id="autoCapUseNull" style="margin-right:6px;" />
+              Group under Null (CAPTIONS_CTRL)
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <button id="autoCapRunBtn" class="importBtn">✨ Transcribe &amp; Create Captions</button>
+      <div id="autoCapProgress" class="captionStatus">Ready</div>
+
+    </div>
+  </div>
+
   <!-- Context menu -->
   <div id="contextMenu" class="contextMenu hidden">
     <div id="ctxFavorite" class="ctxItem">⭐ Favorite</div>

@@ -771,6 +771,15 @@ function pickSrtFile() {
   } catch (e) { return ""; }
 }
 
+function pickAudioFile() {
+  try {
+    var f = File.openDialog("Select audio or video file",
+      "Media:*.mp3;*.wav;*.m4a;*.aac;*.flac;*.ogg;*.mp4;*.mov;*.mkv;*.webm,All Files:*.*");
+    if (f) return f.fsName;
+    return "";
+  } catch (e) { return ""; }
+}
+
 // ---- FONT INSTALLATION HELPER ----
 // Returns "installed" if font is found in AE, "missing" if not.
 // NOTE: Assigning a non-existent font name to TextDocument.font does NOT throw

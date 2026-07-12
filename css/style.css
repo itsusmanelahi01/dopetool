@@ -1199,6 +1199,25 @@ body {
 }
 .smoothSavedItem:hover .smoothDel { opacity: 1; }
 
+/* ---- AUTO CAPTIONS ---- */
+.acKeyInput {
+  flex: 1;
+  font-family: "SF Mono", ui-monospace, monospace;
+  letter-spacing: 0.5px;
+}
+.acKeyHint { display: block; margin-top: 5px; font-size: 10px; color: #6b6b86; }
+.acSelect {
+  min-width: 130px;
+  background: #1a1a24;
+  color: #e8e8f0;
+  border: 1px solid #252535;
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-size: 11px;
+  outline: none;
+}
+.acSelect:focus { border-color: #4c72ff; }
+
 /* Start / End value inputs */
 .smoothValues {
   display: flex;
