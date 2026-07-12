@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.14.2
+// DopeTool main.js — v2.14.3
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -1954,6 +1954,18 @@ function tkEval(script) {
 var smoothCP = [0.42, 0, 0.58, 1]; // x1, y1, x2, y2
 var smoothDragIdx = -1;
 var smoothGraphMode = "value"; // "value" | "speed"
+var SMOOTH_SPEED_MAX = 4;      // fixed vertical scale for the speed graph (units/sec, normalized)
+
+// Speed-graph handle knobs, derived from the bezier control points.
+// Returns [ [graphX, graphY(0..1), rawSpeed], ...] for the start and end keyframe.
+function smoothSpeedKnobs(cp) {
+  var s0 = cp[0] > 1e-4 ? cp[1] / cp[0] : 0;              // outgoing velocity of kf 1
+  var s1 = (1 - cp[2]) > 1e-4 ? (1 - cp[3]) / (1 - cp[2]) : 0; // incoming velocity of kf 2
+  return [
+    [cp[0], Math.min(1, s0 / SMOOTH_SPEED_MAX), s0],
+    [cp[2], Math.min(1, s1 / SMOOTH_SPEED_MAX), s1]
+  ];
+}
 var SMOOTH_PRESETS = [
   { name: "Gentle",   cp: [0.25, 0.10, 0.25, 1.0] },
   { name: "Smooth",   cp: [0.42, 0.00, 0.58, 1.0] },
@@ -1997,7 +2009,7 @@ function smoothDrawInto(canvas, cp, opts) {
 
   // Speed graph: plot dy/dx (velocity) vs time instead of value vs time.
   if (opts.mode === "speed") {
-    var N = 64, pts = [], maxS = 0.0001;
+    var N = 64, pts = [];
     for (var s = 0; s <= N; s++) {
       var u = s / N, mt = 1 - u;
       var dxu = 3 * mt * mt * cp[0] + 6 * mt * u * (cp[2] - cp[0]) + 3 * u * u * (1 - cp[2]);
@@ -2005,18 +2017,34 @@ function smoothDrawInto(canvas, cp, opts) {
       var xu = 3 * mt * mt * u * cp[0] + 3 * mt * u * u * cp[2] + u * u * u;
       var spd = (dxu > 1e-6) ? dyu / dxu : 0;
       if (spd < 0) spd = 0;
-      pts.push([xu, spd]);
-      if (spd > maxS) maxS = spd;
+      pts.push([xu, Math.min(1, spd / SMOOTH_SPEED_MAX)]);
     }
     ctx.strokeStyle = opts.curveColor || "#ffffff";
     ctx.lineWidth = opts.lineWidth || 2;
     ctx.lineJoin = "round"; ctx.lineCap = "round";
     ctx.beginPath();
     for (var k = 0; k < pts.length; k++) {
-      var pv = smoothPx(canvas, pts[k][0], pts[k][1] / maxS);
+      var pv = smoothPx(canvas, pts[k][0], pts[k][1]);
       if (k === 0) ctx.moveTo(pv[0], pv[1]); else ctx.lineTo(pv[0], pv[1]);
     }
     ctx.stroke();
+
+    // Draggable ease handles (start & end keyframe velocities)
+    if (opts.handles) {
+      var kn = smoothSpeedKnobs(cp);
+      var kf0 = smoothPx(canvas, 0, kn[0][1]);   // start keyframe (time 0, at its speed level)
+      var kb0 = smoothPx(canvas, kn[0][0], kn[0][1]);
+      var kf1 = smoothPx(canvas, 1, kn[1][1]);   // end keyframe (time 1, at its speed level)
+      var kb1 = smoothPx(canvas, kn[1][0], kn[1][1]);
+      ctx.setLineDash([3, 3]); ctx.strokeStyle = "#3a5cff"; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(kf0[0], kf0[1]); ctx.lineTo(kb0[0], kb0[1]); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(kf1[0], kf1[1]); ctx.lineTo(kb1[0], kb1[1]); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = "#555a80";
+      [kf0, kf1].forEach(function (p) { ctx.beginPath(); ctx.arc(p[0], p[1], 2.5, 0, Math.PI * 2); ctx.fill(); });
+      ctx.fillStyle = "#4c72ff";
+      [kb0, kb1].forEach(function (p) { ctx.beginPath(); ctx.arc(p[0], p[1], 5.5, 0, Math.PI * 2); ctx.fill(); });
+    }
     return;
   }
 
@@ -2054,9 +2082,8 @@ function smoothDraw() {
   if (!canvas) return;
   // Keep the on-screen aspect ratio correct once the canvas is actually visible
   if (canvas.clientWidth > 0) canvas.style.height = (canvas.clientWidth * (canvas.height / canvas.width)) + "px";
-  var isValue = smoothGraphMode === "value";
-  smoothDrawInto(canvas, smoothCP, { handles: isValue, grid: true, curveColor: "#ffffff", lineWidth: 2, mode: smoothGraphMode });
-  canvas.style.cursor = isValue ? "crosshair" : "default";
+  smoothDrawInto(canvas, smoothCP, { handles: true, grid: true, curveColor: "#ffffff", lineWidth: 2, mode: smoothGraphMode });
+  canvas.style.cursor = "crosshair";
   var b = document.getElementById("smoothBezier");
   if (b) {
     var r = smoothCP.map(function (n) { return Math.round(n * 100) / 100; });
@@ -2085,8 +2112,16 @@ function smoothOnDrag(e) {
   var xy = smoothClientToXY(canvas, e.clientX, e.clientY);
   var x = Math.max(0, Math.min(1, xy[0]));
   var y = Math.max(0, Math.min(1, xy[1]));
-  if (smoothDragIdx === 0) { smoothCP[0] = x; smoothCP[1] = y; }
-  else if (smoothDragIdx === 1) { smoothCP[2] = x; smoothCP[3] = y; }
+  if (smoothGraphMode === "speed") {
+    // horizontal = influence (x1 / x2), vertical = velocity → back-solve y1 / y2
+    var xk = Math.max(0.02, Math.min(0.98, x));
+    var spd = y * SMOOTH_SPEED_MAX;
+    if (smoothDragIdx === 0) { smoothCP[0] = xk; smoothCP[1] = Math.max(0, Math.min(1, spd * xk)); }
+    else if (smoothDragIdx === 1) { smoothCP[2] = xk; smoothCP[3] = Math.max(0, Math.min(1, 1 - spd * (1 - xk))); }
+  } else {
+    if (smoothDragIdx === 0) { smoothCP[0] = x; smoothCP[1] = y; }
+    else if (smoothDragIdx === 1) { smoothCP[2] = x; smoothCP[3] = y; }
+  }
   smoothDraw();
 }
 function smoothApply() {
@@ -2181,11 +2216,17 @@ function loadSmoothPresets() {
   // so a drag continues even when the cursor leaves the canvas. Handles are only
   // editable on the Value graph.
   canvas.addEventListener("mousedown", function (e) {
-    if (smoothGraphMode !== "value") return;
     e.preventDefault();
     var xy = smoothClientToXY(canvas, e.clientX, e.clientY);
-    var d1 = Math.abs(xy[0] - smoothCP[0]) + Math.abs(xy[1] - smoothCP[1]);
-    var d2 = Math.abs(xy[0] - smoothCP[2]) + Math.abs(xy[1] - smoothCP[3]);
+    var d1, d2;
+    if (smoothGraphMode === "speed") {
+      var kn = smoothSpeedKnobs(smoothCP);
+      d1 = Math.abs(xy[0] - kn[0][0]) + Math.abs(xy[1] - kn[0][1]);
+      d2 = Math.abs(xy[0] - kn[1][0]) + Math.abs(xy[1] - kn[1][1]);
+    } else {
+      d1 = Math.abs(xy[0] - smoothCP[0]) + Math.abs(xy[1] - smoothCP[1]);
+      d2 = Math.abs(xy[0] - smoothCP[2]) + Math.abs(xy[1] - smoothCP[3]);
+    }
     smoothDragIdx = (d1 <= d2) ? 0 : 1;
     smoothOnDrag(e);
   });

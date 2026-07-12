@@ -1,4 +1,7 @@
 {
+  "2.14.3": [
+    "Smoooth: the Speed Graph now has draggable ease handles too — drag sideways for influence, up/down for velocity (mirrors the Value graph)"
+  ],
   "2.14.2": [
     "Smoooth: the built-in presets now sit above the graph editor",
     "Smoooth: new Value Graph / Speed Graph toggle — see the velocity curve like AE's speed graph",
