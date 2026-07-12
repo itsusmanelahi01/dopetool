@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.15.2
+// DopeTool main.js — v2.15.3
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -1369,7 +1369,15 @@ function acImportSegments(segs) {
 function acRomanize(key, segs, cb) {
   acTick("Romanizing to Hinglish");
   var lines = segs.map(function (s, i) { return (i + 1) + ". " + s.text; }).join("\n");
-  var sys = "You convert Hindi/Urdu subtitle lines into natural Roman script (Hinglish) exactly as Indian/Pakistani content creators type on social media. Rules: keep the SAME language, do NOT translate to English — only transliterate to Roman letters. Keep existing English words as-is. Return EXACTLY the same number of lines, each prefixed with its number and a period, same order. No extra commentary.";
+  var sys =
+    "You format subtitles for Hindi/Urdu speech that mixes in English words (code-switching). " +
+    "Rewrite each numbered line as natural HINGLISH, the way Indian/Pakistani creators type on Instagram/YouTube:\n" +
+    "- Write the Hindi/Urdu words in Roman (Latin) letters, spelled the common casual way.\n" +
+    "- Keep English words and phrases in normal English spelling. Do NOT transliterate English into phonetic Roman, and do NOT translate Hindi/Urdu into English.\n" +
+    "- Preserve the exact meaning, word order, and every word — do not add, drop, merge or reorder words.\n" +
+    "Example input: 1. मैं चाहता हूं कि मैं पैसे invest करूं consistently\n" +
+    "Example output: 1. main chahta hun ke main paise invest karun consistently\n" +
+    "Return EXACTLY the same number of lines, each prefixed with its number and a period, in the same order. No commentary.";
   groqChat(key, sys, lines, function (err, data) {
     acStopTick();
     if (err) { cb(err); return; }

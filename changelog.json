@@ -1,4 +1,8 @@
 {
+  "2.15.3": [
+    "Auto Captions: proper code-switched Hinglish — Hindi/Urdu words come out in Roman while English words stay in English (e.g. “mein chahta hun ke main paise invest karun consistently”)",
+    "Tick the Hinglish option and set Language to Auto or Hindi for mixed speech"
+  ],
   "2.15.2": [
     "Auto Captions: switched to the whisper-large-v3 model so Urdu/Hindi audio is transcribed in its own language instead of being translated to English",
     "Auto Captions: added Urdu as its own language option (separate from Hindi) — pick your language for the most accurate result",
