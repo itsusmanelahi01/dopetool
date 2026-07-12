@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.16.1
+// DopeTool main.js — v2.16.2
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -1452,24 +1452,33 @@ function acRomanize(key, segs, cb) {
   acTick("Romanizing to Hinglish");
   var lines = segs.map(function (s, i) { return (i + 1) + ". " + s.text; }).join("\n");
   var sys =
-    "You format subtitles for Hindi/Urdu speech that mixes in English words (code-switching). " +
-    "Rewrite each numbered line as natural HINGLISH, the way Indian/Pakistani creators type on Instagram/YouTube:\n" +
-    "- Write the Hindi/Urdu words in Roman (Latin) letters, spelled the common casual way.\n" +
-    "- English words/phrases must use CORRECT English spelling. The transcription often mis-spells English words phonetically — fix them back to the real word using context. Examples: 'seve' -> 'save', 'kansistantli' -> 'consistently', 'bijness' -> 'business', 'kantent' -> 'content', 'inwest' -> 'invest', 'vidiyo' -> 'video'.\n" +
-    "- Do NOT translate Hindi/Urdu into English, and do NOT transliterate a genuinely English word into phonetic spelling.\n" +
-    "- Preserve the meaning, word order, and every word — do not add, drop, merge or reorder words.\n" +
-    "Example input: 1. mujhe apna paisa seve karke bijness me inwest karna hai consistently\n" +
-    "Example output: 1. mujhe apna paisa save karke business me invest karna hai consistently\n" +
-    "Return EXACTLY the same number of lines, each prefixed with its number and a period, in the same order. No commentary.";
-  groqChat(key, sys, lines, function (err, data) {
-    acStopTick();
-    if (err) { cb(err); return; }
-    var content = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
-    if (!content) { cb("Empty romanize response"); return; }
-    var map = {};
-    content.split(/\n+/).forEach(function (ln) { var m = ln.match(/^\s*(\d+)\.\s*(.+)$/); if (m) map[parseInt(m[1], 10)] = m[2].replace(/^\s+|\s+$/g, ""); });
-    cb(null, segs.map(function (s, i) { return { inSec: s.inSec, outSec: s.outSec, text: map[i + 1] || s.text }; }));
-  });
+    "You transliterate Hindi/Urdu subtitle lines into ROMAN (Latin) script — Hinglish.\n" +
+    "MOST IMPORTANT RULE: the output must contain ONLY Latin letters (a-z). NEVER output any Devanagari (e.g. हिंदी) or Urdu/Arabic (e.g. اردو) characters. Every single line must be fully romanized.\n" +
+    "For each numbered line:\n" +
+    "- Transliterate every Hindi/Urdu word into Roman letters, spelled the casual way creators type (मैं->main, चाहता->chahta, हूं->hun, पैसे->paise, करूं->karun, کرنا->karna).\n" +
+    "- Words that are genuinely English stay in correct English spelling. If the transcription mangled an English word phonetically, fix it to the real word using context: seve->save, inwest->invest, kansistantli->consistently, bijness->business, kantent->content.\n" +
+    "- Do NOT translate to English, and do NOT add, drop, merge or reorder words.\n" +
+    "Example input: 1. मैं अपना पैसा seve करके business में invest करना चाहता हूं consistently\n" +
+    "Example output: 1. main apna paisa save karke business me invest karna chahta hun consistently\n" +
+    "Return EXACTLY the same number of lines, each prefixed with its number and a period, in the same order, Latin letters only. No commentary.";
+  var NON_LATIN = /[\u0900-\u097F\u0600-\u06FF]/; // Devanagari or Arabic/Urdu
+  function attempt(triesLeft) {
+    groqChat(key, sys, lines, function (err, data) {
+      if (err) { if (triesLeft > 0) { attempt(triesLeft - 1); return; } acStopTick(); cb(err); return; }
+      var content = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+      if (!content) { if (triesLeft > 0) { attempt(triesLeft - 1); return; } acStopTick(); cb("Empty romanize response"); return; }
+      var map = {};
+      content.split(/\n+/).forEach(function (ln) { var m = ln.match(/^\s*(\d+)\.\s*(.+)$/); if (m) map[parseInt(m[1], 10)] = m[2].replace(/^\s+|\s+$/g, ""); });
+      var out = segs.map(function (s, i) { return { inSec: s.inSec, outSec: s.outSec, text: map[i + 1] || s.text }; });
+      // If the model still left a lot of Hindi/Urdu script in, retry once
+      var bad = 0;
+      for (var k = 0; k < out.length; k++) if (NON_LATIN.test(out[k].text)) bad++;
+      if (bad > out.length * 0.2 && triesLeft > 0) { attempt(triesLeft - 1); return; }
+      acStopTick();
+      cb(null, out);
+    });
+  }
+  attempt(1);
 }
 
 // Conservative cleanup: fix clear mis-transcriptions without romanizing,

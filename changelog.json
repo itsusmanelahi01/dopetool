@@ -1,4 +1,7 @@
 {
+  "2.16.2": [
+    "Auto Captions: fixed Hinglish sometimes coming out in Hindi/Urdu script — the romanizer now forces Latin-only output and automatically retries if any script slips through"
+  ],
   "2.16.1": [
     "Auto Captions: fixes garbled English words (e.g. “seve” → “save”, “kansistantli” → “consistently”) — the Hinglish pass now corrects mis-heard English using context, and a light auto-cleanup runs on non-Hinglish captions too"
   ],
