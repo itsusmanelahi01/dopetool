@@ -1,4 +1,7 @@
 {
+  "2.18.0": [
+    "UI: tighter, cleaner layout across the board — smaller cards, panels, buttons and the Toolkit tools, so more fits on screen in a narrow panel"
+  ],
   "2.17.4": [
     "Auto Captions: English words now strictly stay in English (a hard rule) — even when Whisper wrote them in Urdu/Hindi script, they're restored to correct English spelling",
     "Auto Captions: the Roman-Urdu pass now processes the WHOLE transcript in batches, so long videos no longer leave later lines un-romanized"
