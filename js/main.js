@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.17.3
+// DopeTool main.js — v2.17.4
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -1556,46 +1556,57 @@ function acImportSegments(segs) {
 
 // Roman-Urdu house style (from the Adeel Burki caption guide) — the exact
 // spelling fingerprint the romanizer should follow.
+// Roman-Urdu house style (from the Adeel Burki caption guide) — spelling rules
+// for the URDU/HINDI words only (English words are handled by RULE 2 below).
 var ROMAN_URDU_STYLE =
-  "SPELLING STYLE — casual Roman Urdu (Pakistani), Latin letters ONLY:\n" +
   "- all lowercase, EXCEPT proper nouns (Abba, Lahore, Patriata). Never auto-capitalize the first word of a line.\n" +
   "- Spell these function words EXACTLY like this: tou (=to/then, never 'to' or 'toh'); keh (=that/ke); aap/ap/apka/apki/apko; hai/hain/hoon; tha/thi/thay (never 'the'); mai/main/mainay/meine; nahi (never 'nahin'/'nhi'); he or hi (=only/just); per (=on, never 'par'); se; ka/ki; bohut (never 'bahut'); itna/itni; zyada (not 'ziada'); aur; phir; lekin; kyun keh (=because); yeh/ye; woh/wohi; aik (=one, prefer over 'ek'); beta.\n" +
   "- Long vowels: aa (aap, yaad, maangi, awaaz), oo (pooray, sukoon, hoon, zaroor), ee/i (cheez, achi). Use '-ay' endings (pooray, hamaray, kaisay, thay, gey). Diphthong ai (aisa, hai, aik).\n" +
   "- Aspiration as digraphs: kh, gh, ph, bh, ch, th, jh, sh (khawab, ghar, phir, bhi, mujhe, shishay). Double a consonant for hard sounds (abba, takk). Apostrophe only for a syllable break (ban'nay).\n" +
   "- Nasal endings vary — dropped (doosro, logo, nahi), '-ein' (cheezein, karein, milein), or '-on/-un/-an/-in' (cheezon, kahan, hoon, hain, mein). Do NOT over-normalize; this casual inconsistency is correct.\n" +
-  "- English loanwords stay in normal English spelling, inline, no italics (book, venue, decide, deserve, stage, moisturiser, management, bill). Fix mis-heard English back to the real word using context (seve->save, inwest->invest, kansistantli->consistently).\n" +
   "- Minimal punctuation: no commas or periods between phrases; keep question marks (kaisay ban sakti hoon?).\n";
 
 // Romanize each segment's text to Roman Urdu / Hinglish, preserving segmentation & timing
 function acRomanize(key, segs, cb) {
   acTick("Romanizing to Roman Urdu");
-  var lines = segs.map(function (s, i) { return (i + 1) + ". " + s.text; }).join("\n");
   var sys =
-    "You transliterate spoken Urdu/Hindi subtitle lines into ROMAN (Latin) script, in a specific channel's house style.\n" +
-    "MOST IMPORTANT: output ONLY Latin letters (a-z). NEVER output Devanagari (e.g. हिंदी) or Urdu/Arabic (e.g. اردو) characters. Every line fully romanized.\n" +
-    ROMAN_URDU_STYLE +
-    "Do NOT translate Urdu/Hindi to English, and do NOT add, drop, merge or reorder words.\n" +
-    "Example input: 1. मैं ने तो आप से एक चीज़ मांगी थी consistently\n" +
-    "Example output: 1. mainay tou aap se aik cheez maangi thi consistently\n" +
+    "You convert spoken Urdu/Hindi subtitles into a specific channel's Roman-Urdu house style. Apply ALL rules below to EVERY line and EVERY word — process the whole transcript, never skip lines.\n\n" +
+    "RULE 1 — Latin letters only: output ONLY the Latin alphabet (a-z). NEVER output Devanagari (e.g. हिंदी) or Urdu/Arabic (e.g. اردو) script anywhere.\n\n" +
+    "RULE 2 — ENGLISH WORDS STAY ENGLISH (strict): any word that is actually an English word — a normal English word, a brand, or a common borrowed tech/business term — MUST be written in its correct, standard English spelling. NEVER spell an English word phonetically in Urdu style. This applies EVEN IF the transcription rendered that English word in Urdu/Hindi script or mis-spelled it: recognise it and restore the real English spelling. E.g. kansistantli->consistently, bijness->business, mobail->mobile, vidiyo->video, seve->save, inwest->invest, kantent->content, budjet->budget, markeeting->marketing. Words like: consistently, business, content, video, mobile, invest, save, decide, deserve, venue, book, management, stage, moisturiser, plan, link, bill, school, budget, market, profit, brand, growth, system, phone — always in English.\n\n" +
+    "RULE 3 — Roman-Urdu spelling for the Urdu/Hindi words:\n" + ROMAN_URDU_STYLE +
+    "\nDo NOT translate Urdu/Hindi words into English, and do NOT add, drop, merge or reorder words. Keep the same words in the same order.\n\n" +
+    "Example input: 1. मैं ने तो business में consistently invest करना था\n" +
+    "Example output: 1. mainay tou business mein consistently invest karna tha\n" +
     "Return EXACTLY the same number of lines, each prefixed with its number and a period, same order, Latin letters only. No commentary.";
   var NON_LATIN = /[\u0900-\u097F\u0600-\u06FF]/; // Devanagari or Arabic/Urdu
-  function attempt(triesLeft) {
+  var CHUNK = 40; // process in batches so long transcripts never get truncated
+  // Start from a copy (raw text) so any un-processed line still ships something.
+  var out = segs.map(function (s) { return { inSec: s.inSec, outSec: s.outSec, text: s.text }; });
+  var pos = 0;
+
+  function processChunk() {
+    if (pos >= segs.length) { acStopTick(); cb(null, out); return; }
+    var base = pos;
+    var slice = segs.slice(base, base + CHUNK);
+    var lines = slice.map(function (s, i) { return (i + 1) + ". " + s.text; }).join("\n");
+    attemptChunk(slice, base, lines, 1, function () { pos = base + slice.length; processChunk(); });
+  }
+
+  function attemptChunk(slice, base, lines, triesLeft, done) {
     groqChat(key, sys, lines, function (err, data) {
-      if (err) { if (triesLeft > 0) { attempt(triesLeft - 1); return; } acStopTick(); cb(err); return; }
+      if (err) { if (triesLeft > 0) { attemptChunk(slice, base, lines, triesLeft - 1, done); return; } done(); return; }
       var content = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
-      if (!content) { if (triesLeft > 0) { attempt(triesLeft - 1); return; } acStopTick(); cb("Empty romanize response"); return; }
+      if (!content) { if (triesLeft > 0) { attemptChunk(slice, base, lines, triesLeft - 1, done); return; } done(); return; }
       var map = {};
       content.split(/\n+/).forEach(function (ln) { var m = ln.match(/^\s*(\d+)\.\s*(.+)$/); if (m) map[parseInt(m[1], 10)] = m[2].replace(/^\s+|\s+$/g, ""); });
-      var out = segs.map(function (s, i) { return { inSec: s.inSec, outSec: s.outSec, text: map[i + 1] || s.text }; });
-      // If the model still left a lot of Hindi/Urdu script in, retry once
       var bad = 0;
-      for (var k = 0; k < out.length; k++) if (NON_LATIN.test(out[k].text)) bad++;
-      if (bad > out.length * 0.2 && triesLeft > 0) { attempt(triesLeft - 1); return; }
-      acStopTick();
-      cb(null, out);
+      for (var i = 0; i < slice.length; i++) { if (map[i + 1] != null) out[base + i].text = map[i + 1]; if (NON_LATIN.test(out[base + i].text)) bad++; }
+      // If this chunk still has lots of Hindi/Urdu script, retry it once
+      if (bad > slice.length * 0.2 && triesLeft > 0) { attemptChunk(slice, base, lines, triesLeft - 1, done); return; }
+      done();
     });
   }
-  attempt(1);
+  processChunk();
 }
 
 // Conservative cleanup: fix clear mis-transcriptions without romanizing,

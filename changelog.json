@@ -1,4 +1,8 @@
 {
+  "2.17.4": [
+    "Auto Captions: English words now strictly stay in English (a hard rule) — even when Whisper wrote them in Urdu/Hindi script, they're restored to correct English spelling",
+    "Auto Captions: the Roman-Urdu pass now processes the WHOLE transcript in batches, so long videos no longer leave later lines un-romanized"
+  ],
   "2.17.3": [
     "Auto Captions: the Roman Urdu / Hinglish pass now follows a real house-style spelling guide — tou, keh, aap, nahi, bohut, aik, -ay endings, aa/oo/ee vowels, lowercase, minimal punctuation, English words kept in English",
     "Much closer to hand-typed channel captions; you can still tweak any line in the Review step"
