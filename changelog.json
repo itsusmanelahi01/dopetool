@@ -1,4 +1,9 @@
 {
+  "2.19.0": [
+    "UI refresh — unified color system (one cohesive dark palette + a single blue accent) so every panel feels like one product",
+    "Toolkit tool descriptions now tuck away and reveal on hover, so far more tools fit on screen",
+    "Consistent focus rings, hover states and shadows throughout; tighter labels and inputs for a cleaner, more professional feel"
+  ],
   "2.18.0": [
     "UI: tighter, cleaner layout across the board — smaller cards, panels, buttons and the Toolkit tools, so more fits on screen in a narrow panel"
   ],
