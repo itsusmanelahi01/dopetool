@@ -556,6 +556,15 @@
       </div>
       <div class="tkHint acKeyHint">Free key from <b>console.groq.com/keys</b> — stored only on this machine.</div>
 
+      <div class="acModalLabel" style="margin-top:16px;">Cleanup / Roman-Urdu model</div>
+      <select id="autoCapModel" class="settingInput acSelect" style="width:100%;">
+        <option value="openai/gpt-oss-120b">GPT-OSS 120B — fast &amp; strong (default)</option>
+        <option value="moonshotai/kimi-k2-instruct-0905">Kimi K2 — most capable</option>
+        <option value="qwen/qwen3.6-27b">Qwen3.6 27B — strong multilingual</option>
+        <option value="openai/gpt-oss-20b">GPT-OSS 20B — fastest / lightest</option>
+      </select>
+      <div class="tkHint acKeyHint">The AI that romanizes to Roman Urdu &amp; fixes wording. Try a few on the same clip and keep the best.</div>
+
       <div class="acModalLabel" style="margin-top:16px;">ffmpeg <span id="acFfmpegState" class="tkHint"></span></div>
       <div class="tkHint acKeyHint">Compresses big files &amp; pulls audio out of video. One-click install downloads a private copy just for DopeTool — no admin rights needed.</div>
       <button id="acFfmpegInstall" class="acSetupBtn" style="width:100%;margin-top:8px;">⬇ Install ffmpeg for DopeTool</button>

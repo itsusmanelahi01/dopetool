@@ -1,4 +1,8 @@
 {
+  "2.20.0": [
+    "Auto Captions: upgraded the Roman-Urdu / cleanup AI — new default is GPT-OSS 120B (the old Llama model was deprecated by Groq)",
+    "Auto Captions: pick the model in Setup — GPT-OSS 120B, Kimi K2, Qwen3.6, or a lighter/faster option — so you can try a few and keep whichever reads best on your audio"
+  ],
   "2.19.0": [
     "UI refresh — unified color system (one cohesive dark palette + a single blue accent) so every panel feels like one product",
     "Toolkit tool descriptions now tuck away and reveal on hover, so far more tools fit on screen",

@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.19.0
+// DopeTool main.js — v2.20.0
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -1133,10 +1133,13 @@ document.getElementById("importCaptionsBtn").addEventListener("click", function 
 var autoCapAudioPath = "";
 var selectedAutoStyle = null;
 var GROQ_STT_MODEL = "whisper-large-v3"; // faithful multilingual transcription (turbo tends to translate to English)
-var GROQ_LLM_MODEL = "llama-3.3-70b-versatile";
+// The text model used for Roman-Urdu / cleanup. Editor-selectable (Groq deprecated
+// llama-3.3-70b; gpt-oss-120b is the strong current default).
+var GROQ_LLM_DEFAULT = "openai/gpt-oss-120b";
 var acChild = require("child_process");
 
 function getGroqKey() { try { return localStorage.getItem("dopetool_groq_key") || ""; } catch (e) { return ""; } }
+function getGroqModel() { try { return localStorage.getItem("dopetool_groq_model") || GROQ_LLM_DEFAULT; } catch (e) { return GROQ_LLM_DEFAULT; } }
 function acProgress(msg) { var el = document.getElementById("autoCapProgress"); if (el) el.innerText = msg; }
 function acStatus(msg) { var el = document.getElementById("autoCapStatus"); if (el) el.innerText = msg; }
 
@@ -1240,7 +1243,7 @@ function groqTranscribe(key, audioPath, lang, cb) {
 
 function groqChat(key, systemPrompt, userContent, cb) {
   var body = JSON.stringify({
-    model: GROQ_LLM_MODEL, temperature: 0.2,
+    model: getGroqModel(), temperature: 0.2,
     messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userContent }]
   });
   acExecJson([
@@ -1690,6 +1693,19 @@ function autoCapRun() {
 
   var ffInstall = document.getElementById("acFfmpegInstall");
   if (ffInstall) ffInstall.addEventListener("click", acInstallFfmpeg);
+
+  // Cleanup / Roman-Urdu model picker
+  var modelSel = document.getElementById("autoCapModel");
+  if (modelSel) {
+    var savedModel = getGroqModel();
+    var hasOpt = false;
+    for (var mo = 0; mo < modelSel.options.length; mo++) if (modelSel.options[mo].value === savedModel) hasOpt = true;
+    if (hasOpt) modelSel.value = savedModel;
+    modelSel.addEventListener("change", function () {
+      try { localStorage.setItem("dopetool_groq_model", this.value); } catch (e) {}
+      acProgress("Model set to " + this.options[this.selectedIndex].text.split(" — ")[0] + ".");
+    });
+  }
 
   var browse = document.getElementById("autoCapBrowse");
   if (browse) browse.addEventListener("click", function () {
