@@ -1467,3 +1467,30 @@ function applyAnimPreset(cfgJson) {
     return "ok:" + count;
   } catch (e) { return "Error: " + e.toString(); }
 }
+
+// Add a null centered on the selected layers (or comp centre) and parent them to it.
+function addNullCenter() {
+  try {
+    var comp = _dtActiveComp();
+    if (!comp) return "Error: Make a composition active first.";
+    var sel = comp.selectedLayers ? comp.selectedLayers.slice(0) : [];
+    app.beginUndoGroup("DopeTool: Add Null");
+    var nl = comp.layers.addNull();
+    nl.name = "NULL";
+    nl.label = 14;
+    var cx = comp.width / 2, cy = comp.height / 2;
+    if (sel.length) {
+      var sx = 0, sy = 0, n = 0;
+      for (var i = 0; i < sel.length; i++) {
+        try { var p = sel[i].property("Transform").property("Position").value; sx += p[0]; sy += p[1]; n++; } catch (e) {}
+      }
+      if (n) { cx = sx / n; cy = sy / n; }
+    }
+    // Center the null's own box on that point, then parent the selection to it.
+    nl.property("Transform").property("Anchor Point").setValue([50, 50]);
+    nl.property("Transform").property("Position").setValue([cx, cy]);
+    for (var j = 0; j < sel.length; j++) { try { sel[j].parent = nl; } catch (eP) {} }
+    app.endUndoGroup();
+    return "ok:" + sel.length;
+  } catch (e) { return "Error: " + e.toString(); }
+}

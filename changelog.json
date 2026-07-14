@@ -1,4 +1,8 @@
 {
+  "2.25.0": [
+    "Toolkit quick bar: clearer icons — eye (open/slashed) for Fade In/Out, magnifier +/− for Scale Up/Down — and each button now shows its name on hover",
+    "New Add Null button — drops a null centered on the selected layers and parents them to it"
+  ],
   "2.24.0": [
     "Toolkit: new always-on quick animation bar — one-click Fade In/Out, Slide Up/Down/Left/Right, Scale Up/Down on the selected layer(s)",
     "In-animations (fade in, scale up, slides) snap to the layer's start; out-animations (fade out, scale down) end exactly on the layer's out point",

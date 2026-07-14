@@ -296,34 +296,38 @@
 
     <!-- Quick animation presets (always on top) -->
     <div class="tkQuickBar">
-      <button class="tkQuickBtn" data-preset="fadeIn" title="Fade In — at layer start">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor" stroke="none"/></svg>
+      <button class="tkQuickBtn" data-preset="fadeIn" data-tip="Fade In">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="2.6"/></svg>
       </button>
-      <button class="tkQuickBtn" data-preset="fadeOut" title="Fade Out — at layer end">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 0 0 16z" fill="currentColor" stroke="none"/></svg>
+      <button class="tkQuickBtn" data-preset="fadeOut" data-tip="Fade Out">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="2.6"/><line x1="4" y1="4" x2="20" y2="20"/></svg>
       </button>
       <span class="tkQuickSep"></span>
-      <button class="tkQuickBtn" data-preset="slideUp" title="Slide Up — at layer start">
+      <button class="tkQuickBtn" data-preset="slideUp" data-tip="Slide Up">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V6"/><path d="M6 12l6-6 6 6"/></svg>
       </button>
-      <button class="tkQuickBtn" data-preset="slideDown" title="Slide Down — at layer start">
+      <button class="tkQuickBtn" data-preset="slideDown" data-tip="Slide Down">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v14"/><path d="M6 12l6 6 6-6"/></svg>
       </button>
-      <button class="tkQuickBtn" data-preset="slideLeft" title="Slide Left — at layer start">
+      <button class="tkQuickBtn" data-preset="slideLeft" data-tip="Slide Left">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12H6"/><path d="M12 6l-6 6 6 6"/></svg>
       </button>
-      <button class="tkQuickBtn" data-preset="slideRight" title="Slide Right — at layer start">
+      <button class="tkQuickBtn" data-preset="slideRight" data-tip="Slide Right">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h14"/><path d="M12 6l6 6-6 6"/></svg>
       </button>
       <span class="tkQuickSep"></span>
-      <button class="tkQuickBtn" data-preset="scaleUp" title="Scale Up (pop in) — at layer start">
+      <button class="tkQuickBtn" data-preset="scaleUp" data-tip="Scale Up">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+      </button>
+      <button class="tkQuickBtn" data-preset="scaleDown" data-tip="Scale Down">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+      </button>
+      <span class="tkQuickSep"></span>
+      <button class="tkQuickBtn" data-action="addNull" data-tip="Add Null (center)">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
       </button>
-      <button class="tkQuickBtn" data-preset="scaleDown" title="Scale Down (shrink out) — at layer end">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h3a2 2 0 0 0 2-2V3"/><path d="M14 3v3a2 2 0 0 0 2 2h3"/><path d="M19 16h-3a2 2 0 0 0-2 2v3"/><path d="M10 21v-3a2 2 0 0 0-2-2H5"/></svg>
-      </button>
       <span class="tkQuickSpacer"></span>
-      <button class="tkQuickBtn tkQuickGear" id="tkAnimSettingsBtn" title="Preset settings">
+      <button class="tkQuickBtn tkQuickGear" id="tkAnimSettingsBtn" data-tip="Settings">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v2.5M12 19v2.5M4.5 12H2M22 12h-2.5M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M18.4 5.6l-1.8 1.8M7.4 16.6l-1.8 1.8"/></svg>
       </button>
     </div>

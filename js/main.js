@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.24.0
+// DopeTool main.js — v2.25.0
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -2727,6 +2727,16 @@ function tkEval(script) {
       });
     });
   }
+
+  // Add Null (centre + parent selected layers)
+  var nullBtn = bar.querySelector('.tkQuickBtn[data-action="addNull"]');
+  if (nullBtn) nullBtn.addEventListener("click", function () {
+    if (typeof tkStatus === "function") tkStatus("Adding null…");
+    csInterface.evalScript("addNullCenter()", function (r) {
+      if (r && r.indexOf("ok:") === 0) { var n = r.split(":")[1]; if (typeof tkStatus === "function") tkStatus(n > 0 ? "✓ Null added — parented " + n + " layer(s)" : "✓ Null added at centre"); }
+      else if (typeof tkStatus === "function") tkStatus(r || "Failed.");
+    });
+  });
 })();
 
 // ═══════════════════════════════════════════════════════════

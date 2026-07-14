@@ -1883,3 +1883,27 @@ textarea:focus {
   border-bottom: 1px solid var(--border-soft);
 }
 .tkQuickSettings .tkRow label { flex: 1; }
+
+/* Hover tooltips for the quick animation bar */
+.tkQuickBtn { position: relative; }
+.tkQuickBtn[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--surface-3);
+  color: var(--text);
+  border: 1px solid var(--border);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 7px;
+  border-radius: var(--r-sm);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s;
+  z-index: 60;
+  box-shadow: var(--shadow-card);
+}
+.tkQuickBtn[data-tip]:hover::after { opacity: 1; }
