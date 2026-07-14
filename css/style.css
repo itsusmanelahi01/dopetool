@@ -1803,3 +1803,42 @@ textarea:focus {
 .srtFilePath,
 .acReviewInput,
 .assetCategory { border-radius: var(--r); }
+
+/* ═══ TOOLKIT — accordion + search (scales to many tools) ═══ */
+.tkSearch {
+  flex: 0 0 auto;
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  color: var(--text);
+  font-size: 12px;
+  outline: none;
+  margin-bottom: 1px;
+}
+.tkSearch::placeholder { color: var(--text-faint); }
+.tkSearch:focus { border-color: var(--accent); box-shadow: var(--ring); }
+
+/* Header is the click target; chevron shows open/closed state */
+.tkHeader { cursor: pointer; user-select: none; }
+.tkHeader::after {
+  content: "";
+  margin-left: auto;
+  width: 7px; height: 7px;
+  border-right: 2px solid var(--text-faint);
+  border-bottom: 2px solid var(--text-faint);
+  transform: rotate(45deg);
+  transition: transform 0.16s ease;
+  flex-shrink: 0;
+  margin-right: 2px;
+}
+.tkSection.collapsed .tkHeader::after { transform: rotate(-45deg); }
+.tkSection:hover .tkHeader::after { border-color: var(--text-dim); }
+
+/* Collapsed: keep only the header row visible */
+.tkSection.collapsed > :not(.tkHeader) { display: none; }
+.tkSection.collapsed { padding-top: 9px; padding-bottom: 9px; }
+
+/* Hidden by search */
+.tkSection.tkHiddenSearch { display: none; }

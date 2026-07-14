@@ -1,4 +1,9 @@
 {
+  "2.23.0": [
+    "Toolkit is now an accordion — each tool collapses to a slim header row; click to expand (one open at a time), so all tools fit at a glance no matter how many there are",
+    "Added a search box at the top of the Toolkit to jump straight to any tool by name",
+    "Your last-opened tool is remembered"
+  ],
   "2.22.0": [
     "Full visual revamp — cleaner, rounder, more premium: brand-blue palette with a subtle ambient gradient, softly floating rounded cards, and gradient blue buttons",
     "Cohesive look across every tab, inspired by modern dashboard UIs"
