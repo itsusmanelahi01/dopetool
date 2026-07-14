@@ -1382,3 +1382,88 @@ function applyEase(x1, y1, x2, y2) {
     return "Eased " + applied + " segment(s).";
   } catch (e) { return "Error: " + e.toString(); }
 }
+
+// ═══════════════════════════════════════════════════════════
+// ANIMATION PRESETS — fade / slide / scale, snapped to the
+// layer's start (in-animations) or end (out-animations), with a
+// 30/70 temporal ease auto-applied to the two keyframes.
+// ═══════════════════════════════════════════════════════════
+function _dtKeyAtTime(prop, t) {
+  for (var k = 1; k <= prop.numKeys; k++) { if (Math.abs(prop.keyTime(k) - t) < 0.0006) return k; }
+  return 0;
+}
+function _dtEase30_70(prop, kA, kB, outInf, inInf) {
+  var n = 1;
+  try { var arr = prop.keyInTemporalEase(kA); n = (arr && arr.length) ? arr.length : 1; } catch (e) {}
+  function mk(inf) { var a = []; for (var i = 0; i < n; i++) a.push(new KeyframeEase(0, Math.max(0.1, Math.min(100, inf)))); return a; }
+  try {
+    prop.setInterpolationTypeAtKey(kA, KeyframeInterpolationType.BEZIER, KeyframeInterpolationType.BEZIER);
+    prop.setInterpolationTypeAtKey(kB, KeyframeInterpolationType.BEZIER, KeyframeInterpolationType.BEZIER);
+    prop.setTemporalEaseAtKey(kA, mk(0.1), mk(outInf)); // leave kA accelerating (out influence)
+    prop.setTemporalEaseAtKey(kB, mk(inInf), mk(0.1));  // arrive at kB decelerating (in influence)
+  } catch (e) {}
+}
+
+function applyAnimPreset(cfgJson) {
+  try {
+    var cfg = JSON.parse(cfgJson);
+    var preset = cfg.preset;
+    var durF = (cfg.durationFrames != null) ? Number(cfg.durationFrames) : 15;
+    var slideDist = (cfg.slideDist != null) ? Number(cfg.slideDist) : 200;
+    var easeOut = (cfg.easeOut != null) ? Number(cfg.easeOut) : 30;
+    var easeIn = (cfg.easeIn != null) ? Number(cfg.easeIn) : 70;
+
+    var comp = _dtActiveComp();
+    if (!comp) return "Error: Make a composition active first.";
+    var layers = comp.selectedLayers;
+    if (!layers || !layers.length) return "Error: Select one or more layers first.";
+    var fps = comp.frameRate;
+    var dur = durF / fps;
+    var isOut = (preset === "fadeOut" || preset === "scaleDown");
+
+    app.beginUndoGroup("DopeTool: " + preset);
+    var count = 0, lastErr = "";
+    for (var i = 0; i < layers.length; i++) {
+      var L = layers[i];
+      try {
+        var inP = L.inPoint, outP = L.outPoint, span = outP - inP;
+        var d = Math.min(dur, span * 0.9);
+        if (d <= 0) continue;
+        var t1, t2;
+        if (isOut) { t2 = outP; t1 = outP - d; } else { t1 = inP; t2 = inP + d; }
+
+        var tr = L.property("Transform");
+        var prop = null, fromV, toV;
+        if (preset === "fadeIn")  { prop = tr.property("Opacity"); fromV = 0; toV = 100; }
+        else if (preset === "fadeOut") { prop = tr.property("Opacity"); fromV = 100; toV = 0; }
+        else if (preset === "scaleUp" || preset === "scaleDown") {
+          prop = tr.property("Scale");
+          var rest = prop.value, zero = [];
+          for (var z = 0; z < rest.length; z++) zero.push(0);
+          if (preset === "scaleUp") { fromV = zero; toV = rest; } else { fromV = rest; toV = zero; }
+        }
+        else if (preset.substring(0, 5) === "slide") {
+          prop = tr.property("Position");
+          var pRest = prop.value, off = [];
+          for (var p2 = 0; p2 < pRest.length; p2++) off.push(pRest[p2]);
+          var dir = preset.substring(5);
+          if (dir === "Up") off[1] = pRest[1] + slideDist;        // enters moving up (starts below)
+          else if (dir === "Down") off[1] = pRest[1] - slideDist;  // enters moving down (starts above)
+          else if (dir === "Left") off[0] = pRest[0] + slideDist;  // enters moving left (starts right)
+          else if (dir === "Right") off[0] = pRest[0] - slideDist; // enters moving right (starts left)
+          fromV = off; toV = pRest;
+        } else { continue; }
+        if (!prop) continue;
+
+        prop.setValueAtTime(t1, fromV);
+        prop.setValueAtTime(t2, toV);
+        var k1 = _dtKeyAtTime(prop, t1), k2 = _dtKeyAtTime(prop, t2);
+        if (k1 && k2) _dtEase30_70(prop, k1, k2, easeOut, easeIn);
+        count++;
+      } catch (eL) { lastErr = eL.toString(); }
+    }
+    app.endUndoGroup();
+    if (!count) return "Error: Couldn't apply" + (lastErr ? " (" + lastErr + ")" : ". Select a layer.");
+    return "ok:" + count;
+  } catch (e) { return "Error: " + e.toString(); }
+}

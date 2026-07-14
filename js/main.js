@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.23.0
+// DopeTool main.js — v2.24.0
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -2662,6 +2662,71 @@ function tkEval(script) {
       s.classList.toggle("collapsed", !hit); // expand matches, collapse the rest
     });
   });
+})();
+
+// ---- TOOLKIT quick animation presets (fade/slide/scale + settings) ----
+(function () {
+  var bar = document.querySelector(".tkQuickBar");
+  if (!bar) return;
+  var DEF = { durationFrames: 15, slideDist: 200, easeOut: 30, easeIn: 70 };
+
+  function getAnimSettings() {
+    var s = {};
+    try { s = JSON.parse(localStorage.getItem("dopetool_anim_settings") || "{}"); } catch (e) {}
+    return {
+      durationFrames: Number(s.durationFrames) || DEF.durationFrames,
+      slideDist: (s.slideDist != null) ? Number(s.slideDist) : DEF.slideDist,
+      easeOut: (s.easeOut != null) ? Number(s.easeOut) : DEF.easeOut,
+      easeIn: (s.easeIn != null) ? Number(s.easeIn) : DEF.easeIn
+    };
+  }
+  // Populate the settings inputs and persist on change
+  var fD = document.getElementById("animDuration"),
+      fS = document.getElementById("animSlideDist"),
+      fEo = document.getElementById("animEaseOut"),
+      fEi = document.getElementById("animEaseIn");
+  var cur = getAnimSettings();
+  if (fD) fD.value = cur.durationFrames;
+  if (fS) fS.value = cur.slideDist;
+  if (fEo) fEo.value = cur.easeOut;
+  if (fEi) fEi.value = cur.easeIn;
+  function saveAnimSettings() {
+    var s = {
+      durationFrames: parseFloat(fD && fD.value) || DEF.durationFrames,
+      slideDist: parseFloat(fS && fS.value),
+      easeOut: parseFloat(fEo && fEo.value),
+      easeIn: parseFloat(fEi && fEi.value)
+    };
+    if (isNaN(s.slideDist)) s.slideDist = DEF.slideDist;
+    if (isNaN(s.easeOut)) s.easeOut = DEF.easeOut;
+    if (isNaN(s.easeIn)) s.easeIn = DEF.easeIn;
+    try { localStorage.setItem("dopetool_anim_settings", JSON.stringify(s)); } catch (e) {}
+  }
+  [fD, fS, fEo, fEi].forEach(function (el) { if (el) el.addEventListener("change", saveAnimSettings); });
+
+  // Settings toggle
+  var gear = document.getElementById("tkAnimSettingsBtn");
+  var panel = document.getElementById("tkAnimSettings");
+  if (gear && panel) gear.addEventListener("click", function () {
+    var open = panel.classList.toggle("hidden");
+    gear.classList.toggle("on", !panel.classList.contains("hidden"));
+  });
+
+  // Preset buttons
+  var btns = bar.querySelectorAll(".tkQuickBtn[data-preset]");
+  for (var i = 0; i < btns.length; i++) {
+    btns[i].addEventListener("click", function () {
+      var preset = this.getAttribute("data-preset");
+      var cfg = getAnimSettings();
+      cfg.preset = preset;
+      var esc = JSON.stringify(cfg).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+      if (typeof tkStatus === "function") tkStatus("Applying " + preset + "…");
+      csInterface.evalScript('applyAnimPreset("' + esc + '")', function (r) {
+        if (r && r.indexOf("ok:") === 0) { if (typeof tkStatus === "function") tkStatus("✓ " + preset + " → " + r.split(":")[1] + " layer(s)"); }
+        else if (typeof tkStatus === "function") tkStatus(r || "Failed.");
+      });
+    });
+  }
 })();
 
 // ═══════════════════════════════════════════════════════════

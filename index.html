@@ -294,6 +294,45 @@
 
     <div id="toolkitOutput" class="statusBar">Ready</div>
 
+    <!-- Quick animation presets (always on top) -->
+    <div class="tkQuickBar">
+      <button class="tkQuickBtn" data-preset="fadeIn" title="Fade In — at layer start">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor" stroke="none"/></svg>
+      </button>
+      <button class="tkQuickBtn" data-preset="fadeOut" title="Fade Out — at layer end">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 0 0 16z" fill="currentColor" stroke="none"/></svg>
+      </button>
+      <span class="tkQuickSep"></span>
+      <button class="tkQuickBtn" data-preset="slideUp" title="Slide Up — at layer start">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V6"/><path d="M6 12l6-6 6 6"/></svg>
+      </button>
+      <button class="tkQuickBtn" data-preset="slideDown" title="Slide Down — at layer start">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v14"/><path d="M6 12l6 6 6-6"/></svg>
+      </button>
+      <button class="tkQuickBtn" data-preset="slideLeft" title="Slide Left — at layer start">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12H6"/><path d="M12 6l-6 6 6 6"/></svg>
+      </button>
+      <button class="tkQuickBtn" data-preset="slideRight" title="Slide Right — at layer start">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h14"/><path d="M12 6l6 6-6 6"/></svg>
+      </button>
+      <span class="tkQuickSep"></span>
+      <button class="tkQuickBtn" data-preset="scaleUp" title="Scale Up (pop in) — at layer start">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+      </button>
+      <button class="tkQuickBtn" data-preset="scaleDown" title="Scale Down (shrink out) — at layer end">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h3a2 2 0 0 0 2-2V3"/><path d="M14 3v3a2 2 0 0 0 2 2h3"/><path d="M19 16h-3a2 2 0 0 0-2 2v3"/><path d="M10 21v-3a2 2 0 0 0-2-2H5"/></svg>
+      </button>
+      <span class="tkQuickSpacer"></span>
+      <button class="tkQuickBtn tkQuickGear" id="tkAnimSettingsBtn" title="Preset settings">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v2.5M12 19v2.5M4.5 12H2M22 12h-2.5M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M18.4 5.6l-1.8 1.8M7.4 16.6l-1.8 1.8"/></svg>
+      </button>
+    </div>
+    <div id="tkAnimSettings" class="tkQuickSettings hidden">
+      <div class="tkRow"><label>Duration</label><input type="number" id="animDuration" class="tkNum" value="15" min="1" max="120" /><span class="tkHint">frames</span></div>
+      <div class="tkRow"><label>Slide distance</label><input type="number" id="animSlideDist" class="tkNum" value="200" min="0" max="4000" /><span class="tkHint">px</span></div>
+      <div class="tkRow"><label>Ease out / in</label><input type="number" id="animEaseOut" class="tkNum" value="30" min="0" max="100" /><input type="number" id="animEaseIn" class="tkNum" value="70" min="0" max="100" /><span class="tkHint">%</span></div>
+    </div>
+
     <div class="toolkitBody">
 
       <input type="text" id="tkSearch" class="tkSearch" placeholder="Search tools…" />

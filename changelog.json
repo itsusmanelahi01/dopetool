@@ -1,4 +1,9 @@
 {
+  "2.24.0": [
+    "Toolkit: new always-on quick animation bar — one-click Fade In/Out, Slide Up/Down/Left/Right, Scale Up/Down on the selected layer(s)",
+    "In-animations (fade in, scale up, slides) snap to the layer's start; out-animations (fade out, scale down) end exactly on the layer's out point",
+    "A 30/70 ease is auto-applied to the keyframes; a settings gear lets you set duration, slide distance and the ease values"
+  ],
   "2.23.0": [
     "Toolkit is now an accordion — each tool collapses to a slim header row; click to expand (one open at a time), so all tools fit at a glance no matter how many there are",
     "Added a search box at the top of the Toolkit to jump straight to any tool by name",
