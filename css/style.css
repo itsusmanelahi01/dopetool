@@ -1,30 +1,36 @@
 :root {
-  --app: #0f1017;
-  --bg: #0b0c12;
-  --surface: #15161f;
-  --surface-2: #1b1c27;
-  --surface-3: #212233;
-  --border: #262838;
-  --border-soft: #1e202b;
-  --text: #e9eaf2;
-  --text-dim: #9698ac;
-  --text-faint: #5a5e73;
+  --app: #0c0e17;
+  --bg: #0a0b12;
+  --surface: #161829;
+  --surface-2: #1d2032;
+  --surface-3: #262a41;
+  --border: #2a2f45;
+  --border-soft: #20243480;
+  --text: #eaecf6;
+  --text-dim: #9aa0c0;
+  --text-faint: #5f6486;
   --accent: #5170ff;
-  --accent-hover: #6a86ff;
-  --accent-weak: rgba(81,112,255,0.12);
-  --accent-soft: #161a33;
+  --accent-hover: #6f88ff;
+  --accent-weak: rgba(81,112,255,0.14);
+  --accent-soft: #171b34;
+  --accent-grad: linear-gradient(135deg, #5170ff 0%, #7d8bff 100%);
   --danger: #ff5d6c;
-  --r-sm: 6px;
-  --r: 8px;
-  --r-lg: 11px;
-  --ring: 0 0 0 2px rgba(81,112,255,0.32);
-  --shadow: 0 8px 24px rgba(0,0,0,0.45);
+  --r-sm: 8px;
+  --r: 11px;
+  --r-lg: 14px;
+  --r-xl: 18px;
+  --ring: 0 0 0 3px rgba(81,112,255,0.26);
+  --shadow: 0 14px 40px rgba(0,0,0,0.45);
+  --shadow-card: 0 4px 18px rgba(0,0,0,0.25);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  background: var(--app);
+  background:
+    radial-gradient(900px 520px at 88% -8%, rgba(81,112,255,0.13), transparent 58%),
+    radial-gradient(760px 480px at -10% 110%, rgba(81,112,255,0.08), transparent 55%),
+    linear-gradient(180deg, #0e1122 0%, var(--app) 60%);
   color: var(--text);
   font-family: "SF Pro Display", -apple-system, "Helvetica Neue", sans-serif;
   font-size: 12px;
@@ -193,7 +199,7 @@ body {
 .paneAddBtn:hover { color: var(--accent); }
 .paneAddMenu {
   position: fixed; z-index: 900;
-  background: var(--border-soft); border: 1px solid #262636; border-radius: 8px;
+  background: var(--border-soft); border: 1px solid #262636; border-radius: 10px;
   padding: 4px; min-width: 120px; box-shadow: 0 6px 20px rgba(0,0,0,0.5);
 }
 .paneAddItem {
@@ -254,7 +260,7 @@ body {
   padding: 8px 10px;
   background: var(--surface);
   border: 1px solid var(--border-soft);
-  border-radius: 10px;
+  border-radius: 13px;
   cursor: pointer;
   transition: background 0.12s, border-color 0.12s, transform 0.1s;
 }
@@ -270,7 +276,7 @@ body {
 .clientInitial {
   width: 30px;
   height: 30px;
-  border-radius: 8px;
+  border-radius: 10px;
   background: var(--client-color, var(--accent));
   display: flex;
   align-items: center;
@@ -320,7 +326,7 @@ body {
   height: 28px;
   background: var(--surface-2);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 10px;
   color: var(--text-dim);
   display: flex;
   align-items: center;
@@ -352,7 +358,7 @@ body {
 .clientViewInitial {
   width: 28px;
   height: 28px;
-  border-radius: 8px;
+  border-radius: 10px;
   background: var(--current-client-color, var(--accent));
   display: flex;
   align-items: center;
@@ -421,7 +427,7 @@ body {
   padding: 5px 6px;
   background: transparent;
   border: 1px dashed var(--border);
-  border-radius: 7px;
+  border-radius: 9px;
   color: var(--accent);
   font-size: 10px;
   font-weight: 700;
@@ -446,7 +452,7 @@ body {
   padding: 6px 10px;
   background: var(--surface-2);
   border: 1px solid var(--border);
-  border-radius: 7px;
+  border-radius: 9px;
   color: var(--text);
   font-size: 11px;
   outline: none;
@@ -461,7 +467,7 @@ body {
   line-height: 1.8;
   padding: 6px 8px;
   background: #0a0a16;
-  border-radius: 6px;
+  border-radius: 8px;
   border-left: 2px solid var(--accent);
 }
 
@@ -473,7 +479,7 @@ body {
   flex: 1;
   padding: 6px;
   border: none;
-  border-radius: 7px;
+  border-radius: 9px;
   font-size: 11px;
   font-weight: 700;
   cursor: pointer;
@@ -508,7 +514,7 @@ body {
   gap: 9px;
   background: var(--surface);
   border: 1px solid var(--border-soft);
-  border-radius: 9px;
+  border-radius: 12px;
   padding: 7px 10px;
   cursor: pointer;
   transition: background 0.1s, border-color 0.1s, transform 0.08s;
@@ -525,7 +531,7 @@ body {
 .swatch {
   width: 24px;
   height: 24px;
-  border-radius: 6px;
+  border-radius: 8px;
   border: 1px solid rgba(255,255,255,0.07);
   flex-shrink: 0;
 }
@@ -554,7 +560,7 @@ body {
   font-size: 8px;
   font-weight: 800;
   padding: 2px 5px;
-  border-radius: 8px;
+  border-radius: 10px;
   background: #1a2040;
   color: var(--accent);
   flex-shrink: 0;
@@ -573,7 +579,7 @@ body {
   padding: 6px 10px;
   background: var(--surface-2);
   border: 1px solid var(--border);
-  border-radius: 7px;
+  border-radius: 9px;
   color: var(--text);
   font-size: 11px;
   outline: none;
@@ -589,7 +595,7 @@ body {
   height: 30px;
   background: var(--surface-2);
   border: 1px solid var(--border);
-  border-radius: 7px;
+  border-radius: 9px;
   color: var(--text-dim);
   font-size: 14px;
   line-height: 1;
@@ -613,7 +619,7 @@ body {
   position: fixed;
   background: var(--surface-2);
   border: 1px solid var(--accent);
-  border-radius: 10px;
+  border-radius: 13px;
   padding: 4px;
   z-index: 999;
   box-shadow: 0 8px 24px rgba(0,0,0,0.6);
@@ -624,7 +630,7 @@ body {
   padding: 7px 12px;
   font-size: 11px;
   color: var(--text);
-  border-radius: 7px;
+  border-radius: 9px;
   cursor: pointer;
   font-weight: 600;
 }
@@ -660,7 +666,7 @@ body {
   border: none;
   color: #fff;
   padding: 3px 9px;
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 10px;
   font-weight: 700;
   cursor: pointer;
@@ -683,7 +689,7 @@ body {
   padding: 8px;
   background: transparent;
   border: 1px dashed var(--border);
-  border-radius: 9px;
+  border-radius: 12px;
   color: var(--accent);
   font-size: 11px;
   font-weight: 700;
@@ -716,7 +722,7 @@ body {
   padding: 7px 10px;
   background: var(--surface-2);
   border: 1px solid var(--border);
-  border-radius: 7px;
+  border-radius: 9px;
   color: var(--text);
   font-size: 11px;
   outline: none;
@@ -729,7 +735,7 @@ body {
   flex: 1;
   padding: 7px;
   border: none;
-  border-radius: 7px;
+  border-radius: 9px;
   font-size: 11px;
   font-weight: 700;
   cursor: pointer;
@@ -782,7 +788,7 @@ body {
 .toolCard {
   background: var(--surface);
   border: 1px solid var(--border-soft);
-  border-radius: 14px;
+  border-radius: 17px;
   padding: 16px 12px;
   cursor: pointer;
   display: flex;
@@ -854,7 +860,7 @@ body {
   flex: 1;
   background: var(--surface-2);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 6px 10px;
   font-size: 11px;
   color: var(--text-dim);
@@ -875,7 +881,7 @@ body {
   border: none;
   color: #fff;
   padding: 6px 12px;
-  border-radius: 8px;
+  border-radius: 10px;
   font-size: 11px;
   font-weight: 700;
   cursor: pointer;
@@ -898,7 +904,7 @@ body {
   gap: 8px;
   background: var(--surface);
   border: 1px solid var(--border-soft);
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 6px 9px;
   cursor: pointer;
   transition: background 0.1s, border-color 0.1s;
@@ -934,7 +940,7 @@ body {
 .captionSettings {
   background: var(--surface);
   border: 1px solid var(--border-soft);
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 8px 10px;
   display: flex;
   flex-direction: column;
@@ -958,7 +964,7 @@ body {
   padding: 4px 6px;
   background: var(--surface-2);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 8px;
   color: var(--text);
   font-size: 11px;
   text-align: right;
@@ -976,7 +982,7 @@ body {
   padding: 9px;
   background: var(--accent);
   border: none;
-  border-radius: 9px;
+  border-radius: 12px;
   color: #fff;
   font-size: 12px;
   font-weight: 800;
@@ -1120,7 +1126,7 @@ body {
 .smoothCanvasWrap {
   background: var(--bg);
   border: 1px solid var(--border-soft);
-  border-radius: 12px;
+  border-radius: 15px;
   padding: 8px;
   display: flex;
   justify-content: center;
@@ -1156,7 +1162,7 @@ body {
 .smoothPreset {
   background: var(--surface);
   border: 1px solid var(--border-soft);
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 4px;
   cursor: pointer;
   transition: border-color 0.12s, background 0.12s, transform 0.08s;
@@ -1182,7 +1188,7 @@ body {
   gap: 4px;
   background: var(--bg);
   border: 1px solid var(--border-soft);
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 3px;
 }
 .smoothModeBtn {
@@ -1190,7 +1196,7 @@ body {
   padding: 6px 8px;
   background: transparent;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   color: var(--text-dim);
   font-size: 10px;
   font-weight: 700;
@@ -1234,7 +1240,7 @@ body {
   background: var(--surface-2);
   color: var(--text);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 8px;
   padding: 5px 8px;
   font-size: 11px;
   outline: none;
@@ -1246,7 +1252,7 @@ body {
   padding: 8px 14px;
   background: var(--surface-2);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 10px;
   color: #cfd0e6;
   font-size: 11px;
   font-weight: 600;
@@ -1270,7 +1276,7 @@ body {
   padding: 4px;
   background: var(--bg);
   border: 1px solid var(--border-soft);
-  border-radius: 10px;
+  border-radius: 13px;
 }
 .acReviewRow { display: flex; align-items: center; gap: 8px; }
 .acReviewTC {
@@ -1286,7 +1292,7 @@ body {
   padding: 6px 9px;
   background: var(--border-soft);
   border: 1px solid var(--border);
-  border-radius: 7px;
+  border-radius: 9px;
   color: var(--text);
   font-size: 12px;
   outline: none;
@@ -1330,7 +1336,7 @@ body {
 .whatsNewModal {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 15px;
   padding: 18px;
   width: 260px;
   max-height: 70vh;
@@ -1374,7 +1380,7 @@ body {
   padding: 8px;
   background: var(--accent);
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   color: #ffffff;
   font-size: 11px;
   font-weight: 600;
@@ -1408,7 +1414,7 @@ body {
   padding: 5px 6px;
   background: var(--surface-2);
   border: 1px solid var(--border);
-  border-radius: 7px;
+  border-radius: 9px;
   color: var(--text-dim);
   font-size: 10px;
   font-weight: 700;
@@ -1435,7 +1441,7 @@ body {
   padding: 6px;
   background: var(--surface);
   border: 1px solid var(--border-soft);
-  border-radius: 11px;
+  border-radius: 14px;
   cursor: pointer;
   transition: background 0.12s, border-color 0.12s, transform 0.08s;
 }
@@ -1451,7 +1457,7 @@ body {
   position: relative;
   width: 100%;
   height: 46px;
-  border-radius: 8px;
+  border-radius: 10px;
   border: 1px solid rgba(255,255,255,0.08);
   box-shadow: inset 0 0 0 1px rgba(0,0,0,0.15);
 }
@@ -1494,7 +1500,7 @@ body {
 .manualColorSwatch {
   width: 30px;
   height: 30px;
-  border-radius: 8px;
+  border-radius: 10px;
   background: var(--accent);
 }
 .manualColorSwatch.invalid { box-shadow: 0 0 0 2px #ff556680; }
@@ -1503,7 +1509,7 @@ body {
   height: 30px;
   padding: 0;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 10px;
   background: var(--surface-2);
   cursor: pointer;
 }
@@ -1512,7 +1518,7 @@ body {
   padding: 6px 10px;
   background: var(--surface-2);
   border: 1px solid var(--border);
-  border-radius: 7px;
+  border-radius: 9px;
   color: var(--text);
   font-size: 12px;
   letter-spacing: 1px;
@@ -1538,7 +1544,7 @@ body {
   background: var(--surface);
   border: 1px solid var(--border-soft);
   border-left: 3px solid var(--tk-accent, var(--accent));
-  border-radius: 10px;
+  border-radius: 13px;
   padding: 8px 10px;
 }
 .tkLabel {
@@ -1560,7 +1566,7 @@ body {
 .tkIcon {
   width: 23px;
   height: 23px;
-  border-radius: 7px;
+  border-radius: 9px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1589,7 +1595,7 @@ body {
   padding: 7px 4px;
   background: var(--surface-2);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 10px;
   color: #c8c8e0;
   font-size: 11px;
   font-weight: 700;
@@ -1606,7 +1612,7 @@ body {
   flex: 1;
   background: var(--surface-2);
   border: 1px solid var(--border);
-  border-radius: 7px;
+  border-radius: 9px;
   color: #c8c8e0;
   font-size: 11px;
   padding: 5px 8px;
@@ -1623,7 +1629,7 @@ body {
   padding: 6px 9px;
   background: var(--surface-2);
   border: 1px solid var(--border);
-  border-radius: 7px;
+  border-radius: 9px;
   color: var(--text);
   font-size: 11px;
   outline: none;
@@ -1635,7 +1641,7 @@ body {
   padding: 5px 6px;
   background: var(--surface-2);
   border: 1px solid var(--border);
-  border-radius: 7px;
+  border-radius: 9px;
   color: var(--text);
   font-size: 11px;
   text-align: center;
@@ -1746,3 +1752,54 @@ textarea:focus {
 .acTranscriptText:focus { border-color: var(--accent); box-shadow: var(--ring); }
 .acTranscriptModal .acReviewActions .importBtn { flex: 1; }
 .acTranscriptModal .btnSecondary { flex: 0 0 auto; }
+
+/* ═══════════════════════════════════════════════════════════
+   REVAMP v2.22 — rounded, soft-depth, gradient blue accent
+   ═══════════════════════════════════════════════════════════ */
+
+/* Primary CTAs: brand gradient + soft blue glow */
+.importBtn,
+.srtBrowseBtn,
+.addClientFormWrap .formRow button {
+  background: var(--accent-grad);
+  border: none;
+  box-shadow: 0 6px 18px rgba(81,112,255,0.26);
+}
+.importBtn:hover,
+.srtBrowseBtn:hover,
+.addClientFormWrap .formRow button:hover { filter: brightness(1.08); background: var(--accent-grad); }
+.importBtn { border-radius: var(--r-lg); }
+
+/* Card-like surfaces: rounder + a gentle floating shadow */
+.clientCard,
+.card,
+.toolCard,
+.captionStyleCard,
+.tkSection,
+.captionSettings,
+.smoothCanvasWrap,
+.acReviewList { box-shadow: var(--shadow-card); }
+.tkSection,
+.captionSettings,
+.smoothCanvasWrap,
+.acReviewList,
+.clientCard,
+.toolCard { border-radius: var(--r-lg); }
+
+/* Modals float higher and rounder */
+.whatsNewModal { border-radius: var(--r-xl); box-shadow: var(--shadow); }
+
+/* Let the ambient gradient breathe through the chrome */
+.topbar,
+.clientHeader,
+.statusBar { background: transparent; }
+#topTabBar { background: rgba(10,11,18,0.55); backdrop-filter: blur(8px); }
+
+/* Consistent, slightly rounder inputs (search stays a pill) */
+.settingInput,
+.tkInput,
+.tkNum,
+.acSelect,
+.srtFilePath,
+.acReviewInput,
+.assetCategory { border-radius: var(--r); }

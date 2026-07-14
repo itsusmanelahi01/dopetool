@@ -1,4 +1,8 @@
 {
+  "2.22.0": [
+    "Full visual revamp — cleaner, rounder, more premium: brand-blue palette with a subtle ambient gradient, softly floating rounded cards, and gradient blue buttons",
+    "Cohesive look across every tab, inspired by modern dashboard UIs"
+  ],
   "2.21.0": [
     "Auto Captions: new “Full transcript” button in the Review step — see the whole corrected transcript in one box, copy it with one click, or edit it there and sync the changes back to the captions"
   ],
