@@ -43,7 +43,7 @@ body {
 
 /* The visible view fills the space under the top tab bar; its inner list
    scrolls. This keeps the last items reachable regardless of tab-bar height. */
-#hubView, #homeView, #clientView, #captionView, #autoCapView, #toolkitView, #smoothView {
+#hubView, #homeView, #clientView, #captionView, #autoCapView, #toolkitView, #textAnimView, #smoothView {
   flex: 1 1 auto;
   min-height: 0;
   display: flex;
@@ -1943,3 +1943,64 @@ textarea:focus {
 }
 .acAdvanced[open] > summary::before { transform: rotate(45deg); }
 .acAdvanced > summary:hover { color: var(--text); }
+
+/* ═══ TEXT ANIMATIONS tab ═══ */
+.taBar { display: flex; gap: 8px; padding: 8px 9px 4px; flex: 0 0 auto; }
+.taSearch {
+  flex: 1; padding: 8px 12px; background: var(--surface-2);
+  border: 1px solid var(--border); border-radius: var(--r);
+  color: var(--text); font-size: 12px; outline: none;
+}
+.taSearch::placeholder { color: var(--text-faint); }
+.taSearch:focus { border-color: var(--accent); box-shadow: var(--ring); }
+#taAddForm { margin: 0 9px; }
+.taGrid {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto;
+  padding: 6px 9px 20px;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 7px;
+  align-content: start;
+}
+.taCard {
+  position: relative;
+  background: var(--surface); border: 1px solid var(--border-soft);
+  border-radius: var(--r); padding: 11px 12px; cursor: pointer;
+  box-shadow: var(--shadow-card);
+  transition: border-color 0.12s, transform 0.08s, background 0.12s;
+}
+.taCard:hover { border-color: var(--accent); background: var(--surface-2); transform: translateY(-1px); }
+.taCardName { font-size: 12px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.taCardMeta { font-size: 9.5px; color: var(--text-faint); margin-top: 2px; }
+.taDel {
+  position: absolute; top: -6px; right: -6px; width: 18px; height: 18px;
+  border-radius: 50%; background: var(--danger); color: #fff;
+  font-size: 13px; line-height: 17px; text-align: center;
+  opacity: 0; transition: opacity 0.12s;
+}
+.taCard:hover .taDel { opacity: 1; }
+
+/* Hover preview popover */
+.taPop {
+  position: fixed; z-index: 1200; width: 140px; height: 110px;
+  background: #000; border: 1px solid var(--border); border-radius: var(--r);
+  overflow: hidden; box-shadow: var(--shadow);
+  display: flex; align-items: center; justify-content: center; pointer-events: none;
+}
+.taPop.hidden { display: none; }
+.taPop video, .taPop img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.taMock { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(circle at 50% 40%, #1a2140, #0b0c12); overflow: hidden; }
+.taMock span { font-size: 34px; font-weight: 800; color: #fff; }
+.taMockFade span { animation: taFade 1.4s ease-in-out infinite; }
+.taMockUp span { animation: taUp 1.4s ease-in-out infinite; }
+.taMockDown span { animation: taDown 1.4s ease-in-out infinite; }
+.taMockLeft span { animation: taLeft 1.4s ease-in-out infinite; }
+.taMockRight span { animation: taRight 1.4s ease-in-out infinite; }
+.taMockScale span { animation: taScale 1.4s ease-in-out infinite; }
+.taMockPulse span { animation: taPulse 1.4s ease-in-out infinite; }
+@keyframes taFade { 0%,100% { opacity: 0 } 50% { opacity: 1 } }
+@keyframes taUp { 0% { opacity: 0; transform: translateY(18px) } 40%,60% { opacity: 1; transform: translateY(0) } 100% { opacity: 0; transform: translateY(-18px) } }
+@keyframes taDown { 0% { opacity: 0; transform: translateY(-18px) } 40%,60% { opacity: 1; transform: translateY(0) } 100% { opacity: 0; transform: translateY(18px) } }
+@keyframes taLeft { 0% { opacity: 0; transform: translateX(22px) } 40%,60% { opacity: 1; transform: translateX(0) } 100% { opacity: 0; transform: translateX(-22px) } }
+@keyframes taRight { 0% { opacity: 0; transform: translateX(-22px) } 40%,60% { opacity: 1; transform: translateX(0) } 100% { opacity: 0; transform: translateX(22px) } }
+@keyframes taScale { 0% { opacity: 0; transform: scale(0.3) } 50% { opacity: 1; transform: scale(1) } 100% { opacity: 0; transform: scale(1.4) } }
+@keyframes taPulse { 0%,100% { transform: scale(0.9); opacity: 0.5 } 50% { transform: scale(1.05); opacity: 1 } }

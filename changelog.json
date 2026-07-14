@@ -1,4 +1,9 @@
 {
+  "2.27.0": [
+    "Style Library cleanup — removed the Fonts tab (a text style already saves its font and installs it on apply if missing) and the Anim tab; a client now holds just Colors, Styles, FX and Assets",
+    "New Text Animations tab — a shared library of animation presets (not tied to a client), searchable, with a hover preview (plays a preview clip if set, otherwise a motion mock)",
+    "Add animations with name + .ffx filename (+ optional preview clip on the assets release); click to apply to the selected text layer"
+  ],
   "2.26.0": [
     "Auto Captions: tidied the tab — the Hinglish explanation is now a hover “i” tooltip, and the set-once options (Vertical Offset, Fade, Group under Null) are tucked into a collapsible “Placement & styling” section, so the main view is clean and quick"
   ],

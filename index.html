@@ -102,10 +102,6 @@
         <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg>
         Colors
       </button>
-      <button class="tabBtn" data-tab="fonts">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="4" x2="12" y2="20"/><line x1="4" y1="8" x2="20" y2="8"/></svg>
-        Fonts
-      </button>
       <button class="tabBtn" data-tab="textstyles">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
         Styles
@@ -113,10 +109,6 @@
       <button class="tabBtn" data-tab="effects">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
         FX
-      </button>
-      <button class="tabBtn" data-tab="animations">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-        Anim
       </button>
       <button class="tabBtn" data-tab="assets">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
@@ -488,6 +480,38 @@
       <div class="smoothBezier" id="smoothBezier">cubic-bezier(.42, 0, .58, 1)</div>
       <button id="smoothApplyBtn" class="importBtn">Apply Ease to Selected Keyframes</button>
     </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- TEXT ANIMATIONS — global preset library -->
+  <!-- ═══════════════════════════════════════ -->
+  <div id="textAnimView" class="hidden">
+    <div class="clientHeader">
+      <div class="clientHeaderInfo">
+        <div class="clientViewName">Text Animations</div>
+        <div class="clientViewCount">Reusable presets — click to apply</div>
+      </div>
+    </div>
+
+    <div id="textAnimStatus" class="statusBar">Select a text layer, then click an animation</div>
+
+    <div class="taBar">
+      <input type="text" id="taSearch" class="taSearch" placeholder="Search animations…" />
+      <button id="taAddBtn" class="acSetupBtn">+ Add</button>
+    </div>
+
+    <div id="taAddForm" class="form hidden">
+      <div class="formHint">Save your preset (.ffx) to <b>DopeTool/presets/</b> and push. Optional preview clip goes on the <b>assets</b> release.</div>
+      <input type="text" id="taName" placeholder="Animation name (e.g. Fade Up)" />
+      <input type="text" id="taFilename" placeholder="preset.ffx" />
+      <input type="text" id="taPreview" placeholder="preview.mp4 / .gif (optional)" />
+      <div class="formRow">
+        <button id="taSaveBtn">Save</button>
+        <button id="taCancelBtn" class="btnSecondary">Cancel</button>
+      </div>
+    </div>
+
+    <div id="textAnimGrid" class="taGrid">Loading…</div>
   </div>
 
   <!-- ═══════════════════════════════════════ -->

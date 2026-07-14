@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.26.0
+// DopeTool main.js — v2.27.0
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -129,7 +129,7 @@ function showView(viewId) {
   var el = document.getElementById(viewId);
   if (!el) return;
   var host = el.parentNode;
-  var views = ["hubView","homeView","clientView","captionView","toolkitView","smoothView","autoCapView"];
+  var views = ["hubView","homeView","clientView","captionView","toolkitView","smoothView","autoCapView","textAnimView"];
   views.forEach(function (v) {
     var e = document.getElementById(v);
     if (e && e.parentNode === host) e.classList.toggle("hidden", v !== viewId);
@@ -141,13 +141,13 @@ function showView(viewId) {
 // Each pane holds one OR MORE tabs in its own strip; a tab lives
 // in exactly one pane. The top pane's strip IS the top tab bar.
 // ═══════════════════════════════════════════════════════════
-var TAB_TITLES = { library: "Library", captions: "Captions", autocap: "Auto Captions", toolkit: "Toolkit", smooth: "Smoooth" };
-var TAB_VIEWS = { library: ["homeView", "clientView"], captions: ["captionView"], autocap: ["autoCapView"], toolkit: ["toolkitView"], smooth: ["smoothView"] };
-var ALL_VIEWS = ["hubView", "homeView", "clientView", "captionView", "autoCapView", "toolkitView", "smoothView"];
-var ALL_TABS = ["library", "captions", "autocap", "toolkit", "smooth"];
+var TAB_TITLES = { library: "Library", captions: "Captions", autocap: "Auto Captions", toolkit: "Toolkit", textanim: "Text Animations", smooth: "Smoooth" };
+var TAB_VIEWS = { library: ["homeView", "clientView"], captions: ["captionView"], autocap: ["autoCapView"], toolkit: ["toolkitView"], textanim: ["textAnimView"], smooth: ["smoothView"] };
+var ALL_VIEWS = ["hubView", "homeView", "clientView", "captionView", "autoCapView", "toolkitView", "textAnimView", "smoothView"];
+var ALL_TABS = ["library", "captions", "autocap", "toolkit", "textanim", "smooth"];
 
 var panes = {
-  top:    { tabs: ["library", "captions", "autocap", "toolkit", "smooth"], active: "library" },
+  top:    { tabs: ["library", "captions", "autocap", "toolkit", "textanim", "smooth"], active: "library" },
   bottom: { tabs: [], active: null }
 };
 var splitOpen = false;
@@ -161,6 +161,7 @@ function activeViewId(tab) {
   if (tab === "captions") return "captionView";
   if (tab === "autocap") return "autoCapView";
   if (tab === "toolkit") return "toolkitView";
+  if (tab === "textanim") return "textAnimView";
   if (tab === "smooth") return "smoothView";
   return "homeView";
 }
@@ -176,6 +177,7 @@ function loadForTab(tab) {
   if (tab === "library") { if (!currentClient) loadAllClients(); }
   else if (tab === "captions") loadCaptionStyles();
   else if (tab === "autocap") { if (typeof loadAutoCapStyles === "function") loadAutoCapStyles(); }
+  else if (tab === "textanim") { if (typeof loadTextAnims === "function") loadTextAnims(); }
   else if (tab === "smooth") { if (typeof loadSmoothPresets === "function") loadSmoothPresets(); }
 }
 function paneOf(tab) {
@@ -500,7 +502,7 @@ document.getElementById("openCaptionBtn").addEventListener("click", function () 
 function loadAllClients() {
   var grid = document.getElementById("clientGrid");
   grid.innerHTML = '<div style="color:#333348;padding:20px;text-align:center;font-size:11px;">Loading...</div>';
-  var collections = ["colors","fonts","textstyles","effects","animations","assets"];
+  var collections = ["colors","textstyles","effects","assets"];
   var clientMap = {};
   var pending = collections.length;
 
@@ -540,10 +542,8 @@ function renderClientGrid(clientMap) {
     var color = clientColor(client);
     var typeSummary = [];
     if (data.types.colors) typeSummary.push(data.types.colors + " colors");
-    if (data.types.fonts) typeSummary.push(data.types.fonts + " fonts");
     if (data.types.textstyles) typeSummary.push(data.types.textstyles + " styles");
     if (data.types.effects) typeSummary.push(data.types.effects + " fx");
-    if (data.types.animations) typeSummary.push(data.types.animations + " anims");
     if (data.types.assets) typeSummary.push(data.types.assets + " assets");
 
     var card = document.createElement("div");
@@ -619,7 +619,7 @@ document.getElementById("clientRenameSaveBtn").addEventListener("click", functio
   var newName = document.getElementById("clientRenameName").value.trim();
   if (!newName || !activeClientName) return;
   if (newName === activeClientName) { document.getElementById("clientRenameForm").classList.add("hidden"); return; }
-  var collections = ["colors","fonts","textstyles","effects","animations","assets"];
+  var collections = ["colors","textstyles","effects","assets"];
   var pending = collections.length;
   var oldName = activeClientName;
   collections.forEach(function (col) {
@@ -647,7 +647,7 @@ document.getElementById("ctxClientDelete").addEventListener("click", function (e
   document.getElementById("clientContextMenu").classList.add("hidden");
   var confirmed = confirm("Delete client \"" + activeClientName + "\" and ALL their items? This cannot be undone.");
   if (!confirmed) return;
-  var collections = ["colors","fonts","textstyles","effects","animations","assets"];
+  var collections = ["colors","textstyles","effects","assets"];
   var pending = collections.length;
   var clientToDelete = activeClientName;
   collections.forEach(function (col) {
@@ -3071,4 +3071,146 @@ function loadSmoothPresets() {
 
   smoothDraw();
   loadSmoothPresets();
+})();
+
+// ═══════════════════════════════════════════════════════════
+// TEXT ANIMATIONS — global .ffx preset library with hover preview
+// ═══════════════════════════════════════════════════════════
+var textAnimData = [];
+
+function taStatus(msg) { var el = document.getElementById("textAnimStatus"); if (el) el.innerText = msg; }
+
+function taPreviewUrl(d) {
+  var p = d && d.preview;
+  if (!p) return null;
+  if (/^https?:\/\//i.test(p)) return p;
+  return (typeof assetUrl === "function") ? assetUrl(p) : null;
+}
+function taMotionClass(name) {
+  var n = (name || "").toLowerCase();
+  if (n.indexOf("up") >= 0) return "taMockUp";
+  if (n.indexOf("down") >= 0) return "taMockDown";
+  if (n.indexOf("left") >= 0) return "taMockLeft";
+  if (n.indexOf("right") >= 0) return "taMockRight";
+  if (n.indexOf("scale") >= 0 || n.indexOf("zoom") >= 0 || n.indexOf("pop") >= 0) return "taMockScale";
+  if (n.indexOf("fade") >= 0) return "taMockFade";
+  return "taMockPulse";
+}
+
+function loadTextAnims() {
+  var grid = document.getElementById("textAnimGrid");
+  if (!grid) return;
+  grid.innerHTML = '<div class="emptyState">Loading…</div>';
+  db.collection("animations").get().then(function (snap) {
+    textAnimData = [];
+    snap.forEach(function (doc) { var d = doc.data(); if (d.placeholder) return; textAnimData.push({ id: doc.id, data: d }); });
+    textAnimData.sort(function (a, b) { return (a.data.name || "").toLowerCase() < (b.data.name || "").toLowerCase() ? -1 : 1; });
+    renderTextAnims("");
+  }).catch(function (err) { grid.innerHTML = '<div class="emptyState" style="color:var(--danger)">Error: ' + err.message + '</div>'; });
+}
+
+function renderTextAnims(q) {
+  var grid = document.getElementById("textAnimGrid");
+  if (!grid) return;
+  grid.innerHTML = "";
+  var list = textAnimData;
+  if (q) list = list.filter(function (e) { return (e.data.name || "").toLowerCase().indexOf(q) !== -1; });
+  if (!list.length) { grid.innerHTML = '<div class="emptyState">No animations' + (q ? ' match “' + q + '”' : ' yet — click + Add') + '.</div>'; return; }
+  list.forEach(function (entry) {
+    var d = entry.data;
+    var card = document.createElement("div");
+    card.className = "taCard";
+    card.innerHTML =
+      '<div class="taCardName"></div>' +
+      '<div class="taCardMeta">' + (taPreviewUrl(d) ? "▶ preview" : "hover to preview") + '</div>' +
+      '<div class="taDel" title="Delete">&times;</div>';
+    card.querySelector(".taCardName").textContent = d.name || "Preset";
+    card.addEventListener("click", function (e) { if (e.target.classList.contains("taDel")) return; taApply(d); });
+    card.querySelector(".taDel").addEventListener("click", function (e) { e.stopPropagation(); taDelete(entry); });
+    card.addEventListener("mouseenter", function () { taShowPreview(card, d); });
+    card.addEventListener("mouseleave", taHidePreview);
+    grid.appendChild(card);
+  });
+}
+
+function taApply(d) {
+  var out = document.getElementById("textAnimStatus");
+  if (!d.filename) { if (out) out.innerText = "This preset has no .ffx filename."; return; }
+  var presetsDir = getPresetsDir();
+  var localPath = nodePath.join(presetsDir, d.filename);
+  var jsxPath = toJsxPath(localPath);
+  if (nodeFs.existsSync(localPath)) {
+    if (out) out.innerText = "Applying " + d.name + "…";
+    csInterface.evalScript('applyFfxPreset("' + jsxPath + '")', function (r) { if (out) out.innerText = r; });
+    return;
+  }
+  if (out) out.innerText = "Downloading " + d.name + "…";
+  fetch((d.url || "") + "?t=" + Date.now())
+    .then(function (res) { if (!res.ok) throw new Error("Not on GitHub yet (HTTP " + res.status + "). Push " + d.filename + " to presets/."); return res.arrayBuffer(); })
+    .then(function (buf) {
+      try { if (!nodeFs.existsSync(presetsDir)) nodeFs.mkdirSync(presetsDir, { recursive: true }); } catch (e) { if (out) out.innerText = "Folder error: " + e.message; return; }
+      try { nodeFs.writeFileSync(localPath, Buffer.from(new Uint8Array(buf))); } catch (e) { if (out) out.innerText = "Write failed: " + e.message; return; }
+      if (out) out.innerText = "Applying " + d.name + "…";
+      csInterface.evalScript('applyFfxPreset("' + jsxPath + '")', function (r) { if (out) out.innerText = r; });
+    })
+    .catch(function (err) { if (out) out.innerText = "Download failed: " + err.message; });
+}
+
+function taDelete(entry) {
+  if (!confirm('Delete animation "' + (entry.data.name || "") + '"?')) return;
+  db.collection("animations").doc(entry.id).delete().then(loadTextAnims).catch(function (e) { taStatus("Delete failed: " + e.message); });
+}
+
+function taEnsurePop() {
+  var pop = document.getElementById("taPop");
+  if (!pop) { pop = document.createElement("div"); pop.id = "taPop"; pop.className = "taPop hidden"; document.body.appendChild(pop); }
+  return pop;
+}
+function taShowPreview(card, d) {
+  var pop = taEnsurePop();
+  var url = taPreviewUrl(d);
+  if (url) {
+    var isVid = /\.(mp4|webm|mov)(\?|$)/i.test(url);
+    pop.innerHTML = isVid ? '<video src="' + url + '" autoplay muted loop playsinline></video>' : '<img src="' + url + '" alt="">';
+  } else {
+    pop.innerHTML = '<div class="taMock ' + taMotionClass(d.name) + '"><span>Aa</span></div>';
+  }
+  pop.classList.remove("hidden");
+  var r = card.getBoundingClientRect();
+  var pw = 140, ph = 110;
+  var left = Math.max(6, Math.min(r.left + r.width / 2 - pw / 2, window.innerWidth - pw - 6));
+  var top = r.top - ph - 8;
+  if (top < 6) top = r.bottom + 8;
+  pop.style.left = left + "px"; pop.style.top = top + "px";
+}
+function taHidePreview() { var pop = document.getElementById("taPop"); if (pop) { pop.classList.add("hidden"); pop.innerHTML = ""; } }
+
+(function () {
+  var addBtn = document.getElementById("taAddBtn");
+  var form = document.getElementById("taAddForm");
+  if (addBtn) addBtn.addEventListener("click", function () { form.classList.toggle("hidden"); if (!form.classList.contains("hidden")) document.getElementById("taName").focus(); });
+  var cancel = document.getElementById("taCancelBtn");
+  if (cancel) cancel.addEventListener("click", function () { form.classList.add("hidden"); });
+  var save = document.getElementById("taSaveBtn");
+  if (save) save.addEventListener("click", function () {
+    var name = document.getElementById("taName").value.replace(/^\s+|\s+$/g, "");
+    var file = document.getElementById("taFilename").value.replace(/^\s+|\s+$/g, "");
+    var prev = document.getElementById("taPreview").value.replace(/^\s+|\s+$/g, "");
+    if (!name) { taStatus("Enter a name."); return; }
+    if (!file) { taStatus("Enter the .ffx filename."); return; }
+    if (file.indexOf(".ffx") === -1) file += ".ffx";
+    taStatus("Saving…");
+    db.collection("animations").add({
+      name: name, filename: file, type: "ffx", global: true,
+      url: GITHUB_RAW_BASE + "/presets/" + encodeURIComponent(file),
+      preview: prev || null, createdAt: Date.now()
+    }).then(function () {
+      document.getElementById("taName").value = ""; document.getElementById("taFilename").value = ""; document.getElementById("taPreview").value = "";
+      form.classList.add("hidden");
+      taStatus("Saved! Push " + file + " to presets/ (preview to the assets release).");
+      loadTextAnims();
+    }).catch(function (e) { taStatus("Save failed: " + e.message); });
+  });
+  var search = document.getElementById("taSearch");
+  if (search) search.addEventListener("input", function () { renderTextAnims(this.value.toLowerCase().replace(/^\s+|\s+$/g, "")); });
 })();
