@@ -1711,3 +1711,38 @@ textarea:focus {
 .assetCategory,
 .srtFilePath,
 .acReviewInput { border-radius: var(--r-sm); }
+
+/* ---- AUTO CAPTIONS: full transcript view ---- */
+.acReviewHead { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.acLinkBtn {
+  flex: 0 0 auto;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  color: var(--text-dim);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 4px 9px;
+  cursor: pointer;
+}
+.acLinkBtn:hover { border-color: var(--accent); color: #fff; }
+.acTranscriptModal { width: 320px; max-width: 92vw; }
+.acTranscriptText {
+  width: 100%;
+  height: 300px;
+  max-height: 52vh;
+  margin-top: 8px;
+  resize: vertical;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.55;
+  padding: 10px;
+  outline: none;
+  font-family: inherit;
+}
+.acTranscriptText:focus { border-color: var(--accent); box-shadow: var(--ring); }
+.acTranscriptModal .acReviewActions .importBtn { flex: 1; }
+.acTranscriptModal .btnSecondary { flex: 0 0 auto; }

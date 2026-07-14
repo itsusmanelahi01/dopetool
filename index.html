@@ -533,7 +533,10 @@
       <div id="autoCapProgress" class="captionStatus">Ready</div>
 
       <div id="autoCapReview" class="captionSection hidden">
-        <div class="captionLabel">Review &amp; Edit <span style="color:#444458;font-weight:400;">— fix any wrong words, then create</span></div>
+        <div class="acReviewHead">
+          <div class="captionLabel">Review &amp; Edit <span style="color:var(--text-faint);font-weight:400;">— fix any wrong words, then create</span></div>
+          <button id="autoCapTranscriptBtn" class="acLinkBtn">📄 Full transcript</button>
+        </div>
         <div id="autoCapReviewList" class="acReviewList"></div>
         <div class="acReviewActions">
           <button id="autoCapCreateBtn" class="importBtn">↓ Create Captions</button>
@@ -571,6 +574,20 @@
       <div id="acFfmpegProgress" class="tkHint acKeyHint"></div>
 
       <button id="acSetupClose" class="whatsNewCloseBtn" style="margin-top:18px;">Done</button>
+    </div>
+  </div>
+
+  <!-- Full transcript modal -->
+  <div id="acTranscriptOverlay" class="whatsNewOverlay hidden">
+    <div class="whatsNewModal acTranscriptModal">
+      <div class="whatsNewTitle">Full Transcript <span id="acTranscriptCount" class="tkHint"></span></div>
+      <div class="tkHint acKeyHint">Edit here if you like — one caption per line. Changes sync back to the captions.</div>
+      <textarea id="acTranscriptText" class="acTranscriptText" spellcheck="false"></textarea>
+      <div class="acReviewActions">
+        <button id="acTranscriptCopy" class="importBtn">⧉ Copy all</button>
+        <button id="acTranscriptApply" class="btnSecondary">Apply changes</button>
+        <button id="acTranscriptClose" class="btnSecondary">Close</button>
+      </div>
     </div>
   </div>
 

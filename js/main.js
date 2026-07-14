@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.20.0
+// DopeTool main.js — v2.21.0
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -1514,16 +1514,54 @@ function acHideReview() {
   acSegments = [];
 }
 
-function acCreateFromReview() {
+// Pull the latest edits from the review inputs into acSegments
+function acSyncReviewToSegments() {
   var inputs = document.querySelectorAll("#autoCapReviewList .acReviewInput");
   for (var i = 0; i < inputs.length; i++) {
     var idx = parseInt(inputs[i].getAttribute("data-idx"), 10);
     if (acSegments[idx]) acSegments[idx].text = (inputs[i].value || "").replace(/^\s+|\s+$/g, "");
   }
+}
+
+function acCreateFromReview() {
+  acSyncReviewToSegments();
   var segs = acSegments.filter(function (s) { return s.text; });
   var panel = document.getElementById("autoCapReview");
   if (panel) panel.classList.add("hidden");
   acImportSegments(segs);
+}
+
+// ---- Full transcript view (one caption per line; copyable + editable) ----
+function acShowTranscript() {
+  acSyncReviewToSegments();
+  var ta = document.getElementById("acTranscriptText");
+  var overlay = document.getElementById("acTranscriptOverlay");
+  var count = document.getElementById("acTranscriptCount");
+  if (!ta || !overlay) return;
+  ta.value = acSegments.map(function (s) { return s.text; }).join("\n");
+  if (count) count.innerText = acSegments.length + " captions";
+  overlay.classList.remove("hidden");
+  try { ta.focus(); } catch (e) {}
+}
+function acApplyTranscript() {
+  var ta = document.getElementById("acTranscriptText");
+  if (!ta) return;
+  var lines = ta.value.split(/\r?\n/).map(function (l) { return l.replace(/^\s+|\s+$/g, ""); }).filter(function (l) { return l.length; });
+  // Map back by position (keeps each caption's timing)
+  for (var i = 0; i < acSegments.length; i++) { if (i < lines.length) acSegments[i].text = lines[i]; }
+  acShowReview(acSegments); // re-render the editable rows with the applied text
+  var overlay = document.getElementById("acTranscriptOverlay");
+  if (overlay) overlay.classList.add("hidden");
+  if (lines.length !== acSegments.length) acProgress("Applied — note: line count changed, captions matched by position.");
+}
+function acCopyTranscript() {
+  var ta = document.getElementById("acTranscriptText");
+  if (!ta) return;
+  try { ta.select(); ta.setSelectionRange(0, ta.value.length); } catch (e) {}
+  var ok = false;
+  try { ok = document.execCommand("copy"); } catch (e) {}
+  var btn = document.getElementById("acTranscriptCopy");
+  if (btn) { var t = btn.innerText; btn.innerText = ok ? "✓ Copied" : "Press Ctrl/Cmd+C"; setTimeout(function () { btn.innerText = t; }, 1400); }
 }
 
 // Write a temp SRT and reuse importCaptions() with the picked style
@@ -1734,6 +1772,18 @@ function autoCapRun() {
   if (createBtn) createBtn.addEventListener("click", acCreateFromReview);
   var reviewCancel = document.getElementById("autoCapReviewCancel");
   if (reviewCancel) reviewCancel.addEventListener("click", function () { acHideReview(); acProgress("Ready"); });
+
+  // Full transcript modal
+  var trBtn = document.getElementById("autoCapTranscriptBtn");
+  if (trBtn) trBtn.addEventListener("click", acShowTranscript);
+  var trCopy = document.getElementById("acTranscriptCopy");
+  if (trCopy) trCopy.addEventListener("click", acCopyTranscript);
+  var trApply = document.getElementById("acTranscriptApply");
+  if (trApply) trApply.addEventListener("click", acApplyTranscript);
+  var trClose = document.getElementById("acTranscriptClose");
+  if (trClose) trClose.addEventListener("click", function () { var o = document.getElementById("acTranscriptOverlay"); if (o) o.classList.add("hidden"); });
+  var trOverlay = document.getElementById("acTranscriptOverlay");
+  if (trOverlay) trOverlay.addEventListener("click", function (e) { if (e.target === trOverlay) trOverlay.classList.add("hidden"); });
 })();
 
 // ---- SORT CONTROL ----

@@ -1,4 +1,7 @@
 {
+  "2.21.0": [
+    "Auto Captions: new “Full transcript” button in the Review step — see the whole corrected transcript in one box, copy it with one click, or edit it there and sync the changes back to the captions"
+  ],
   "2.20.0": [
     "Auto Captions: upgraded the Roman-Urdu / cleanup AI — new default is GPT-OSS 120B (the old Llama model was deprecated by Groq)",
     "Auto Captions: pick the model in Setup — GPT-OSS 120B, Kimi K2, Qwen3.6, or a lighter/faster option — so you can try a few and keep whichever reads best on your audio"
