@@ -1907,3 +1907,39 @@ textarea:focus {
   box-shadow: var(--shadow-card);
 }
 .tkQuickBtn[data-tip]:hover::after { opacity: 1; }
+
+/* ═══ AUTO CAPTIONS — tidy settings (info tooltip + collapsible advanced) ═══ */
+.acInfo {
+  width: 15px; height: 15px; border-radius: 50%;
+  border: 1px solid var(--border);
+  color: var(--text-faint);
+  font-size: 9px; font-weight: 700; font-style: normal;
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: help; position: relative; flex-shrink: 0;
+}
+.acInfo:hover { color: var(--accent); border-color: var(--accent); }
+.acInfo[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute; bottom: calc(100% + 6px); right: -2px;
+  width: 220px; background: var(--surface-3); color: var(--text);
+  border: 1px solid var(--border); font-size: 10px; font-weight: 500;
+  padding: 6px 8px; border-radius: var(--r-sm); line-height: 1.45;
+  opacity: 0; pointer-events: none; transition: opacity 0.12s; z-index: 60;
+  box-shadow: var(--shadow-card); white-space: normal; text-align: left;
+}
+.acInfo:hover::after { opacity: 1; }
+
+.acAdvanced { display: flex; flex-direction: column; gap: 7px; }
+.acAdvanced > summary {
+  cursor: pointer; list-style: none; user-select: none;
+  font-size: 11px; font-weight: 600; color: var(--text-dim);
+  display: flex; align-items: center; gap: 7px; padding: 2px 0;
+}
+.acAdvanced > summary::-webkit-details-marker { display: none; }
+.acAdvanced > summary::before {
+  content: ""; width: 6px; height: 6px; flex-shrink: 0;
+  border-right: 2px solid var(--text-faint); border-bottom: 2px solid var(--text-faint);
+  transform: rotate(-45deg); transition: transform 0.15s;
+}
+.acAdvanced[open] > summary::before { transform: rotate(45deg); }
+.acAdvanced > summary:hover { color: var(--text); }

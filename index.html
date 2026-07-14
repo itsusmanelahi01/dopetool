@@ -545,32 +545,35 @@
           <div class="settingRow">
             <label class="settingLabel">
               <input type="checkbox" id="autoCapRoman" style="margin-right:6px;" />
-              Roman Urdu / Hinglish — house style spelling, English words kept in English
+              Roman Urdu / Hinglish
             </label>
-          </div>
-          <div class="tkHint acKeyHint" style="margin-top:0;">For Urdu/Hindi speech, set Language to <b>Auto</b> or <b>Urdu</b> and tick this — output follows the channel spelling style (tou, keh, aap, nahi, bohut, aik, -ay endings…).</div>
-          <div class="settingRow">
-            <span class="settingLabel">Vertical Offset</span>
-            <input type="number" id="autoCapVOffset" value="200" class="settingInput" />
-            <span class="settingUnit">px</span>
-          </div>
-          <div class="settingRow">
-            <span class="settingLabel">Fade Frames</span>
-            <input type="number" id="autoCapFade" value="0" class="settingInput" />
-            <span class="settingUnit">fr</span>
-          </div>
-          <div class="settingRow">
-            <label class="settingLabel">
-              <input type="checkbox" id="autoCapUseNull" style="margin-right:6px;" />
-              Group under Null (CAPTIONS_CTRL)
-            </label>
+            <span class="acInfo" data-tip="Romanizes Urdu/Hindi to the channel spelling style (tou, keh, aap, nahi, aik, -ay endings…) and keeps English words in English. Use Language = Auto or Urdu.">i</span>
           </div>
           <div class="settingRow">
             <label class="settingLabel">
               <input type="checkbox" id="autoCapReviewChk" checked style="margin-right:6px;" />
-              Review &amp; edit before creating captions
+              Review &amp; edit before creating
             </label>
           </div>
+          <details class="acAdvanced">
+            <summary>Placement &amp; styling</summary>
+            <div class="settingRow">
+              <span class="settingLabel">Vertical Offset</span>
+              <input type="number" id="autoCapVOffset" value="200" class="settingInput" />
+              <span class="settingUnit">px</span>
+            </div>
+            <div class="settingRow">
+              <span class="settingLabel">Fade Frames</span>
+              <input type="number" id="autoCapFade" value="0" class="settingInput" />
+              <span class="settingUnit">fr</span>
+            </div>
+            <div class="settingRow">
+              <label class="settingLabel">
+                <input type="checkbox" id="autoCapUseNull" style="margin-right:6px;" />
+                Group under Null (CAPTIONS_CTRL)
+              </label>
+            </div>
+          </details>
         </div>
       </div>
 

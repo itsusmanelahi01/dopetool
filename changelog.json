@@ -1,4 +1,7 @@
 {
+  "2.26.0": [
+    "Auto Captions: tidied the tab — the Hinglish explanation is now a hover “i” tooltip, and the set-once options (Vertical Offset, Fade, Group under Null) are tucked into a collapsible “Placement & styling” section, so the main view is clean and quick"
+  ],
   "2.25.0": [
     "Toolkit quick bar: clearer icons — eye (open/slashed) for Fade In/Out, magnifier +/− for Scale Up/Down — and each button now shows its name on hover",
     "New Add Null button — drops a null centered on the selected layers and parents them to it"
