@@ -1475,21 +1475,57 @@ function addNullCenter() {
     if (!comp) return "Error: Make a composition active first.";
     var sel = comp.selectedLayers ? comp.selectedLayers.slice(0) : [];
     app.beginUndoGroup("DopeTool: Add Null");
+
+    // Scan the selection: biggest layer (on-screen area) + its centre, plus the
+    // topmost selected layer (for stacking order & label colour).
+    var bigW = 100, bigH = 100, bigArea = -1;
+    var cx = comp.width / 2, cy = comp.height / 2;
+    var topLayer = null, topLabel = null;
+    for (var i = 0; i < sel.length; i++) {
+      var L = sel[i];
+      if (!topLayer || L.index < topLayer.index) { topLayer = L; topLabel = L.label; }
+      try {
+        var r = L.sourceRectAtTime(comp.time, false);
+        var sc = L.property("Transform").property("Scale").value;
+        var w = r.width * Math.abs(sc[0]) / 100;
+        var h = r.height * Math.abs(sc[1]) / 100;
+        var area = w * h;
+        if (area > bigArea) {
+          bigArea = area; bigW = w; bigH = h;
+          var pos = L.property("Transform").property("Position").value;
+          cx = pos[0]; cy = pos[1];
+        }
+      } catch (eR) {}
+    }
+
     var nl = comp.layers.addNull();
     nl.name = "NULL";
-    nl.label = 14;
-    var cx = comp.width / 2, cy = comp.height / 2;
-    if (sel.length) {
-      var sx = 0, sy = 0, n = 0;
-      for (var i = 0; i < sel.length; i++) {
-        try { var p = sel[i].property("Transform").property("Position").value; sx += p[0]; sy += p[1]; n++; } catch (e) {}
-      }
-      if (n) { cx = sx / n; cy = sy / n; }
-    }
-    // Center the null's own box on that point, then parent the selection to it.
+    if (topLabel !== null) nl.label = topLabel; // match the selected layers' AE label colour
+
+    // Centre the null on the biggest layer and size its 100x100 box to match it
+    // (scale % maps 1:1 to pixels for a 100px null).
+    var sx = bigW > 1 ? bigW : 100;
+    var sy = bigH > 1 ? bigH : 100;
     nl.property("Transform").property("Anchor Point").setValue([50, 50]);
     nl.property("Transform").property("Position").setValue([cx, cy]);
-    for (var j = 0; j < sel.length; j++) { try { sel[j].parent = nl; } catch (eP) {} }
+    nl.property("Transform").property("Scale").setValue([sx, sy]);
+
+    // Put the null directly ABOVE the topmost selected layer.
+    if (topLayer) { try { nl.moveBefore(topLayer); } catch (eM) {} }
+
+    // Parent the selection, compensating each child's scale so the big null
+    // scale doesn't inflate them (they keep their exact look).
+    for (var j = 0; j < sel.length; j++) {
+      var C = sel[j];
+      try {
+        C.parent = nl;
+        var csp = C.property("Transform").property("Scale");
+        var v = csp.value;
+        var nv = [v[0] * 100 / sx, v[1] * 100 / sy];
+        if (v.length > 2) nv.push(v[2]);
+        csp.setValue(nv);
+      } catch (eP) {}
+    }
     app.endUndoGroup();
     return "ok:" + sel.length;
   } catch (e) { return "Error: " + e.toString(); }

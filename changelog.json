@@ -1,4 +1,7 @@
 {
+  "2.27.1": [
+    "Add Null: the null now matches the selected layers' AE label colour, sits directly above the topmost selected layer, and is sized to the biggest selected layer (layers keep their exact look — their scale is compensated so the sized null doesn't inflate them)"
+  ],
   "2.27.0": [
     "Style Library cleanup — removed the Fonts tab (a text style already saves its font and installs it on apply if missing) and the Anim tab; a client now holds just Colors, Styles, FX and Assets",
     "New Text Animations tab — a shared library of animation presets (not tied to a client), searchable, with a hover preview (plays a preview clip if set, otherwise a motion mock)",
