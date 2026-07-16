@@ -1,4 +1,7 @@
 {
+  "2.27.3": [
+    "Add Null: the null now keeps After Effects' own default Null-Object label colour (from Preferences → Labels) instead of being overridden — matches whatever you've set (e.g. orange)"
+  ],
   "2.27.2": [
     "Add Null: the null's timeline bar is now trimmed to the selected layers' span (starts at the earliest in-point, ends at the latest out-point) instead of the whole comp; keeps the matching label colour, sits above the topmost selected layer, and no longer changes your layers' scale"
   ],

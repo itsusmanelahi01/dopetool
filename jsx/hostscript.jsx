@@ -1476,16 +1476,16 @@ function addNullCenter() {
     var sel = comp.selectedLayers ? comp.selectedLayers.slice(0) : [];
     app.beginUndoGroup("DopeTool: Add Null");
 
-    // Scan the selection: group centre, topmost selected layer (stacking + label),
-    // and the timeline span (earliest in -> latest out) to size the null's bar.
+    // Scan the selection: group centre, topmost selected layer (stacking), and
+    // the timeline span (earliest in -> latest out) to size the null's bar.
     var cx = comp.width / 2, cy = comp.height / 2;
-    var topLayer = null, topLabel = null;
+    var topLayer = null;
     var minIn = null, maxOut = null;
     if (sel.length) {
       var sx = 0, sy = 0, n = 0;
       for (var i = 0; i < sel.length; i++) {
         var L = sel[i];
-        if (!topLayer || L.index < topLayer.index) { topLayer = L; topLabel = L.label; }
+        if (!topLayer || L.index < topLayer.index) { topLayer = L; }
         try { var p = L.property("Transform").property("Position").value; sx += p[0]; sy += p[1]; n++; } catch (e) {}
         try { if (minIn === null || L.inPoint < minIn) minIn = L.inPoint; } catch (e2) {}
         try { if (maxOut === null || L.outPoint > maxOut) maxOut = L.outPoint; } catch (e3) {}
@@ -1493,9 +1493,10 @@ function addNullCenter() {
       if (n) { cx = sx / n; cy = sy / n; }
     }
 
+    // addNull() already uses AE's default Null-Object label colour (Preferences →
+    // Labels). Leave nl.label alone so it matches the editor's setting.
     var nl = comp.layers.addNull();
     nl.name = "NULL";
-    if (topLabel !== null) nl.label = topLabel; // match the selected layers' AE label colour
     nl.property("Transform").property("Anchor Point").setValue([50, 50]);
     nl.property("Transform").property("Position").setValue([cx, cy]);
 
