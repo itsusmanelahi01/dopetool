@@ -1,4 +1,7 @@
 {
+  "2.27.2": [
+    "Add Null: the null's timeline bar is now trimmed to the selected layers' span (starts at the earliest in-point, ends at the latest out-point) instead of the whole comp; keeps the matching label colour, sits above the topmost selected layer, and no longer changes your layers' scale"
+  ],
   "2.27.1": [
     "Add Null: the null now matches the selected layers' AE label colour, sits directly above the topmost selected layer, and is sized to the biggest selected layer (layers keep their exact look — their scale is compensated so the sized null doesn't inflate them)"
   ],
