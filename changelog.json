@@ -1,4 +1,7 @@
 {
+  "2.27.6": [
+    "Align & Distribute: the \"Align to\" default now follows your selection — one layer selected defaults to Composition, two or more defaults to Selection (you can still override it manually)"
+  ],
   "2.27.5": [
     "Align & Distribute: new \"Align to\" option — Selection (default) aligns the selected layers relative to each other, Composition aligns them to the comp frame like before"
   ],

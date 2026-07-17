@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.27.5
+// DopeTool main.js — v2.27.6
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -2578,11 +2578,26 @@ function tkEval(script) {
     });
   }
 
+  // Align reference: default follows the live selection (1 layer -> comp,
+  // 2+ -> selection) until the user manually picks a value.
+  var alignRefManual = false;
+  var alignRefEl = document.getElementById("alignRef");
+  if (alignRefEl) alignRefEl.addEventListener("change", function () { alignRefManual = true; });
+  function refreshAlignRef() {
+    if (alignRefManual || !alignRefEl) return;
+    csInterface.evalScript("dtSelCount()", function (r) {
+      if (alignRefManual) return;
+      var n = parseInt(r, 10) || 0;
+      alignRefEl.value = (n <= 1) ? "composition" : "selection";
+    });
+  }
+  var alignGrid = view.querySelector(".tkAlignGrid");
+  if (alignGrid) alignGrid.addEventListener("mouseenter", refreshAlignRef);
+
   var alignBtns = view.querySelectorAll("[data-align]");
   for (var k = 0; k < alignBtns.length; k++) {
     alignBtns[k].addEventListener("click", function () {
-      var ref = document.getElementById("alignRef");
-      ref = ref ? ref.value : "selection";
+      var ref = alignRefEl ? alignRefEl.value : "selection";
       tkEval('alignLayers("' + this.getAttribute("data-align") + '","' + ref + '")');
     });
   }

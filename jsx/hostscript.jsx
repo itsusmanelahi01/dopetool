@@ -1038,6 +1038,13 @@ function applyExpression(kind) {
 }
 
 // ---- ALIGN ----
+function dtSelCount() {
+  try {
+    var comp = _dtActiveComp();
+    if (!comp) return "0";
+    return "" + comp.selectedLayers.length;
+  } catch (e) { return "0"; }
+}
 function alignLayers(mode, ref) {
   try {
     var comp = _dtActiveComp();
