@@ -1519,11 +1519,20 @@ function setAnchor(h, v) {
         var oldA = anchorP.value;
         var na = (oldA.length > 2) ? [ax, ay, oldA[2]] : [ax, ay];
         var sc = scaleP.value;
-        // Visual shift caused by moving the anchor = anchorDelta * scale (layer->comp).
-        var delta = [];
-        for (var k = 0; k < na.length; k++) {
-          var s = (sc.length > k ? sc[k] : 100) / 100;
-          delta[k] = (na[k] - oldA[k]) * s;
+        // Visual shift from moving the anchor = rotate(scale(anchorDelta)) in comp
+        // space, so the layer stays put even when scaled AND rotated.
+        var sdx = (na[0] - oldA[0]) * ((sc.length > 0 ? sc[0] : 100) / 100);
+        var sdy = (na[1] - oldA[1]) * ((sc.length > 1 ? sc[1] : 100) / 100);
+        var delta;
+        if (na.length > 2) {
+          // 3D: scale only (3D orientation compensation is out of scope).
+          delta = [sdx, sdy, (na[2] - oldA[2]) * ((sc.length > 2 ? sc[2] : 100) / 100)];
+        } else {
+          var rot = 0;
+          try { rot = L.property("Transform").property("Rotation").value; }
+          catch (eR) { try { rot = L.property("Transform").property("ADBE Rotate Z").value; } catch (eR2) {} }
+          var rad = rot * Math.PI / 180, c = Math.cos(rad), s = Math.sin(rad);
+          delta = [sdx * c - sdy * s, sdx * s + sdy * c];
         }
         // Set the anchor (offset every key if animated, else the static value).
         if (anchorP.numKeys > 0) {

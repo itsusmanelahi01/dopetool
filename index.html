@@ -318,6 +318,13 @@
       <button class="tkQuickBtn" data-action="addNull" data-tip="Add Null (center)">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
       </button>
+      <span class="tkQuickSep"></span>
+      <button class="tkQuickBtn" data-preset="trimOn" data-tip="Trim On (draw in)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h11"/><path d="M14 8l4 4-4 4"/><path d="M21 5v14" stroke-dasharray="2.5 2.5"/></svg>
+      </button>
+      <button class="tkQuickBtn" data-preset="trimOff" data-tip="Trim Off (draw out)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12H10"/><path d="M10 8l-4 4 4 4"/><path d="M3 5v14" stroke-dasharray="2.5 2.5"/></svg>
+      </button>
       <span class="tkQuickSpacer"></span>
       <button class="tkQuickBtn tkQuickGear" id="tkAnimSettingsBtn" data-tip="Settings">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v2.5M12 19v2.5M4.5 12H2M22 12h-2.5M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M18.4 5.6l-1.8 1.8M7.4 16.6l-1.8 1.8"/></svg>
@@ -452,19 +459,6 @@
           <button class="tkAnchorBtn" data-anchor="center-bottom" title="Bottom center"></button>
           <button class="tkAnchorBtn" data-anchor="right-bottom" title="Bottom right"></button>
         </div>
-      </div>
-
-      <div class="tkSection" style="--tk-accent:#e0577d; --tk-accent-bg:#2a1018;">
-        <div class="tkHeader">
-          <span class="tkIcon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5v14M20 5v14"/><path d="M4 12h16" stroke-dasharray="3 2"/></svg></span>
-          <span class="tkTitle">Trim Paths</span>
-        </div>
-        <div class="tkSubLabel">Draw shape strokes <span class="tkHint">shape layers</span></div>
-        <div class="tkGrid" style="grid-template-columns:repeat(2,1fr);">
-          <button class="tkBtn" data-preset="trimOn">Trim On</button>
-          <button class="tkBtn" data-preset="trimOff">Trim Off</button>
-        </div>
-        <div class="tkNote">On draws the stroke in at the layer start; Off draws it out at the end. Uses the quick-anim duration &amp; ease.</div>
       </div>
 
     </div>

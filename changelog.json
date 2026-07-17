@@ -1,4 +1,8 @@
 {
+  "2.27.11": [
+    "Trim Paths (Trim On / Trim Off) moved into the quick tools bar alongside Fade / Slide / Scale / Null",
+    "Anchor Point: fixed so it holds the layer in place on scaled AND rotated layers (rotation is now compensated), so it works correctly on every layer"
+  ],
   "2.27.10": [
     "Updater: downloads now retry (up to 4×) and validate each file before writing, so a momentary network/CDN hiccup no longer leaves a \"partially failed\" update — plus a one-click Retry button if a file still doesn't come through"
   ],
