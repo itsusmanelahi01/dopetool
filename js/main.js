@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.27.9
+// DopeTool main.js — v2.27.10
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -2264,19 +2264,37 @@ function performUpdate(newVersion) {
     { remote: "/jsx/hostscript.jsx", local: "/jsx/hostscript.jsx" }
   ];
   var done = 0; var failed = [];
-  files.forEach(function (file) {
-    fetch(GITHUB_RAW_BASE + file.remote + "?t=" + Date.now())
-      .then(function (res) { return res.text(); })
+
+  // Fetch a file with retries + validation. Only writes when we got a real,
+  // non-empty body, so a transient CDN hiccup can't leave a corrupt file.
+  function fetchFile(file, attempt) {
+    attempt = attempt || 1;
+    var maxAttempts = 4;
+    fetch(GITHUB_RAW_BASE + file.remote + "?t=" + Date.now() + "_" + attempt)
+      .then(function (res) {
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return res.text();
+      })
       .then(function (content) {
+        // GitHub raw serves "404: Not Found" as a 200-ish body on some edges.
+        if (!content || content.length < 20 || content.indexOf("404: Not Found") === 0) {
+          throw new Error("empty/invalid body");
+        }
         nodeFs.writeFileSync(extensionPath + file.local, content, "utf8");
         done++;
         if (done + failed.length === files.length) finishUpdate(newVersion, banner, failed);
       })
       .catch(function () {
+        if (attempt < maxAttempts) {
+          setTimeout(function () { fetchFile(file, attempt + 1); }, attempt * 700);
+          return;
+        }
         failed.push(file.local); done++;
         if (done + failed.length === files.length) finishUpdate(newVersion, banner, failed);
       });
-  });
+  }
+
+  files.forEach(function (file) { fetchFile(file, 1); });
 }
 
 function showWhatsNew(version) {
@@ -2304,7 +2322,9 @@ function showWhatsNew(version) {
 function finishUpdate(newVersion, banner, failed) {
 
   if (failed.length > 0) {
-    banner.innerHTML = '<span>Update partially failed: ' + failed.join(", ") + '</span>';
+    banner.innerHTML = '<span>Update partially failed: ' + failed.join(", ") + '</span><button id="retryUpdateBtn">Retry</button>';
+    var retryBtn = document.getElementById("retryUpdateBtn");
+    if (retryBtn) retryBtn.addEventListener("click", function () { performUpdate(newVersion); });
   } else {
     setLocalVersion(newVersion);
     showVersion();
