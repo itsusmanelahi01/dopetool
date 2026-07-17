@@ -1,4 +1,7 @@
 {
+  "2.27.12": [
+    "Anchor Point: fixed the 3×3 grid so all 9 cells are properly sized and clickable (some cells had a collapsed hit-area before, so only a few positions responded)"
+  ],
   "2.27.11": [
     "Trim Paths (Trim On / Trim Off) moved into the quick tools bar alongside Fade / Slide / Scale / Null",
     "Anchor Point: fixed so it holds the layer in place on scaled AND rotated layers (rotation is now compensated), so it works correctly on every layer"

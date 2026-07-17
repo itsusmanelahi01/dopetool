@@ -1593,14 +1593,17 @@ body {
 .tkAlignGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
 .tkAnchorGrid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, 34px);
+  grid-template-rows: repeat(3, 34px);
   gap: 5px;
-  width: 108px;
+  justify-content: center;
   margin: 2px auto 0;
 }
 .tkAnchorBtn {
   position: relative;
-  aspect-ratio: 1 / 1;
+  width: 34px;
+  height: 34px;
+  padding: 0;
   border: 1px solid var(--border);
   background: var(--surface-2);
   border-radius: var(--r-sm);
@@ -1612,16 +1615,16 @@ body {
   position: absolute;
   top: 50%; left: 50%;
   width: 5px; height: 5px;
+  margin: -2.5px 0 0 -2.5px;
   border-radius: 50%;
   background: var(--text-faint);
-  transform: translate(-50%, -50%);
   transition: background .12s, transform .12s;
 }
 .tkAnchorBtn:hover {
   border-color: var(--tk-accent, var(--accent));
   background: var(--tk-accent-bg, var(--surface-3));
 }
-.tkAnchorBtn:hover::after { background: var(--tk-accent, var(--accent)); transform: translate(-50%, -50%) scale(1.4); }
+.tkAnchorBtn:hover::after { background: var(--tk-accent, var(--accent)); transform: scale(1.4); }
 .tkAnchorBtn:active { transform: scale(0.94); }
 .tkBtn {
   padding: 7px 4px;
