@@ -1,4 +1,7 @@
 {
+  "2.27.13": [
+    "Anchor Point: each cell's dot now sits where its anchor is, so the 3×3 reads as a proper picker — and it confirms the grid is laid out correctly (the earlier \"wrong side\" clicks were the cells overlapping when the grid collapsed)"
+  ],
   "2.27.12": [
     "Anchor Point: fixed the 3×3 grid so all 9 cells are properly sized and clickable (some cells had a collapsed hit-area before, so only a few positions responded)"
   ],

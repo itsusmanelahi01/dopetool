@@ -1620,6 +1620,11 @@ body {
   background: var(--text-faint);
   transition: background .12s, transform .12s;
 }
+/* Place each cell's dot where its anchor sits, so the grid reads as a picker. */
+.tkAnchorBtn[data-anchor^="left-"]::after   { left: 22%; }
+.tkAnchorBtn[data-anchor^="right-"]::after  { left: 78%; }
+.tkAnchorBtn[data-anchor$="-top"]::after    { top: 22%; }
+.tkAnchorBtn[data-anchor$="-bottom"]::after { top: 78%; }
 .tkAnchorBtn:hover {
   border-color: var(--tk-accent, var(--accent));
   background: var(--tk-accent-bg, var(--surface-3));
