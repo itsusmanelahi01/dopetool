@@ -1,4 +1,7 @@
 {
+  "2.27.4": [
+    "Toolkit quick animations: keyframes now land exactly the number of frames apart you set (snapped to whole frames, on the frame grid) — fixes the off keyframe distance"
+  ],
   "2.27.3": [
     "Add Null: the null now keeps After Effects' own default Null-Object label colour (from Preferences → Labels) instead of being overridden — matches whatever you've set (e.g. orange)"
   ],

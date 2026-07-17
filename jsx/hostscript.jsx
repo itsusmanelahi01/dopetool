@@ -1418,7 +1418,7 @@ function applyAnimPreset(cfgJson) {
     var layers = comp.selectedLayers;
     if (!layers || !layers.length) return "Error: Select one or more layers first.";
     var fps = comp.frameRate;
-    var dur = durF / fps;
+    var wantF = Math.max(1, Math.round(durF)); // requested keyframe distance in whole frames
     var isOut = (preset === "fadeOut" || preset === "scaleDown");
 
     app.beginUndoGroup("DopeTool: " + preset);
@@ -1426,11 +1426,15 @@ function applyAnimPreset(cfgJson) {
     for (var i = 0; i < layers.length; i++) {
       var L = layers[i];
       try {
-        var inP = L.inPoint, outP = L.outPoint, span = outP - inP;
-        var d = Math.min(dur, span * 0.9);
-        if (d <= 0) continue;
-        var t1, t2;
-        if (isOut) { t2 = outP; t1 = outP - d; } else { t1 = inP; t2 = inP + d; }
+        // Work in whole frames so the gap is exactly the frames you set, on-grid.
+        var inF = Math.round(L.inPoint * fps);
+        var outF = Math.round(L.outPoint * fps);
+        var spanF = outF - inF;
+        if (spanF < 1) continue;
+        var dF = Math.min(wantF, spanF); // don't run past the layer
+        var f1, f2;
+        if (isOut) { f2 = outF; f1 = outF - dF; } else { f1 = inF; f2 = inF + dF; }
+        var t1 = f1 / fps, t2 = f2 / fps;
 
         var tr = L.property("Transform");
         var prop = null, fromV, toV;
