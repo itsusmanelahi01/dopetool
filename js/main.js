@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.27.8
+// DopeTool main.js — v2.27.9
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -2733,17 +2733,31 @@ function tkEval(script) {
     gear.classList.toggle("on", !panel.classList.contains("hidden"));
   });
 
-  // Preset buttons
-  var btns = bar.querySelectorAll(".tkQuickBtn[data-preset]");
+  // Preset buttons (quick-anim bar + Trim Paths section share the same engine)
+  function applyPreset(preset) {
+    var cfg = getAnimSettings();
+    cfg.preset = preset;
+    var esc = JSON.stringify(cfg).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+    if (typeof tkStatus === "function") tkStatus("Applying " + preset + "…");
+    csInterface.evalScript('applyAnimPreset("' + esc + '")', function (r) {
+      if (r && r.indexOf("ok:") === 0) { if (typeof tkStatus === "function") tkStatus("✓ " + preset + " → " + r.split(":")[1] + " layer(s)"); }
+      else if (typeof tkStatus === "function") tkStatus(r || "Failed.");
+    });
+  }
+  var tkView = document.getElementById("toolkitView");
+  var btns = (tkView || bar).querySelectorAll("[data-preset]");
   for (var i = 0; i < btns.length; i++) {
-    btns[i].addEventListener("click", function () {
-      var preset = this.getAttribute("data-preset");
-      var cfg = getAnimSettings();
-      cfg.preset = preset;
-      var esc = JSON.stringify(cfg).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-      if (typeof tkStatus === "function") tkStatus("Applying " + preset + "…");
-      csInterface.evalScript('applyAnimPreset("' + esc + '")', function (r) {
-        if (r && r.indexOf("ok:") === 0) { if (typeof tkStatus === "function") tkStatus("✓ " + preset + " → " + r.split(":")[1] + " layer(s)"); }
+    btns[i].addEventListener("click", function () { applyPreset(this.getAttribute("data-preset")); });
+  }
+
+  // Anchor point 3x3 setter
+  var anchorBtns = (tkView || bar).querySelectorAll("[data-anchor]");
+  for (var ai = 0; ai < anchorBtns.length; ai++) {
+    anchorBtns[ai].addEventListener("click", function () {
+      var parts = this.getAttribute("data-anchor").split("-"); // h-v
+      if (typeof tkStatus === "function") tkStatus("Setting anchor…");
+      csInterface.evalScript('setAnchor("' + parts[0] + '","' + parts[1] + '")', function (r) {
+        if (r && r.indexOf("ok:") === 0) { if (typeof tkStatus === "function") tkStatus("✓ Anchor set → " + r.split(":")[1] + " layer(s)"); }
         else if (typeof tkStatus === "function") tkStatus(r || "Failed.");
       });
     });

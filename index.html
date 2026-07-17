@@ -435,6 +435,38 @@
         </div>
       </div>
 
+      <div class="tkSection" style="--tk-accent:#3ec6a0; --tk-accent-bg:#0f2a22;">
+        <div class="tkHeader">
+          <span class="tkIcon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12c4-7 12-7 16 0"/><circle cx="4" cy="12" r="1.6"/><circle cx="20" cy="12" r="1.6"/></svg></span>
+          <span class="tkTitle">Anchor Point</span>
+        </div>
+        <div class="tkSubLabel">Set anchor <span class="tkHint">keeps layer in place</span></div>
+        <div class="tkAnchorGrid">
+          <button class="tkAnchorBtn" data-anchor="left-top" title="Top left"></button>
+          <button class="tkAnchorBtn" data-anchor="center-top" title="Top center"></button>
+          <button class="tkAnchorBtn" data-anchor="right-top" title="Top right"></button>
+          <button class="tkAnchorBtn" data-anchor="left-center" title="Middle left"></button>
+          <button class="tkAnchorBtn" data-anchor="center-center" title="Center"></button>
+          <button class="tkAnchorBtn" data-anchor="right-center" title="Middle right"></button>
+          <button class="tkAnchorBtn" data-anchor="left-bottom" title="Bottom left"></button>
+          <button class="tkAnchorBtn" data-anchor="center-bottom" title="Bottom center"></button>
+          <button class="tkAnchorBtn" data-anchor="right-bottom" title="Bottom right"></button>
+        </div>
+      </div>
+
+      <div class="tkSection" style="--tk-accent:#e0577d; --tk-accent-bg:#2a1018;">
+        <div class="tkHeader">
+          <span class="tkIcon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5v14M20 5v14"/><path d="M4 12h16" stroke-dasharray="3 2"/></svg></span>
+          <span class="tkTitle">Trim Paths</span>
+        </div>
+        <div class="tkSubLabel">Draw shape strokes <span class="tkHint">shape layers</span></div>
+        <div class="tkGrid" style="grid-template-columns:repeat(2,1fr);">
+          <button class="tkBtn" data-preset="trimOn">Trim On</button>
+          <button class="tkBtn" data-preset="trimOff">Trim Off</button>
+        </div>
+        <div class="tkNote">On draws the stroke in at the layer start; Off draws it out at the end. Uses the quick-anim duration &amp; ease.</div>
+      </div>
+
     </div>
   </div>
 

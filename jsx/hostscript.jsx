@@ -1471,6 +1471,88 @@ function _dtLinkedFade(L, which, frames) {
   } catch (e) { return false; }
 }
 
+// Add (or reuse) a Trim Paths operator on a shape layer and animate the reveal.
+// "trimOn" draws the stroke in (End 0->100) at the layer start; "trimOff" draws
+// it out (Start 0->100) at the layer end.
+function _dtApplyTrim(L, which, t1, t2, easeOut, easeIn) {
+  try {
+    var contents = null;
+    try { contents = L.property("Contents"); } catch (eC) {}
+    if (!contents) return false; // not a shape layer
+    var trim = null;
+    for (var i = 1; i <= contents.numProperties; i++) {
+      var pr = contents.property(i);
+      if (pr && pr.matchName === "ADBE Vector Filter - Trim") { trim = pr; break; }
+    }
+    if (!trim) trim = contents.addProperty("ADBE Vector Filter - Trim");
+    var prop = (which === "trimOff")
+      ? trim.property("ADBE Vector Trim Start")
+      : trim.property("ADBE Vector Trim End");
+    if (!prop) return false;
+    prop.setValueAtTime(t1, 0);
+    prop.setValueAtTime(t2, 100);
+    var kA = _dtKeyAtTime(prop, t1), kB = _dtKeyAtTime(prop, t2);
+    if (kA && kB) _dtEase30_70(prop, kA, kB, easeOut, easeIn);
+    return true;
+  } catch (e) { return false; }
+}
+
+// Move the anchor point of each selected layer to one of 9 positions (based on
+// the layer's own bounds) without shifting the layer visually.
+function setAnchor(h, v) {
+  try {
+    var comp = _dtActiveComp();
+    if (!comp) return "Error: Make a composition active first.";
+    var layers = comp.selectedLayers;
+    if (!layers || !layers.length) return "Error: Select one or more layers first.";
+    var t = comp.time, count = 0;
+    app.beginUndoGroup("DopeTool: Anchor Point");
+    for (var i = 0; i < layers.length; i++) {
+      var L = layers[i];
+      try {
+        var rect = L.sourceRectAtTime(t, false);
+        var ax = rect.left + ((h === "left") ? 0 : (h === "right") ? rect.width : rect.width / 2);
+        var ay = rect.top + ((v === "top") ? 0 : (v === "bottom") ? rect.height : rect.height / 2);
+        var anchorP = L.property("Transform").property("Anchor Point");
+        var posP = L.property("Transform").property("Position");
+        var scaleP = L.property("Transform").property("Scale");
+        var oldA = anchorP.value;
+        var na = (oldA.length > 2) ? [ax, ay, oldA[2]] : [ax, ay];
+        var sc = scaleP.value;
+        // Visual shift caused by moving the anchor = anchorDelta * scale (layer->comp).
+        var delta = [];
+        for (var k = 0; k < na.length; k++) {
+          var s = (sc.length > k ? sc[k] : 100) / 100;
+          delta[k] = (na[k] - oldA[k]) * s;
+        }
+        // Set the anchor (offset every key if animated, else the static value).
+        if (anchorP.numKeys > 0) {
+          for (var ka = 1; ka <= anchorP.numKeys; ka++) {
+            var av = anchorP.keyValue(ka), nav = [];
+            for (var a2 = 0; a2 < av.length; a2++) nav[a2] = av[a2] + (na[a2] - oldA[a2]);
+            anchorP.setValueAtKey(ka, nav);
+          }
+        } else { anchorP.setValue(na); }
+        // Compensate position so the layer stays put on screen.
+        if (posP.numKeys > 0) {
+          for (var kp = 1; kp <= posP.numKeys; kp++) {
+            var pv = posP.keyValue(kp), npv = [];
+            for (var p2 = 0; p2 < pv.length; p2++) npv[p2] = pv[p2] + (delta.length > p2 ? delta[p2] : 0);
+            posP.setValueAtKey(kp, npv);
+          }
+        } else {
+          var op = posP.value, np = [];
+          for (var p3 = 0; p3 < op.length; p3++) np[p3] = op[p3] + (delta.length > p3 ? delta[p3] : 0);
+          posP.setValue(np);
+        }
+        count++;
+      } catch (eL) {}
+    }
+    app.endUndoGroup();
+    return count ? "ok:" + count : "Error: Couldn't set anchor (unsupported layer?).";
+  } catch (e) { return "Error: " + e.toString(); }
+}
+
 function applyAnimPreset(cfgJson) {
   try {
     var cfg = JSON.parse(cfgJson);
@@ -1487,7 +1569,7 @@ function applyAnimPreset(cfgJson) {
     if (!layers || !layers.length) return "Error: Select one or more layers first.";
     var fps = comp.frameRate;
     var wantF = Math.max(1, Math.round(durF)); // requested keyframe distance in whole frames
-    var isOut = (preset === "fadeOut" || preset === "scaleDown");
+    var isOut = (preset === "fadeOut" || preset === "scaleDown" || preset === "trimOff");
 
     app.beginUndoGroup("DopeTool: " + preset);
     var count = 0, lastErr = "";
@@ -1510,6 +1592,12 @@ function applyAnimPreset(cfgJson) {
         var f1, f2;
         if (isOut) { f2 = outF; f1 = outF - dF; } else { f1 = inF; f2 = inF + dF; }
         var t1 = f1 / fps, t2 = f2 / fps;
+
+        // Trim Paths reveal (on = draw in at start, off = draw out at end).
+        if (preset === "trimOn" || preset === "trimOff") {
+          if (_dtApplyTrim(L, preset, t1, t2, easeOut, easeIn)) count++;
+          continue;
+        }
 
         var tr = L.property("Transform");
         var prop = null, fromV, toV;

@@ -1,4 +1,8 @@
 {
+  "2.27.9": [
+    "New Anchor Point tool — a 3×3 grid in the Toolkit that snaps the selected layers' anchor to any of the 9 positions (corners, edges, centre) based on each layer's own bounds, without moving the layer on screen",
+    "New Trim Paths tool — Trim On draws a shape layer's stroke in at the layer start, Trim Off draws it out at the end (uses the quick-anim duration & ease)"
+  ],
   "2.27.8": [
     "Quick animations: added a \"Fade style\" setting — Keyframes (default) drops visible fade keyframes on the timeline like before; Linked keeps the expression-based fade that rides the layer's in/out points. Pick whichever you prefer in the Toolkit ⚙ settings"
   ],
