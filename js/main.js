@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.27.4
+// DopeTool main.js — v2.27.5
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -2581,7 +2581,9 @@ function tkEval(script) {
   var alignBtns = view.querySelectorAll("[data-align]");
   for (var k = 0; k < alignBtns.length; k++) {
     alignBtns[k].addEventListener("click", function () {
-      tkEval('alignLayers("' + this.getAttribute("data-align") + '")');
+      var ref = document.getElementById("alignRef");
+      ref = ref ? ref.value : "selection";
+      tkEval('alignLayers("' + this.getAttribute("data-align") + '","' + ref + '")');
     });
   }
 

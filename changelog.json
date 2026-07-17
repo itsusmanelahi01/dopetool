@@ -1,4 +1,7 @@
 {
+  "2.27.5": [
+    "Align & Distribute: new \"Align to\" option — Selection (default) aligns the selected layers relative to each other, Composition aligns them to the comp frame like before"
+  ],
   "2.27.4": [
     "Toolkit quick animations: keyframes now land exactly the number of frames apart you set (snapped to whole frames, on the frame grid) — fixes the off keyframe distance"
   ],

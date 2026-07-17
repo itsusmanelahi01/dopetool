@@ -1038,34 +1038,61 @@ function applyExpression(kind) {
 }
 
 // ---- ALIGN ----
-function alignLayers(mode) {
+function alignLayers(mode, ref) {
   try {
     var comp = _dtActiveComp();
     if (!comp) return "No active composition.";
     var layers = comp.selectedLayers;
     if (!layers.length) return "No layer selected.";
+    ref = (ref === "composition") ? "composition" : "selection";
     var t = comp.time, count = 0;
-    app.beginUndoGroup("DopeTool: Align");
+
+    // Gather non-animated layers with their bounds up front.
+    var items = [];
     for (var i = 0; i < layers.length; i++) {
       try {
         var L = layers[i];
         var posProp = L.property("Transform").property("Position");
         if (!posProp || posProp.numKeys > 0) continue; // don't wreck animated positions
-        var b = _dtLayerBounds(L, t);
+        items.push({ layer: L, prop: posProp, b: _dtLayerBounds(L, t) });
+      } catch (e) {}
+    }
+    if (!items.length) return "No layers aligned (animated or unsupported).";
+
+    // Reference box: either the whole comp, or the union bbox of the selection.
+    var refLeft, refTop, refWidth, refHeight;
+    if (ref === "composition") {
+      refLeft = 0; refTop = 0; refWidth = comp.width; refHeight = comp.height;
+    } else {
+      var minL = Infinity, minT = Infinity, maxR = -Infinity, maxB = -Infinity;
+      for (var j = 0; j < items.length; j++) {
+        var bb = items[j].b;
+        if (bb.left < minL) minL = bb.left;
+        if (bb.top < minT) minT = bb.top;
+        if (bb.left + bb.width > maxR) maxR = bb.left + bb.width;
+        if (bb.top + bb.height > maxB) maxB = bb.top + bb.height;
+      }
+      refLeft = minL; refTop = minT; refWidth = maxR - minL; refHeight = maxB - minT;
+    }
+
+    app.beginUndoGroup("DopeTool: Align");
+    for (var k = 0; k < items.length; k++) {
+      try {
+        var b = items[k].b;
         var np = [b.pos[0], b.pos[1]];
-        if (mode === "left") np[0] += (0 - b.left);
-        else if (mode === "right") np[0] += (comp.width - (b.left + b.width));
-        else if (mode === "hcenter") np[0] += (comp.width / 2 - (b.left + b.width / 2));
-        else if (mode === "top") np[1] += (0 - b.top);
-        else if (mode === "bottom") np[1] += (comp.height - (b.top + b.height));
-        else if (mode === "vcenter") np[1] += (comp.height / 2 - (b.top + b.height / 2));
+        if (mode === "left") np[0] += (refLeft - b.left);
+        else if (mode === "right") np[0] += ((refLeft + refWidth) - (b.left + b.width));
+        else if (mode === "hcenter") np[0] += ((refLeft + refWidth / 2) - (b.left + b.width / 2));
+        else if (mode === "top") np[1] += (refTop - b.top);
+        else if (mode === "bottom") np[1] += ((refTop + refHeight) - (b.top + b.height));
+        else if (mode === "vcenter") np[1] += ((refTop + refHeight / 2) - (b.top + b.height / 2));
         if (b.pos.length > 2) np[2] = b.pos[2];
-        posProp.setValue(np);
+        items[k].prop.setValue(np);
         count++;
       } catch (e) {}
     }
     app.endUndoGroup();
-    return count ? "Aligned " + count + " layer(s)." : "No layers aligned (animated or unsupported).";
+    return count ? "Aligned " + count + " layer(s) to " + ref + "." : "No layers aligned (animated or unsupported).";
   } catch (e) { return "Error: " + e.toString(); }
 }
 

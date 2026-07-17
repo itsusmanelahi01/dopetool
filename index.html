@@ -411,7 +411,13 @@
           <span class="tkIcon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="3" x2="12" y2="21"/><rect x="6" y="6" width="12" height="4" rx="1"/><rect x="8" y="14" width="8" height="4" rx="1"/></svg></span>
           <span class="tkTitle">Align &amp; Distribute</span>
         </div>
-        <div class="tkSubLabel">Align to comp</div>
+        <div class="tkRow">
+          <label for="alignRef">Align to</label>
+          <select id="alignRef">
+            <option value="selection">Selection</option>
+            <option value="composition">Composition</option>
+          </select>
+        </div>
         <div class="tkAlignGrid">
           <button class="tkBtn" data-align="left">Left</button>
           <button class="tkBtn" data-align="hcenter">Center</button>
