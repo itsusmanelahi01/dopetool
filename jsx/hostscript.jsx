@@ -966,6 +966,19 @@ var DT_EXPR = {
     "  else { res = Math.max(res, value); }",
     "}",
     "res"
+  ].join("\n"),
+  // Opacity fade that stays locked to the layer's own in/out points, so
+  // trimming or extending the layer keeps the fade at the edges. Durations
+  // (in frames) come from "Fade In" / "Fade Out" slider controls.
+  linkedFade: [
+    "var f = thisComp.frameDuration;",
+    "var fi = 0, fo = 0;",
+    "try { fi = effect(\"Fade In\")(\"Slider\"); } catch (e) {}",
+    "try { fo = effect(\"Fade Out\")(\"Slider\"); } catch (e) {}",
+    "var op = 100;",
+    "if (fi > 0) op = Math.min(op, ease(time, inPoint, inPoint + fi * f, 0, 100));",
+    "if (fo > 0) op = Math.min(op, ease(time, outPoint - fo * f, outPoint, 100, 0));",
+    "op"
   ].join("\n")
 };
 
@@ -1438,6 +1451,26 @@ function _dtEase30_70(prop, kA, kB, outInf, inInf) {
   } catch (e) {}
 }
 
+// Apply (or update) an expression-linked opacity fade on one layer. The fade
+// duration lives in a "Fade In"/"Fade Out" slider control (in frames) and the
+// opacity expression ramps against the layer's own inPoint/outPoint, so the
+// fade tracks the layer edges automatically when it's trimmed or extended.
+function _dtLinkedFade(L, which, frames) {
+  try {
+    var op = L.property("Transform").property("Opacity");
+    if (!op) return false;
+    // Take over opacity: clear any baked opacity keys so the expression drives it.
+    while (op.numKeys > 0) op.removeKey(1);
+    _dtGetOrAddControl(L, "ADBE Slider Control", "Fade In", "Slider", 0);
+    _dtGetOrAddControl(L, "ADBE Slider Control", "Fade Out", "Slider", 0);
+    var ctrl = (which === "fadeOut") ? "Fade Out" : "Fade In";
+    var fx = L.property("Effects").property(ctrl);
+    if (fx) fx.property("Slider").setValue(frames);
+    op.expression = DT_EXPR.linkedFade;
+    return true;
+  } catch (e) { return false; }
+}
+
 function applyAnimPreset(cfgJson) {
   try {
     var cfg = JSON.parse(cfgJson);
@@ -1460,6 +1493,12 @@ function applyAnimPreset(cfgJson) {
     for (var i = 0; i < layers.length; i++) {
       var L = layers[i];
       try {
+        // Fades are expression-linked to the layer's in/out points, so they
+        // follow the edges when the layer is trimmed or extended.
+        if (preset === "fadeIn" || preset === "fadeOut") {
+          if (_dtLinkedFade(L, preset, wantF)) count++;
+          continue;
+        }
         // Work in whole frames so the gap is exactly the frames you set, on-grid.
         var inF = Math.round(L.inPoint * fps);
         var outF = Math.round(L.outPoint * fps);
@@ -1472,9 +1511,7 @@ function applyAnimPreset(cfgJson) {
 
         var tr = L.property("Transform");
         var prop = null, fromV, toV;
-        if (preset === "fadeIn")  { prop = tr.property("Opacity"); fromV = 0; toV = 100; }
-        else if (preset === "fadeOut") { prop = tr.property("Opacity"); fromV = 100; toV = 0; }
-        else if (preset === "scaleUp" || preset === "scaleDown") {
+        if (preset === "scaleUp" || preset === "scaleDown") {
           prop = tr.property("Scale");
           var rest = prop.value, zero = [];
           for (var z = 0; z < rest.length; z++) zero.push(0);

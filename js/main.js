@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.27.6
+// DopeTool main.js — v2.27.7
 
 var csInterface = new CSInterface();
 var currentTab = "colors";

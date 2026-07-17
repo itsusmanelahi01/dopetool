@@ -1,4 +1,7 @@
 {
+  "2.27.7": [
+    "Quick animations: Fade In / Fade Out are now linked to the layer's length via an expression — the fade rides the layer's in/out points, so if you extend or trim the layer the fade automatically stays at the start/end (durations live in \"Fade In\"/\"Fade Out\" slider controls you can tweak)"
+  ],
   "2.27.6": [
     "Align & Distribute: the \"Align to\" default now follows your selection — one layer selected defaults to Composition, two or more defaults to Selection (you can still override it manually)"
   ],
