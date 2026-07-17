@@ -1,4 +1,7 @@
 {
+  "2.27.8": [
+    "Quick animations: added a \"Fade style\" setting — Keyframes (default) drops visible fade keyframes on the timeline like before; Linked keeps the expression-based fade that rides the layer's in/out points. Pick whichever you prefer in the Toolkit ⚙ settings"
+  ],
   "2.27.7": [
     "Quick animations: Fade In / Fade Out are now linked to the layer's length via an expression — the fade rides the layer's in/out points, so if you extend or trim the layer the fade automatically stays at the start/end (durations live in \"Fade In\"/\"Fade Out\" slider controls you can tweak)"
   ],

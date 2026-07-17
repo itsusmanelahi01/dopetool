@@ -1479,6 +1479,7 @@ function applyAnimPreset(cfgJson) {
     var slideDist = (cfg.slideDist != null) ? Number(cfg.slideDist) : 200;
     var easeOut = (cfg.easeOut != null) ? Number(cfg.easeOut) : 30;
     var easeIn = (cfg.easeIn != null) ? Number(cfg.easeIn) : 70;
+    var fadeMode = (cfg.fadeMode === "linked") ? "linked" : "keyframes";
 
     var comp = _dtActiveComp();
     if (!comp) return "Error: Make a composition active first.";
@@ -1493,9 +1494,10 @@ function applyAnimPreset(cfgJson) {
     for (var i = 0; i < layers.length; i++) {
       var L = layers[i];
       try {
-        // Fades are expression-linked to the layer's in/out points, so they
-        // follow the edges when the layer is trimmed or extended.
-        if (preset === "fadeIn" || preset === "fadeOut") {
+        // "Linked" fade mode: expression-driven, tracks the layer in/out points
+        // so the fade follows the edges when the layer is trimmed or extended.
+        // (Default "keyframes" mode falls through to the visible-keyframe path.)
+        if ((preset === "fadeIn" || preset === "fadeOut") && fadeMode === "linked") {
           if (_dtLinkedFade(L, preset, wantF)) count++;
           continue;
         }
@@ -1511,7 +1513,9 @@ function applyAnimPreset(cfgJson) {
 
         var tr = L.property("Transform");
         var prop = null, fromV, toV;
-        if (preset === "scaleUp" || preset === "scaleDown") {
+        if (preset === "fadeIn")  { prop = tr.property("Opacity"); fromV = 0; toV = 100; }
+        else if (preset === "fadeOut") { prop = tr.property("Opacity"); fromV = 100; toV = 0; }
+        else if (preset === "scaleUp" || preset === "scaleDown") {
           prop = tr.property("Scale");
           var rest = prop.value, zero = [];
           for (var z = 0; z < rest.length; z++) zero.push(0);

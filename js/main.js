@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.27.7
+// DopeTool main.js — v2.27.8
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -2685,7 +2685,7 @@ function tkEval(script) {
 (function () {
   var bar = document.querySelector(".tkQuickBar");
   if (!bar) return;
-  var DEF = { durationFrames: 15, slideDist: 200, easeOut: 30, easeIn: 70 };
+  var DEF = { durationFrames: 15, slideDist: 200, easeOut: 30, easeIn: 70, fadeMode: "keyframes" };
 
   function getAnimSettings() {
     var s = {};
@@ -2694,32 +2694,36 @@ function tkEval(script) {
       durationFrames: Number(s.durationFrames) || DEF.durationFrames,
       slideDist: (s.slideDist != null) ? Number(s.slideDist) : DEF.slideDist,
       easeOut: (s.easeOut != null) ? Number(s.easeOut) : DEF.easeOut,
-      easeIn: (s.easeIn != null) ? Number(s.easeIn) : DEF.easeIn
+      easeIn: (s.easeIn != null) ? Number(s.easeIn) : DEF.easeIn,
+      fadeMode: (s.fadeMode === "linked") ? "linked" : DEF.fadeMode
     };
   }
   // Populate the settings inputs and persist on change
   var fD = document.getElementById("animDuration"),
       fS = document.getElementById("animSlideDist"),
       fEo = document.getElementById("animEaseOut"),
-      fEi = document.getElementById("animEaseIn");
+      fEi = document.getElementById("animEaseIn"),
+      fFm = document.getElementById("animFadeMode");
   var cur = getAnimSettings();
   if (fD) fD.value = cur.durationFrames;
   if (fS) fS.value = cur.slideDist;
   if (fEo) fEo.value = cur.easeOut;
   if (fEi) fEi.value = cur.easeIn;
+  if (fFm) fFm.value = cur.fadeMode;
   function saveAnimSettings() {
     var s = {
       durationFrames: parseFloat(fD && fD.value) || DEF.durationFrames,
       slideDist: parseFloat(fS && fS.value),
       easeOut: parseFloat(fEo && fEo.value),
-      easeIn: parseFloat(fEi && fEi.value)
+      easeIn: parseFloat(fEi && fEi.value),
+      fadeMode: (fFm && fFm.value === "linked") ? "linked" : "keyframes"
     };
     if (isNaN(s.slideDist)) s.slideDist = DEF.slideDist;
     if (isNaN(s.easeOut)) s.easeOut = DEF.easeOut;
     if (isNaN(s.easeIn)) s.easeIn = DEF.easeIn;
     try { localStorage.setItem("dopetool_anim_settings", JSON.stringify(s)); } catch (e) {}
   }
-  [fD, fS, fEo, fEi].forEach(function (el) { if (el) el.addEventListener("change", saveAnimSettings); });
+  [fD, fS, fEo, fEi, fFm].forEach(function (el) { if (el) el.addEventListener("change", saveAnimSettings); });
 
   // Settings toggle
   var gear = document.getElementById("tkAnimSettingsBtn");
