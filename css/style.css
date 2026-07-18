@@ -1591,55 +1591,56 @@ body {
 }
 .sortSelect:hover { border-color: #3a3a5a; color: #c8c8e0; }
 
-/* ---- Colors: swatch grid ---- */
+/* ---- Colors: compact swatch grid ---- */
 .library--grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 7px;
+  grid-template-columns: repeat(auto-fill, minmax(58px, 1fr));
+  gap: 6px;
   align-content: start;
 }
 
 .colorTile {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 6px;
-  background: var(--surface);
-  border: 1px solid var(--border-soft);
-  border-radius: 14px;
+  gap: 3px;
+  padding: 0;
+  background: transparent;
+  border: none;
   cursor: pointer;
-  transition: background 0.12s, border-color 0.12s, transform 0.08s;
+  transition: transform 0.08s;
 }
-.colorTile:hover {
-  background: var(--surface-3);
-  border-color: var(--accent);
-  transform: translateY(-2px);
-}
+.colorTile:hover { transform: translateY(-1px); }
+.colorTile:hover .colorTileSwatch { border-color: var(--accent); }
 .colorTile:active { transform: translateY(0); }
-.colorTile.isFav { border-color: #f0b23233; }
+.colorTile.isFav .colorTileSwatch { box-shadow: 0 0 0 2px #f0b23255; }
 
 .colorTileSwatch {
   position: relative;
   width: 100%;
-  height: 46px;
-  border-radius: 10px;
-  border: 1px solid rgba(255,255,255,0.08);
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.10);
   box-shadow: inset 0 0 0 1px rgba(0,0,0,0.15);
+  transition: border-color 0.12s;
 }
 
 .colorTileName {
-  font-size: 10px;
-  font-weight: 700;
-  color: #d8d8ea;
+  font-size: 8.5px;
+  font-weight: 600;
+  color: var(--text-dim);
+  line-height: 1.15;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .colorTileHex {
-  font-size: 9px;
+  font-size: 8px;
   color: var(--text-faint);
-  letter-spacing: 0.4px;
+  letter-spacing: 0.3px;
   text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ---- Favorite star ---- */

@@ -1,4 +1,7 @@
 {
+  "2.29.1": [
+    "Colors are now small swatches packed several per row (name + hex underneath) instead of big cards — takes up far less space"
+  ],
   "2.29.0": [
     "Style Library: Colors, Styles, FX and Assets now show all at once in one scroll, each under its own labelled divider with a count — no more switching tabs to see everything",
     "Each section header has its own “+ add” buttons (Capture / Color / FFX / Asset), so you add straight into the right category",
