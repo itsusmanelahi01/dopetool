@@ -1,4 +1,9 @@
 {
+  "2.29.0": [
+    "Style Library: Colors, Styles, FX and Assets now show all at once in one scroll, each under its own labelled divider with a count — no more switching tabs to see everything",
+    "Each section header has its own “+ add” buttons (Capture / Color / FFX / Asset), so you add straight into the right category",
+    "Sort applies across all sections; right-click / long-press still favourite, edit or delete an item in place"
+  ],
   "2.28.1": [
     "Auto Captions & Caption Importer: the steps are now numbered (1 File → 2 Text Style → 3 Settings) so the flow is obvious at a glance",
     "Auto Captions: dropped the redundant second status line — all feedback now shows in one place"

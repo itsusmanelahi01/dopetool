@@ -54,38 +54,25 @@
       <div id="clientViewInitial" class="clientViewInitial">C</div>
     </div>
 
-    <div class="tabs">
-      <button class="tabBtn active" data-tab="colors">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg>
-        Colors
-      </button>
-      <button class="tabBtn" data-tab="textstyles">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
-        Styles
-      </button>
-      <button class="tabBtn" data-tab="effects">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-        FX
-      </button>
-      <button class="tabBtn" data-tab="assets">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-        Assets
-      </button>
-    </div>
-
     <div id="output" class="statusBar">Ready</div>
 
-    <div class="addRow">
-      <button id="captureBtn" class="addBtn">+ Capture Layer</button>
-      <button id="manualColorBtn" class="addBtn hidden">+ Add Color</button>
-      <button id="ffxStyleToggleBtn" class="addBtn hidden">+ Add FFX Style</button>
-      <button id="ffxToggleBtn" class="addBtn hidden">+ Add FFX</button>
-      <button id="quickCaptureBtn" class="addBtn hidden">+ Quick Capture</button>
-      <button id="assetToggleBtn" class="addBtn hidden">+ Add Asset</button>
+    <div class="libToolbar">
+      <span class="libToolbarHint">Everything in this client</span>
       <select id="sortSelect" class="sortSelect" title="Sort items">
         <option value="name">A–Z</option>
         <option value="recent">Recent</option>
       </select>
+    </div>
+
+    <!-- Add buttons kept here (hidden) so their handlers stay bound; each
+         section header shows a proxy button that clicks the matching one. -->
+    <div class="legacyAdds hidden" aria-hidden="true">
+      <button id="captureBtn" class="addBtn">+ Capture Layer</button>
+      <button id="manualColorBtn" class="addBtn">+ Add Color</button>
+      <button id="ffxStyleToggleBtn" class="addBtn">+ Add FFX Style</button>
+      <button id="ffxToggleBtn" class="addBtn">+ Add FFX</button>
+      <button id="quickCaptureBtn" class="addBtn">+ Quick Capture</button>
+      <button id="assetToggleBtn" class="addBtn">+ Add Asset</button>
     </div>
 
     <div id="assetForm" class="form hidden">
@@ -171,8 +158,8 @@
       </div>
     </div>
 
-    <div id="libraryContent" class="library">Loading...</div>
-    <div id="shiftHint" class="shiftHint hidden">Click = Fill · Shift+Click = Stroke</div>
+    <div id="libraryContent" class="librarySections">Loading...</div>
+    <div id="shiftHint" class="shiftHint">Colors: Click = Fill · Shift+Click = Stroke</div>
   </div>
 
   <!-- ═══════════════════════════════════════ -->

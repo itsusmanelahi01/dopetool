@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.28.1
+// DopeTool main.js — v2.29.0
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -383,11 +383,8 @@ function openClient(clientName, color) {
   document.getElementById("clientViewInitial").innerText = clientInitial(clientName);
   document.getElementById("clientViewInitial").style.background = color;
   document.getElementById("clientView").style.setProperty("--current-client-color", color);
-  document.querySelectorAll(".tabBtn").forEach(function (b) { b.classList.remove("active"); });
-  document.querySelector('.tabBtn[data-tab="colors"]').classList.add("active");
   currentTab = "colors";
-  updateTabUI();
-  loadClientLibrary("colors");
+  loadClientLibrary();
 }
 
 document.getElementById("backBtn").addEventListener("click", function () {
@@ -430,64 +427,47 @@ document.getElementById("addClientSaveBtn").addEventListener("click", function (
     .catch(function (err) { document.getElementById("newClientName").placeholder = "Error: " + err.message; });
 });
 
-// ---- TABS ----
-document.querySelectorAll(".tabBtn").forEach(function (btn) {
-  btn.addEventListener("click", function () {
-    document.querySelectorAll(".tabBtn").forEach(function (b) { b.classList.remove("active"); });
-    btn.classList.add("active");
-    currentTab = btn.getAttribute("data-tab");
-    document.getElementById("addForm").classList.add("hidden");
-    document.getElementById("ffxForm").classList.add("hidden");
-    document.getElementById("ffxStyleForm").classList.add("hidden");
-    document.getElementById("manualColorForm").classList.add("hidden");
-    document.getElementById("assetForm").classList.add("hidden");
-    hideContextMenu();
-    updateTabUI();
-    loadClientLibrary(currentTab);
-  });
-});
+// The four library categories, shown all at once as stacked sections.
+// Each section header carries "+ add" buttons that proxy-click the (hidden)
+// real add buttons after pointing currentTab at that category.
+var LIB_SECTIONS = [
+  { cat: "colors",     title: "Colors", adds: [{ proxy: "captureBtn", label: "+ Capture" }, { proxy: "manualColorBtn", label: "+ Color" }] },
+  { cat: "textstyles", title: "Styles", adds: [{ proxy: "captureBtn", label: "+ Capture" }, { proxy: "ffxStyleToggleBtn", label: "+ FFX" }] },
+  { cat: "effects",    title: "FX",     adds: [{ proxy: "quickCaptureBtn", label: "+ Capture" }, { proxy: "ffxToggleBtn", label: "+ FFX" }] },
+  { cat: "assets",     title: "Assets", adds: [{ proxy: "assetToggleBtn", label: "+ Add" }] }
+];
+// Loaded items per category: { colors:[...], textstyles:[...], effects:[...], assets:[...] }
+var clientData = {};
 
-function updateTabUI() {
-  var isEffects = currentTab === "effects";
-  var isAnimations = currentTab === "animations";
-  var isTextStyles = currentTab === "textstyles";
-  var isAssets = currentTab === "assets";
-  var isFfxTab = isEffects || isAnimations;
-  document.getElementById("captureBtn").classList.toggle("hidden", isFfxTab || isAssets);
-  document.getElementById("ffxToggleBtn").classList.toggle("hidden", !isFfxTab);
-  document.getElementById("quickCaptureBtn").classList.toggle("hidden", !isEffects);
-  document.getElementById("ffxStyleToggleBtn").classList.toggle("hidden", !isTextStyles);
-  document.getElementById("manualColorBtn").classList.toggle("hidden", currentTab !== "colors");
-  document.getElementById("assetToggleBtn").classList.toggle("hidden", !isAssets);
-  var hint = document.getElementById("shiftHint");
-  if (currentTab === "colors") hint.classList.remove("hidden");
-  else hint.classList.add("hidden");
-}
+function updateTabUI() {} // no-op: add buttons now live in section headers
 
-// ---- LOAD CLIENT LIBRARY ----
-function loadClientLibrary(tab) {
+// ---- LOAD CLIENT LIBRARY (all categories at once) ----
+function loadClientLibrary() {
+  if (!currentClient) return;
   var contentEl = document.getElementById("libraryContent");
-  contentEl.innerHTML = '<div style="color:#333348;padding:16px;text-align:center;font-size:11px;">Loading...</div>';
-  db.collection(collectionMap[tab]).where("client", "==", currentClient).get()
-    .then(function (snapshot) {
-      currentData = [];
-      snapshot.forEach(function (doc) {
-        var data = doc.data();
-        if (data.placeholder) return;
-        currentData.push({ id: doc.id, data: data });
+  contentEl.innerHTML = '<div style="color:#333348;padding:16px;text-align:center;font-size:11px;">Loading…</div>';
+  clientData = {};
+  var cats = LIB_SECTIONS.map(function (s) { return s.cat; });
+  var pending = cats.length, failed = null;
+  cats.forEach(function (cat) {
+    db.collection(collectionMap[cat]).where("client", "==", currentClient).get()
+      .then(function (snapshot) {
+        var arr = [];
+        snapshot.forEach(function (doc) {
+          var data = doc.data();
+          if (data.placeholder) return;
+          arr.push({ id: doc.id, data: data });
+        });
+        clientData[cat] = arr;
+      })
+      .catch(function (err) { failed = err; clientData[cat] = []; })
+      .then(function () {
+        if (--pending === 0) {
+          if (failed) contentEl.innerHTML = '<div style="color:#ff5566;padding:12px;font-size:11px;">Error: ' + failed.message + '</div>';
+          else renderAllSections();
+        }
       });
-      document.getElementById("clientViewCount").innerText = currentData.length + " " + tab;
-      if (currentData.length === 0) {
-        contentEl.classList.remove("library--grid");
-        contentEl.innerHTML = '<div class="emptyState">No ' + tab + ' saved yet.<br>Use the buttons above to add.</div>';
-        return;
-      }
-      renderCurrent();
-    })
-    .catch(function (err) {
-      contentEl.classList.remove("library--grid");
-      contentEl.innerHTML = '<div style="color:#ff5566;padding:12px;font-size:11px;">Error: ' + err.message + '</div>';
-    });
+  });
 }
 
 // Sort: favorites always pinned first, then by the chosen mode.
@@ -499,11 +479,56 @@ function compareItems(a, b) {
   return an < bn ? -1 : an > bn ? 1 : 0;
 }
 
-// Re-sort and re-render the already-loaded items (no refetch).
-function renderCurrent() {
-  var sorted = currentData.slice().sort(compareItems);
-  renderItems(sorted, currentTab);
+// Build every section (divider header + grid) from the cached data.
+function renderAllSections() {
+  var contentEl = document.getElementById("libraryContent");
+  contentEl.innerHTML = "";
+  var total = 0;
+  LIB_SECTIONS.forEach(function (sec) {
+    var items = (clientData[sec.cat] || []).slice().sort(compareItems);
+    total += items.length;
+
+    var section = document.createElement("div");
+    section.className = "libSection";
+    section.setAttribute("data-cat", sec.cat);
+
+    var head = document.createElement("div");
+    head.className = "libSectionHead";
+    var addHtml = sec.adds.map(function (a) {
+      return '<button class="libAddBtn" data-proxy="' + a.proxy + '" data-cat="' + sec.cat + '">' + a.label + '</button>';
+    }).join("");
+    head.innerHTML =
+      '<span class="libSectionTitle">' + sec.title +
+      ' <span class="libSectionCount">' + items.length + '</span></span>' +
+      '<span class="libSectionAdds">' + addHtml + '</span>';
+    section.appendChild(head);
+
+    var grid = document.createElement("div");
+    grid.className = "libSectionGrid" + (sec.cat === "colors" ? " library--grid" : "");
+    if (items.length === 0) {
+      grid.innerHTML = '<div class="emptyState emptyStateSmall">Nothing here yet</div>';
+    }
+    section.appendChild(grid);
+    contentEl.appendChild(section);
+
+    if (items.length) renderItems(items, sec.cat, grid);
+  });
+  document.getElementById("clientViewCount").innerText = total + (total === 1 ? " item" : " items");
 }
+
+// Re-render everything from the cached data (used after sort changes).
+function renderCurrent() { renderAllSections(); }
+
+// Section header "+ add" proxies: point currentTab at the section, then click
+// the matching (hidden) real add button so all existing logic just works.
+document.getElementById("libraryContent").addEventListener("click", function (e) {
+  var btn = e.target.closest ? e.target.closest(".libAddBtn") : null;
+  if (!btn) return;
+  currentTab = btn.getAttribute("data-cat");
+  hideContextMenu();
+  var real = document.getElementById(btn.getAttribute("data-proxy"));
+  if (real) real.click();
+});
 
 // ---- CAPTURE ----
 document.getElementById("captureBtn").addEventListener("click", function () {
@@ -1504,7 +1529,7 @@ function autoCapRun() {
 // ---- SORT CONTROL ----
 document.getElementById("sortSelect").addEventListener("change", function () {
   currentSort = this.value;
-  if (currentData && currentData.length) renderCurrent();
+  if (currentClient) renderCurrent();
 });
 
 // ---- MANUAL COLOR ADD ----
@@ -1769,8 +1794,8 @@ function favMark(fav) {
 }
 
 // ---- RENDER ITEMS ----
-function renderItems(items, tab) {
-  var contentEl = document.getElementById("libraryContent");
+function renderItems(items, tab, targetEl) {
+  var contentEl = targetEl || document.getElementById("libraryContent");
   contentEl.innerHTML = "";
   // Colors render as a compact swatch grid; everything else as list cards.
   contentEl.classList.toggle("library--grid", tab === "colors");
@@ -1791,7 +1816,7 @@ function renderItems(items, tab) {
         '<div class="colorTileName">' + cData.name + '</div>' +
         '<div class="colorTileHex">' + cData.hex + '</div>';
       tile.addEventListener("click", makeColorHandler(cData.hex));
-      addLongPressHandler(tile, cEntry);
+      addLongPressHandler(tile, cEntry, tab);
       contentEl.appendChild(tile);
     }
     return;
@@ -1858,31 +1883,30 @@ function renderItems(items, tab) {
       if (titleEl) titleEl.insertAdjacentHTML("afterbegin", favMark(true) + " ");
     }
 
-    addLongPressHandler(card, entry);
+    addLongPressHandler(card, entry, tab);
     contentEl.appendChild(card);
   }
 }
 
 // ---- LONG PRESS (cards) ----
-function addLongPressHandler(element, entryRef) {
+function addLongPressHandler(element, entryRef, cat) {
   var timer = null;
   var didLongPress = false;
+  function openCtx(x, y) {
+    if (cat) currentTab = cat; // act on the collection this item belongs to
+    activeContextId = entryRef.id;
+    activeContextItem = entryRef.data;
+    showContextMenu(x, y);
+  }
   element.addEventListener("mousedown", function (e) {
     didLongPress = false;
-    timer = setTimeout(function () {
-      didLongPress = true;
-      activeContextId = entryRef.id;
-      activeContextItem = entryRef.data;
-      showContextMenu(e.pageX, e.pageY);
-    }, 600);
+    timer = setTimeout(function () { didLongPress = true; openCtx(e.pageX, e.pageY); }, 600);
   });
   element.addEventListener("mouseup", function () { clearTimeout(timer); });
   element.addEventListener("mouseleave", function () { clearTimeout(timer); });
   element.addEventListener("contextmenu", function (e) {
     e.preventDefault();
-    activeContextId = entryRef.id;
-    activeContextItem = entryRef.data;
-    showContextMenu(e.pageX, e.pageY);
+    openCtx(e.pageX, e.pageY);
   });
   element.addEventListener("click", function (e) {
     if (didLongPress) { e.stopImmediatePropagation(); didLongPress = false; }
