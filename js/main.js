@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.27.13
+// DopeTool main.js — v2.27.14
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -2774,11 +2774,16 @@ function tkEval(script) {
   var anchorBtns = (tkView || bar).querySelectorAll("[data-anchor]");
   for (var ai = 0; ai < anchorBtns.length; ai++) {
     anchorBtns[ai].addEventListener("click", function () {
-      var parts = this.getAttribute("data-anchor").split("-"); // h-v
-      if (typeof tkStatus === "function") tkStatus("Setting anchor…");
+      var name = this.getAttribute("data-anchor"); // "h-v"
+      var parts = name.split("-");
+      if (typeof tkStatus === "function") tkStatus("Anchor: clicked " + name + "…");
       csInterface.evalScript('setAnchor("' + parts[0] + '","' + parts[1] + '")', function (r) {
-        if (r && r.indexOf("ok:") === 0) { if (typeof tkStatus === "function") tkStatus("✓ Anchor set → " + r.split(":")[1] + " layer(s)"); }
-        else if (typeof tkStatus === "function") tkStatus(r || "Failed.");
+        if (typeof tkStatus !== "function") return;
+        if (r && r.indexOf("ok:") === 0) {
+          // r = "ok:<count>:<h-v received>:<ax,ay>"
+          var seg = r.split(":");
+          tkStatus("✓ clicked " + name + " → host got " + (seg[2] || "?") + " @ " + (seg[3] || "?"));
+        } else { tkStatus(r || "Failed."); }
       });
     });
   }

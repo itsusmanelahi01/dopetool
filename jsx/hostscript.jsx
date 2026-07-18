@@ -1505,7 +1505,7 @@ function setAnchor(h, v) {
     if (!comp) return "Error: Make a composition active first.";
     var layers = comp.selectedLayers;
     if (!layers || !layers.length) return "Error: Select one or more layers first.";
-    var t = comp.time, count = 0;
+    var t = comp.time, count = 0, dbgAx = 0, dbgAy = 0;
     app.beginUndoGroup("DopeTool: Anchor Point");
     for (var i = 0; i < layers.length; i++) {
       var L = layers[i];
@@ -1513,6 +1513,7 @@ function setAnchor(h, v) {
         var rect = L.sourceRectAtTime(t, false);
         var ax = rect.left + ((h === "left") ? 0 : (h === "right") ? rect.width : rect.width / 2);
         var ay = rect.top + ((v === "top") ? 0 : (v === "bottom") ? rect.height : rect.height / 2);
+        dbgAx = ax; dbgAy = ay;
         var anchorP = L.property("Transform").property("Anchor Point");
         var posP = L.property("Transform").property("Position");
         var scaleP = L.property("Transform").property("Scale");
@@ -1558,7 +1559,7 @@ function setAnchor(h, v) {
       } catch (eL) {}
     }
     app.endUndoGroup();
-    return count ? "ok:" + count : "Error: Couldn't set anchor (unsupported layer?).";
+    return count ? ("ok:" + count + ":" + h + "-" + v + ":" + Math.round(dbgAx) + "," + Math.round(dbgAy)) : "Error: Couldn't set anchor (unsupported layer?).";
   } catch (e) { return "Error: " + e.toString(); }
 }
 

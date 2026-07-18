@@ -1,4 +1,7 @@
 {
+  "2.27.14": [
+    "Anchor Point: added a diagnostic readout — the status bar now shows which cell you clicked and what the host received/computed, to pin down the misrouting"
+  ],
   "2.27.13": [
     "Anchor Point: each cell's dot now sits where its anchor is, so the 3×3 reads as a proper picker — and it confirms the grid is laid out correctly (the earlier \"wrong side\" clicks were the cells overlapping when the grid collapsed)"
   ],
