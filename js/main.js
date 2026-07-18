@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.28.0
+// DopeTool main.js — v2.28.1
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -854,7 +854,9 @@ var acChild = require("child_process");
 function getGroqKey() { try { return localStorage.getItem("dopetool_groq_key") || ""; } catch (e) { return ""; } }
 function getGroqModel() { try { return localStorage.getItem("dopetool_groq_model") || GROQ_LLM_DEFAULT; } catch (e) { return GROQ_LLM_DEFAULT; } }
 function acProgress(msg) { var el = document.getElementById("autoCapProgress"); if (el) el.innerText = msg; }
-function acStatus(msg) { var el = document.getElementById("autoCapStatus"); if (el) el.innerText = msg; }
+// The old separate top status bar is gone — selection feedback now shares the
+// single progress line so there's only one place to look.
+function acStatus(msg) { acProgress(msg); }
 
 // Live elapsed-time ticker for long steps (Groq gives no upload progress)
 var acTimer = null, acT0 = 0;

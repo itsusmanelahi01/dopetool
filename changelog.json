@@ -1,4 +1,8 @@
 {
+  "2.28.1": [
+    "Auto Captions & Caption Importer: the steps are now numbered (1 File → 2 Text Style → 3 Settings) so the flow is obvious at a glance",
+    "Auto Captions: dropped the redundant second status line — all feedback now shows in one place"
+  ],
   "2.28.0": [
     "New navigation — a clean left icon rail replaces the top tabs, hub screen and split/dock system. One tap jumps to any tool (Library, Toolkit, Text Anim, Captions, Auto Cap, Smoooth); the active tool is highlighted and remembered between sessions",
     "Removed the split-screen / docking system entirely for a simpler, less confusing layout — one tool fills the panel at a time",
