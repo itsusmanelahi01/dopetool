@@ -1594,8 +1594,8 @@ body {
 /* ---- Colors: compact swatch grid ---- */
 .library--grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(58px, 1fr));
-  gap: 6px;
+  grid-template-columns: repeat(auto-fill, minmax(46px, 1fr));
+  gap: 5px;
   align-content: start;
 }
 
@@ -1617,26 +1617,26 @@ body {
 .colorTileSwatch {
   position: relative;
   width: 100%;
-  height: 30px;
-  border-radius: 8px;
+  height: 22px;
+  border-radius: 6px;
   border: 1px solid rgba(255,255,255,0.10);
   box-shadow: inset 0 0 0 1px rgba(0,0,0,0.15);
   transition: border-color 0.12s;
 }
 
 .colorTileName {
-  font-size: 8.5px;
+  font-size: 8px;
   font-weight: 600;
   color: var(--text-dim);
-  line-height: 1.15;
+  line-height: 1.1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .colorTileHex {
-  font-size: 8px;
+  font-size: 7.5px;
   color: var(--text-faint);
-  letter-spacing: 0.3px;
+  letter-spacing: 0.2px;
   text-transform: uppercase;
   white-space: nowrap;
   overflow: hidden;
@@ -2089,6 +2089,22 @@ textarea:focus {
   border-bottom: 1px solid var(--border-soft);
 }
 .tkQuickSettings .tkRow label { flex: 1; }
+
+/* ---- Persistent quick dock (quick bar shown on every tab) ---- */
+#quickDock {
+  flex: 0 0 auto;
+  background: rgba(10, 12, 24, 0.45);
+  border-bottom: 1px solid var(--border);
+}
+.quickStatus {
+  padding: 3px 11px 4px;
+  font-size: 10px;
+  color: var(--text-faint);
+  min-height: 15px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 /* Hover tooltips for the quick animation bar */
 .tkQuickBtn { position: relative; }

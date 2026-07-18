@@ -1,4 +1,8 @@
 {
+  "2.30.0": [
+    "Quick animation bar (Fade / Slide / Scale / Null / Trim + settings) is now pinned to the top on every tab — always one click away no matter which tool you're in",
+    "Colors are even smaller now — tighter swatches packed more per row"
+  ],
   "2.29.1": [
     "Colors are now small swatches packed several per row (name + hex underneath) instead of big cards — takes up far less space"
   ],

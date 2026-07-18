@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.29.1
+// DopeTool main.js — v2.30.0
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -2455,12 +2455,13 @@ function tkEval(script) {
     });
   }
   var tkView = document.getElementById("toolkitView");
-  var btns = (tkView || bar).querySelectorAll("[data-preset]");
+  // Preset buttons now live in the persistent quick dock (outside toolkitView).
+  var btns = document.querySelectorAll("[data-preset]");
   for (var i = 0; i < btns.length; i++) {
     btns[i].addEventListener("click", function () { applyPreset(this.getAttribute("data-preset")); });
   }
 
-  // Anchor point 3x3 setter
+  // Anchor point 3x3 setter (still inside the Toolkit view)
   var anchorBtns = (tkView || bar).querySelectorAll("[data-anchor]");
   for (var ai = 0; ai < anchorBtns.length; ai++) {
     anchorBtns[ai].addEventListener("click", function () {
