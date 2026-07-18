@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.27.14
+// DopeTool main.js — v2.28.0
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -122,40 +122,21 @@ function clientColor(name) {
 }
 function clientInitial(name) { return name.trim().charAt(0).toUpperCase(); }
 
-// ---- VIEW NAVIGATION ----
-// Host-aware: shows viewId and hides only the OTHER views living in the same
-// pane body, so each split pane navigates independently.
-function showView(viewId) {
-  var el = document.getElementById(viewId);
-  if (!el) return;
-  var host = el.parentNode;
-  var views = ["hubView","homeView","clientView","captionView","toolkitView","smoothView","autoCapView","textAnimView"];
-  views.forEach(function (v) {
-    var e = document.getElementById(v);
-    if (e && e.parentNode === host) e.classList.toggle("hidden", v !== viewId);
-  });
-}
+// ---- VIEW NAVIGATION (one view at a time; a left rail switches tools) ----
+var ALL_VIEWS = ["homeView", "clientView", "captionView", "autoCapView", "toolkitView", "textAnimView", "smoothView"];
+var TAB_TITLES = { library: "Library", toolkit: "Toolkit", textanim: "Text Anim", captions: "Captions", autocap: "Auto Cap", smooth: "Smoooth" };
+var VIEW_TAB = { homeView: "library", clientView: "library", captionView: "captions", autoCapView: "autocap", toolkitView: "toolkit", textAnimView: "textanim", smoothView: "smooth" };
 
-// ═══════════════════════════════════════════════════════════
-// DOCK — two stacked panes: top (main) and bottom (split).
-// Each pane holds one OR MORE tabs in its own strip; a tab lives
-// in exactly one pane. The top pane's strip IS the top tab bar.
-// ═══════════════════════════════════════════════════════════
-var TAB_TITLES = { library: "Library", captions: "Captions", autocap: "Auto Captions", toolkit: "Toolkit", textanim: "Text Animations", smooth: "Smoooth" };
-var TAB_VIEWS = { library: ["homeView", "clientView"], captions: ["captionView"], autocap: ["autoCapView"], toolkit: ["toolkitView"], textanim: ["textAnimView"], smooth: ["smoothView"] };
-var ALL_VIEWS = ["hubView", "homeView", "clientView", "captionView", "autoCapView", "toolkitView", "textAnimView", "smoothView"];
-var ALL_TABS = ["library", "captions", "autocap", "toolkit", "textanim", "smooth"];
+// Rail order + icons (also defines what appears in the nav)
+var TOOLS = [
+  { tab: "library",  label: "Library",   icon: '<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5a2 2 0 0 1 2-2h11a1 1 0 0 1 1 1v13H6a2 2 0 0 0-2 2z"/><path d="M4 19a2 2 0 0 0 2 2h12"/><path d="M9 7h5"/></svg>' },
+  { tab: "toolkit",  label: "Toolkit",   icon: '<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.2L4 16.8V20h3.2l5.3-5.3a4 4 0 0 0 5.2-5.4l-2.6 2.6-2.3-.6-.6-2.3z"/></svg>' },
+  { tab: "textanim", label: "Text Anim", icon: '<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7V5h11v2"/><path d="M10.5 5v13"/><path d="M8.5 18h4"/><path d="M18 10l3 3-3 3"/></svg>' },
+  { tab: "captions", label: "Captions",  icon: '<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 12.5a2 2 0 1 0 0-1"/><path d="M14 12.5a2 2 0 1 0 0-1"/></svg>' },
+  { tab: "autocap",  label: "Auto Cap",  icon: '<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0"/><path d="M12 17v4"/><path d="M9 21h6"/></svg>' },
+  { tab: "smooth",   label: "Smoooth",   icon: '<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17c5 0 4-10 9-10s4 6 9 6"/><circle cx="3" cy="17" r="1.4" fill="currentColor" stroke="none"/><circle cx="21" cy="13" r="1.4" fill="currentColor" stroke="none"/></svg>' }
+];
 
-var panes = {
-  top:    { tabs: ["library", "captions", "autocap", "toolkit", "textanim", "smooth"], active: "library" },
-  bottom: { tabs: [], active: null }
-};
-var splitOpen = false;
-var splitRatio = 0.55;      // top pane's share of the height
-var focusedPane = "top";
-var dockDragTab = null;     // tab key currently being dragged
-
-function viewsFor(tab) { return TAB_VIEWS[tab] || []; }
 function activeViewId(tab) {
   if (tab === "library") return currentClient ? "clientView" : "homeView";
   if (tab === "captions") return "captionView";
@@ -165,13 +146,11 @@ function activeViewId(tab) {
   if (tab === "smooth") return "smoothView";
   return "homeView";
 }
-// Each tab's data is fetched ONCE (the first time it becomes visible) and then
-// left alone — switching tabs or re-docking never re-fetches or re-renders it.
+
+// Each tab's data is fetched once (first time it becomes visible) then left alone.
 var loadedTabs = {};
 function loadForTab(tab) {
-  // Smoooth's canvas must be re-drawn whenever it's shown (its size depends on
-  // the current layout) — but that's a cheap local redraw, not a data reload.
-  if (tab === "smooth" && typeof smoothDraw === "function") smoothDraw();
+  if (tab === "smooth" && typeof smoothDraw === "function") setTimeout(smoothDraw, 0);
   if (loadedTabs[tab]) return;
   loadedTabs[tab] = true;
   if (tab === "library") { if (!currentClient) loadAllClients(); }
@@ -180,322 +159,56 @@ function loadForTab(tab) {
   else if (tab === "textanim") { if (typeof loadTextAnims === "function") loadTextAnims(); }
   else if (tab === "smooth") { if (typeof loadSmoothPresets === "function") loadSmoothPresets(); }
 }
-function paneOf(tab) {
-  if (panes.top.tabs.indexOf(tab) !== -1) return "top";
-  if (panes.bottom.tabs.indexOf(tab) !== -1) return "bottom";
-  return null;
-}
-function ensureActive(pane) {
-  var p = panes[pane];
-  if (p.tabs.indexOf(p.active) === -1) p.active = p.tabs[0] || null;
-}
-function currentActiveTab() {
-  return (panes[focusedPane] && panes[focusedPane].active) || panes.top.active || "library";
-}
 
-// Activate a tab within its pane and focus that pane. This is a LIGHT update:
-// it just flips the active tab-button and shows/hides views — no DOM rebuild and
-// no data reload — so switching tabs never re-fetches or re-renders a panel.
-function activateTab(tab) {
-  var pane = paneOf(tab);
-  if (!pane) return;
-  panes[pane].active = tab;
-  focusedPane = pane;
-  refreshPaneActive(pane);
-  persistDock();
-}
+var currentTab = "library";
 
-function refreshPaneActive(pane) {
-  var p = panes[pane];
-  // active tab-button in this pane's strip
-  var strip = document.querySelector(pane === "top" ? "#topTabScroll" : '[data-strip="bottom"]');
-  if (strip) {
-    var btns = strip.querySelectorAll(".paneTabBtn");
-    for (var i = 0; i < btns.length; i++) {
-      var t = btns[i].getAttribute("data-tab");
-      btns[i].classList.toggle("active", t === p.active);
-      if (t === p.active && pane === "top") { try { btns[i].scrollIntoView({ inline: "center", block: "nearest" }); } catch (e) {} }
-    }
+// Show exactly one view, update the rail highlight, lazy-load the tab's data.
+function showView(viewId) {
+  for (var i = 0; i < ALL_VIEWS.length; i++) {
+    var e = document.getElementById(ALL_VIEWS[i]);
+    if (e) e.classList.toggle("hidden", ALL_VIEWS[i] !== viewId);
   }
-  // show only the active tab's view in this pane's body
-  var body = document.querySelector('[data-pane-body="' + pane + '"]');
-  if (body) {
-    p.tabs.forEach(function (tab) {
-      var showId = (tab === p.active) ? activeViewId(tab) : null;
-      viewsFor(tab).forEach(function (id) {
-        var el = document.getElementById(id);
-        if (el) el.classList.toggle("hidden", id !== showId);
-      });
-    });
-  }
-  // move the focus ring to this pane
-  var all = document.querySelectorAll(".dockPane");
-  for (var k = 0; k < all.length; k++) all[k].classList.toggle("focused", all[k].contains(body));
-  loadForTab(p.active);
-  if (typeof updateTopTabFades === "function") updateTopTabFades();
+  var tab = VIEW_TAB[viewId] || currentTab;
+  currentTab = tab;
+  setRailActive(tab);
+  loadForTab(tab);
+  var m = document.getElementById("appMain");
+  if (m) m.scrollTop = 0;
+  try { localStorage.setItem("dopetool_tab", tab); } catch (e) {}
 }
 
-// Move a tab into a pane (single-instance). `index` is optional insert position.
-// The top pane must always keep at least one tab; emptying the bottom closes the split.
-function moveTab(tab, dest, index) {
-  var from = paneOf(tab);
-  if (!from) return;
-  if (from === "top" && dest === "bottom" && panes.top.tabs.length <= 1) return; // top must keep a tab
-  var wasIndex = panes[from].tabs.indexOf(tab);
-  panes[from].tabs = panes[from].tabs.filter(function (t) { return t !== tab; });
-  if (typeof index !== "number") index = panes[dest].tabs.length;
-  // same-pane reorder: account for the removed slot
-  if (from === dest && wasIndex < index) index--;
-  index = Math.max(0, Math.min(index, panes[dest].tabs.length));
-  panes[dest].tabs.splice(index, 0, tab);
-  panes[dest].active = tab;
-  ensureActive(from);
-  focusedPane = dest;
-  if (dest === "bottom") splitOpen = true;
-  if (panes.bottom.tabs.length === 0) splitOpen = false;
-  buildDock();
-}
+function navTo(tab) { showView(activeViewId(tab)); }
 
-// Split button: send the CURRENT (active) tab down into a new bottom pane,
-// leaving the remaining tabs up top. Or close the split if already open.
-function openSplit() {
-  if (splitOpen && panes.bottom.tabs.length) return;
-  if (panes.top.tabs.length <= 1) return; // only one tab total — nothing to split
-  splitOpen = true;
-  moveTab(panes.top.active, "bottom");
-}
-function closeSplit() {
-  panes.bottom.tabs.slice().forEach(function (t) {
-    panes.bottom.tabs = panes.bottom.tabs.filter(function (x) { return x !== t; });
-    panes.top.tabs.push(t);
-  });
-  panes.bottom.active = null;
-  splitOpen = false;
-  focusedPane = "top";
-  ensureActive("top");
-  buildDock();
-}
-
-// ---- Render ----
-function buildDock() {
-  var root = document.getElementById("dockRoot");
-  var limbo = document.getElementById("dockLimbo");
-  if (!root || !limbo) return;
-  ensureActive("top"); ensureActive("bottom");
-  if (panes.bottom.tabs.length === 0) splitOpen = false;
-  // Park all views in limbo so clearing dockRoot doesn't destroy them
-  for (var i = 0; i < ALL_VIEWS.length; i++) { var el = document.getElementById(ALL_VIEWS[i]); if (el) limbo.appendChild(el); }
-  root.innerHTML = "";
-
-  var topPane = makePaneEl("top", false);
-  root.appendChild(topPane);
-
-  if (splitOpen && panes.bottom.tabs.length) {
-    var divider = document.createElement("div");
-    divider.className = "dockDivider dockDivHorz";
-    root.appendChild(divider);
-    var bottomPane = makePaneEl("bottom", true);
-    root.appendChild(bottomPane);
-    topPane.style.flex = "1 1 " + (splitRatio * 100) + "%";
-    bottomPane.style.flex = "1 1 " + ((1 - splitRatio) * 100) + "%";
-    setupDividerDrag(divider, root, topPane, bottomPane);
-  } else {
-    topPane.style.flex = "1 1 auto";
-  }
-
-  renderTopStrip();
-  placeViews();
-  persistDock();
-}
-
-function persistDock() {
-  try { localStorage.setItem("dopetool_dock2", JSON.stringify({ panes: panes, splitOpen: splitOpen, ratio: splitRatio, focused: focusedPane })); } catch (e) {}
-}
-
-// A pane element: (optional strip +) body. The top pane's strip lives in the
-// top tab bar, so top panes render body-only here.
-function makePaneEl(pane, withStrip) {
-  var el = document.createElement("div");
-  el.className = "dockPane" + (focusedPane === pane ? " focused" : "");
-  // Focus on mousedown, but WITHOUT a full rebuild (that would destroy the
-  // element being clicked before its click event fires).
-  el.addEventListener("mousedown", function () {
-    if (focusedPane === pane) return;
-    focusedPane = pane;
-    var others = document.querySelectorAll(".dockPane");
-    for (var k = 0; k < others.length; k++) others[k].classList.remove("focused");
-    el.classList.add("focused");
-    persistDock();
-  });
-  if (withStrip) el.appendChild(makePaneStrip(pane));
-  var body = document.createElement("div");
-  body.className = "dockPaneBody paneBody";
-  body.setAttribute("data-pane-body", pane);
-  el.appendChild(body);
-  return el;
-}
-
-function makeTabBtn(pane, tab) {
-  var b = document.createElement("button");
-  b.className = "paneTabBtn" + (panes[pane].active === tab ? " active" : "");
-  b.setAttribute("data-tab", tab);
-  b.setAttribute("draggable", "true");
-  b.textContent = TAB_TITLES[tab] || tab;
-  b.addEventListener("click", function () { activateTab(tab); });
-  b.addEventListener("dragstart", function (e) {
-    dockDragTab = tab; b.classList.add("dragging");
-    try { e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", tab); } catch (err) {}
-  });
-  b.addEventListener("dragend", function () { b.classList.remove("dragging"); dockDragTab = null; });
-  return b;
-}
-
-// "+" button: pull a tab out of the OTHER pane into this one. The menu is
-// rendered into <body> (fixed-positioned) so the scrolling strip can't clip it.
-function closeAddMenu() {
-  var m = document.getElementById("activeAddMenu");
-  if (m && m.parentNode) m.parentNode.removeChild(m);
-}
-function makeAddBtn(pane) {
-  var other = pane === "top" ? "bottom" : "top";
-  var btn = document.createElement("button");
-  btn.className = "paneAddBtn";
-  btn.innerHTML = "+";
-  btn.title = "Add a tab to this panel";
-  btn.addEventListener("click", function (e) {
-    e.stopPropagation();
-    var open = document.getElementById("activeAddMenu");
-    closeAddMenu();
-    if (open) return; // toggle off if it was already showing
-    var menu = document.createElement("div");
-    menu.className = "paneAddMenu"; menu.id = "activeAddMenu";
-    panes[other].tabs.forEach(function (tab) {
-      if (other === "top" && panes.top.tabs.length <= 1) return; // can't empty the top pane
-      var it = document.createElement("div");
-      it.className = "paneAddItem";
-      it.textContent = TAB_TITLES[tab] || tab;
-      it.addEventListener("click", function (ev) { ev.stopPropagation(); closeAddMenu(); moveTab(tab, pane); });
-      menu.appendChild(it);
-    });
-    if (!menu.children.length) return;
-    document.body.appendChild(menu);
-    var r = btn.getBoundingClientRect();
-    menu.style.left = Math.max(4, Math.min(r.left, window.innerWidth - menu.offsetWidth - 4)) + "px";
-    menu.style.top = (pane === "top") ? (r.bottom + 2) + "px" : (r.top - menu.offsetHeight - 2) + "px";
-  });
-  return btn;
-}
-
-function stripCanPull(pane) {
-  var other = pane === "top" ? "bottom" : "top";
-  return other === "top" ? panes.top.tabs.length > 1 : panes.bottom.tabs.length > 0;
-}
-
-// The bottom pane's own strip.
-function makePaneStrip(pane) {
-  var strip = document.createElement("div");
-  strip.className = "paneStrip";
-  strip.setAttribute("data-strip", pane);
-  panes[pane].tabs.forEach(function (tab) { strip.appendChild(makeTabBtn(pane, tab)); });
-  if (stripCanPull(pane)) strip.appendChild(makeAddBtn(pane));
-  var spacer = document.createElement("div"); spacer.className = "paneStripSpacer"; strip.appendChild(spacer);
-  var close = document.createElement("button");
-  close.className = "paneStripClose"; close.innerHTML = "&times;"; close.title = "Close split";
-  close.addEventListener("click", function (e) { e.stopPropagation(); closeSplit(); });
-  strip.appendChild(close);
-  setupStripDrop(strip, pane);
-  return strip;
-}
-
-// The top tab bar acts as the top pane's strip.
-function renderTopStrip() {
-  var strip = document.getElementById("topTabScroll");
-  if (!strip) return;
-  strip.innerHTML = "";
-  panes.top.tabs.forEach(function (tab) { strip.appendChild(makeTabBtn("top", tab)); });
-  if (stripCanPull("top")) strip.appendChild(makeAddBtn("top"));
-  setupStripDrop(strip, "top");
-  var act = strip.querySelector(".paneTabBtn.active");
-  if (act) { try { act.scrollIntoView({ inline: "center", block: "nearest" }); } catch (e) {} }
-  if (typeof updateTopTabFades === "function") updateTopTabFades();
-}
-
-function placeViews() {
-  ["top", "bottom"].forEach(function (pane) {
-    var body = document.querySelector('[data-pane-body="' + pane + '"]');
-    if (!body) return;
-    var p = panes[pane];
-    p.tabs.forEach(function (tab) {
-      var showId = (tab === p.active) ? activeViewId(tab) : null;
-      viewsFor(tab).forEach(function (id) {
-        var el = document.getElementById(id);
-        if (el) { body.appendChild(el); el.classList.toggle("hidden", id !== showId); }
-      });
-    });
-    if (p.active) loadForTab(p.active);
-  });
-}
-
-// ---- Drop a dragged tab onto a strip (move it into that pane / reorder) ----
-function setupStripDrop(strip, pane) {
-  strip.addEventListener("dragover", function (e) {
-    if (!dockDragTab) return;
-    e.preventDefault();
-    strip.classList.add("stripDrop");
-  });
-  strip.addEventListener("dragleave", function (e) { if (e.target === strip) strip.classList.remove("stripDrop"); });
-  strip.addEventListener("drop", function (e) {
-    if (!dockDragTab) return;
-    e.preventDefault(); e.stopPropagation();
-    strip.classList.remove("stripDrop");
-    moveTab(dockDragTab, pane, dropIndex(strip, e.clientX));
-    dockDragTab = null;
-  });
-}
-function dropIndex(strip, x) {
-  var btns = strip.querySelectorAll(".paneTabBtn");
+function setRailActive(tab) {
+  var wrap = document.getElementById("appRailTabs");
+  if (!wrap) return;
+  var btns = wrap.querySelectorAll(".railBtn");
   for (var i = 0; i < btns.length; i++) {
-    var r = btns[i].getBoundingClientRect();
-    if (x < r.left + r.width / 2) return i;
+    btns[i].classList.toggle("active", btns[i].getAttribute("data-tab") === tab);
   }
-  return btns.length;
 }
 
-// ---- Divider resize (vertical) ----
-function setupDividerDrag(divider, container, topEl, bottomEl) {
-  divider.addEventListener("mousedown", function (e) {
-    e.preventDefault();
-    document.body.style.userSelect = "none";
-    function onMove(ev) {
-      var rect = container.getBoundingClientRect();
-      var ratio = (ev.clientY - rect.top) / rect.height;
-      ratio = Math.max(0.15, Math.min(0.85, ratio));
-      splitRatio = ratio;
-      topEl.style.flex = "1 1 " + (ratio * 100) + "%";
-      bottomEl.style.flex = "1 1 " + ((1 - ratio) * 100) + "%";
-      if (typeof smoothDraw === "function") smoothDraw();
-    }
-    function onUp() {
-      document.removeEventListener("mousemove", onMove);
-      document.removeEventListener("mouseup", onUp);
-      document.body.style.userSelect = "";
-      persistDock();
-    }
-    document.addEventListener("mousemove", onMove);
-    document.addEventListener("mouseup", onUp);
+function renderRail() {
+  var wrap = document.getElementById("appRailTabs");
+  if (!wrap) return;
+  wrap.innerHTML = "";
+  TOOLS.forEach(function (t) {
+    var b = document.createElement("button");
+    b.className = "railBtn";
+    b.setAttribute("data-tab", t.tab);
+    b.title = t.label;
+    b.innerHTML = t.icon + '<span class="railLabel">' + t.label + '</span>';
+    b.addEventListener("click", function () { navTo(t.tab); });
+    wrap.appendChild(b);
   });
 }
 
-// ---- TOOL HUB ----
-document.getElementById("openLibraryBtn").addEventListener("click", function () {
-  showView("homeView");
-  loadAllClients();
-});
-
-document.getElementById("openCaptionBtn").addEventListener("click", function () {
-  showView("captionView");
-  loadCaptionStyles();
-});
+// ---- Compatibility shims: old dock/tab API is gone, keep old callers working ----
+function activateTab(tab) { navTo(tab); }
+function switchTopTab(tab) { navTo(tab); }
+function currentActiveTab() { return currentTab; }
+function buildDock() {}
+function updateTopTabFades() {}
 
 
 // ---- LOAD ALL CLIENTS ----
@@ -2339,7 +2052,7 @@ function finishUpdate(newVersion, banner, failed) {
 window.addEventListener("DOMContentLoaded", function () {
   showVersion();
   setTimeout(checkForUpdate, 1000);
-  loadAllClients();
+  // The rail nav already loads the starting tab's data (loadForTab).
 });
 
 // ---- FONT AUTO-INSTALLATION ----
@@ -2507,64 +2220,15 @@ function ensureFontInstalled(fontName, familyName, onReady) {
   });
 }
 
-// ---- PERSISTENT TOP TAB BAR NAVIGATION ----
-function switchTopTab(tab) { activateTab(tab); }
-
-// Toggle the left/right edge fades based on scroll position
-function updateTopTabFades() {
-  var strip = document.getElementById("topTabScroll");
-  var bar = document.getElementById("topTabBar");
-  if (!strip || !bar) return;
-  var maxScroll = strip.scrollWidth - strip.clientWidth;
-  bar.classList.toggle("moreLeft", strip.scrollLeft > 2);
-  bar.classList.toggle("moreRight", strip.scrollLeft < maxScroll - 2);
-}
-
+// ---- LEFT RAIL NAVIGATION ----
 (function () {
-  // Restore saved layout (validate: every tab present exactly once, top non-empty)
+  renderRail();
+  var start = "library";
   try {
-    var saved = JSON.parse(localStorage.getItem("dopetool_dock2") || "null");
-    if (saved && saved.panes && saved.panes.top && saved.panes.bottom) {
-      var seen = {}, ok = true;
-      ["top", "bottom"].forEach(function (p) {
-        (saved.panes[p].tabs || []).forEach(function (t) { if (seen[t] || TAB_TITLES[t] === undefined) ok = false; seen[t] = 1; });
-      });
-      var allThere = ALL_TABS.every(function (t) { return seen[t]; });
-      if (ok && allThere && saved.panes.top.tabs.length >= 1) {
-        panes = saved.panes;
-        splitOpen = !!saved.splitOpen && panes.bottom.tabs.length > 0;
-        splitRatio = saved.ratio || 0.55;
-        focusedPane = (saved.focused === "bottom" && panes.bottom.tabs.length) ? "bottom" : "top";
-      }
-    }
+    var saved = localStorage.getItem("dopetool_tab");
+    if (saved && TAB_TITLES[saved]) start = saved;
   } catch (e) {}
-
-  // Split button: open a bottom pane (or close it if already split)
-  var splitBtn = document.getElementById("splitBtn");
-  if (splitBtn) {
-    splitBtn.title = "Split — show a second panel below";
-    splitBtn.addEventListener("click", function () { if (splitOpen) closeSplit(); else openSplit(); });
-  }
-
-  var strip = document.getElementById("topTabScroll");
-  if (strip) {
-    // Mouse wheel steps the top pane through its own tabs
-    strip.addEventListener("wheel", function (e) {
-      e.preventDefault();
-      var list = panes.top.tabs;
-      var i = list.indexOf(panes.top.active);
-      var dir = (e.deltaY || e.deltaX) > 0 ? 1 : -1;
-      var ni = i + dir;
-      if (ni >= 0 && ni < list.length) activateTab(list[ni]);
-    });
-    strip.addEventListener("scroll", updateTopTabFades);
-    window.addEventListener("resize", updateTopTabFades);
-  }
-
-  // Close any open "+" add-menu when clicking elsewhere
-  document.addEventListener("click", closeAddMenu);
-
-  buildDock();
+  navTo(start);
 })();
 
 // ---- TOOLKIT (comp & layer utilities) ----

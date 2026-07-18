@@ -1,4 +1,9 @@
 {
+  "2.28.0": [
+    "New navigation — a clean left icon rail replaces the top tabs, hub screen and split/dock system. One tap jumps to any tool (Library, Toolkit, Text Anim, Captions, Auto Cap, Smoooth); the active tool is highlighted and remembered between sessions",
+    "Removed the split-screen / docking system entirely for a simpler, less confusing layout — one tool fills the panel at a time",
+    "The whole panel now feels more consistent and accessible, especially in a small window"
+  ],
   "2.27.14": [
     "Anchor Point: added a diagnostic readout — the status bar now shows which cell you clicked and what the host received/computed, to pin down the misrouting"
   ],
