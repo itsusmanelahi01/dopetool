@@ -2022,8 +2022,8 @@ textarea:focus {
 .tkSearch::placeholder { color: var(--text-faint); }
 .tkSearch:focus { border-color: var(--accent); box-shadow: var(--ring); }
 
-/* Header is the click target; chevron shows open/closed state */
-.tkHeader { cursor: pointer; user-select: none; }
+/* Sections expand on hover; chevron shows open/closed state */
+.tkHeader { cursor: default; user-select: none; }
 .tkHeader::after {
   content: "";
   margin-left: auto;

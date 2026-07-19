@@ -1,4 +1,7 @@
 {
+  "2.30.3": [
+    "Toolkit tools are now compact single rows that expand on hover — collapsed by default to save space, hover a tool to use it, move away and it tucks back. Search still opens matching tools."
+  ],
   "2.30.2": [
     "Toolkit tools are now all expanded by default — no clicking to open each one (search still filters; click a header to collapse one if you want)",
     "Fixed the quick-bar settings icon — it's a proper gear now instead of looking like a brightness icon"

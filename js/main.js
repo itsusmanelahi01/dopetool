@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.30.2
+// DopeTool main.js — v2.30.3
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -2356,33 +2356,36 @@ function tkEval(script) {
   });
 })();
 
-// ---- TOOLKIT sections: all open by default + search ----
+// ---- TOOLKIT sections: closed by default, expand on hover + search ----
 (function () {
   var body = document.querySelector(".toolkitBody");
   if (!body) return;
   var sections = Array.prototype.slice.call(body.querySelectorAll(".tkSection"));
   if (!sections.length) return;
+  var searching = false;
 
   sections.forEach(function (sec) {
     var t = sec.querySelector(".tkTitle");
     sec.setAttribute("data-tool", (t ? t.textContent : "").toLowerCase());
-    sec.classList.remove("collapsed"); // every tool open by default — no click needed
-    var head = sec.querySelector(".tkHeader");
-    // Header click still lets you collapse/expand an individual tool if you want.
-    if (head) head.addEventListener("click", function () { sec.classList.toggle("collapsed"); });
+    sec.classList.add("collapsed"); // compact by default — just the header row
+    // Hover reveals the full tool; leaving collapses it again (unless searching).
+    sec.addEventListener("mouseenter", function () { sec.classList.remove("collapsed"); });
+    sec.addEventListener("mouseleave", function () { if (!searching) sec.classList.add("collapsed"); });
   });
 
   var search = document.getElementById("tkSearch");
   if (search) search.addEventListener("input", function () {
     var q = (this.value || "").toLowerCase().replace(/^\s+|\s+$/g, "");
+    searching = !!q;
     if (!q) {
-      sections.forEach(function (s) { s.classList.remove("tkHiddenSearch"); s.classList.remove("collapsed"); });
+      // back to hover mode: hide nothing, collapse everything
+      sections.forEach(function (s) { s.classList.remove("tkHiddenSearch"); s.classList.add("collapsed"); });
       return;
     }
     sections.forEach(function (s) {
       var hit = s.getAttribute("data-tool").indexOf(q) !== -1;
       s.classList.toggle("tkHiddenSearch", !hit);
-      s.classList.toggle("collapsed", !hit); // show matches expanded, hide the rest
+      s.classList.toggle("collapsed", !hit); // matches stay open, rest collapsed/hidden
     });
   });
 })();
