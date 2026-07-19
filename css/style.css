@@ -2025,8 +2025,11 @@ textarea:focus {
 .tkSearch::placeholder { color: var(--text-faint); }
 .tkSearch:focus { border-color: var(--accent); box-shadow: var(--ring); }
 
-/* Sections expand on hover; chevron shows open/closed state */
-.tkHeader { cursor: default; user-select: none; }
+/* Sections expand on hover; header is the drag handle for reordering */
+.tkHeader { cursor: grab; user-select: none; }
+.tkSection.tkDragging { opacity: 0.4; }
+.tkSection.tkDragging .tkHeader { cursor: grabbing; }
+.tkSection.tkDropInto { box-shadow: inset 0 3px 0 0 var(--accent); }
 .tkHeader::after {
   content: "";
   margin-left: auto;

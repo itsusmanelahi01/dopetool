@@ -1,4 +1,7 @@
 {
+  "2.30.6": [
+    "Toolkit tools are now reorderable too — drag a tool's header up or down to arrange them, and the order is remembered"
+  ],
   "2.30.5": [
     "You can now reorder the sidebar tools — drag a tool up or down in the left rail to put your most-used ones on top. Your order is remembered."
   ],

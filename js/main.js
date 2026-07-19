@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.30.5
+// DopeTool main.js — v2.30.6
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -2419,21 +2419,66 @@ function tkEval(script) {
   });
 })();
 
-// ---- TOOLKIT sections: closed by default, expand on hover + search ----
+// ---- TOOLKIT sections: closed by default, expand on hover + search + reorder ----
 (function () {
   var body = document.querySelector(".toolkitBody");
   if (!body) return;
   var sections = Array.prototype.slice.call(body.querySelectorAll(".tkSection"));
   if (!sections.length) return;
   var searching = false;
+  var tkDragSec = null;
 
+  // Give each section a stable key, then apply the user's saved order.
   sections.forEach(function (sec) {
     var t = sec.querySelector(".tkTitle");
     sec.setAttribute("data-tool", (t ? t.textContent : "").toLowerCase());
+  });
+  function persistToolkitOrder() {
+    var keys = Array.prototype.slice.call(body.querySelectorAll(".tkSection"))
+      .map(function (s) { return s.getAttribute("data-tool"); });
+    try { localStorage.setItem("dopetool_tk_order", JSON.stringify(keys)); } catch (e) {}
+  }
+  (function applySavedOrder() {
+    var saved = [];
+    try { saved = JSON.parse(localStorage.getItem("dopetool_tk_order") || "[]"); } catch (e) {}
+    if (!saved.length) return;
+    var byKey = {};
+    sections.forEach(function (s) { byKey[s.getAttribute("data-tool")] = s; });
+    saved.forEach(function (k) { if (byKey[k]) { body.appendChild(byKey[k]); delete byKey[k]; } });
+    // any sections not in the saved list keep their place at the end
+    sections.forEach(function (s) { if (byKey[s.getAttribute("data-tool")]) body.appendChild(s); });
+  })();
+
+  sections.forEach(function (sec) {
     sec.classList.add("collapsed"); // compact by default — just the header row
     // Hover reveals the full tool; leaving collapses it again (unless searching).
     sec.addEventListener("mouseenter", function () { sec.classList.remove("collapsed"); });
     sec.addEventListener("mouseleave", function () { if (!searching) sec.classList.add("collapsed"); });
+
+    // Drag the header to reorder tools; drop onto another to insert before it.
+    var head = sec.querySelector(".tkHeader");
+    if (head) head.setAttribute("draggable", "true");
+    if (head) head.addEventListener("dragstart", function (e) {
+      tkDragSec = sec; sec.classList.add("tkDragging");
+      try { e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", sec.getAttribute("data-tool")); } catch (x) {}
+    });
+    if (head) head.addEventListener("dragend", function () {
+      sec.classList.remove("tkDragging"); tkDragSec = null;
+      for (var i = 0; i < sections.length; i++) sections[i].classList.remove("tkDropInto");
+    });
+    sec.addEventListener("dragover", function (e) {
+      if (!tkDragSec || tkDragSec === sec) return;
+      e.preventDefault();
+      sec.classList.add("tkDropInto");
+    });
+    sec.addEventListener("dragleave", function (e) { if (e.target === sec || !sec.contains(e.relatedTarget)) sec.classList.remove("tkDropInto"); });
+    sec.addEventListener("drop", function (e) {
+      if (!tkDragSec || tkDragSec === sec) return;
+      e.preventDefault();
+      sec.classList.remove("tkDropInto");
+      body.insertBefore(tkDragSec, sec); // drop before the target section
+      persistToolkitOrder();
+    });
   });
 
   var search = document.getElementById("tkSearch");
