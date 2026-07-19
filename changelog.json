@@ -1,4 +1,7 @@
 {
+  "2.30.7": [
+    "Toolkit tools now expand and collapse with a smooth height animation on hover instead of snapping open"
+  ],
   "2.30.6": [
     "Toolkit tools are now reorderable too — drag a tool's header up or down to arrange them, and the order is remembered"
   ],

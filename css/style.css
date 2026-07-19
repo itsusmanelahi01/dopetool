@@ -1705,12 +1705,23 @@ body {
 .tkSection {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 0;
   background: var(--surface);
   border: 1px solid var(--border-soft);
   border-left: 3px solid var(--tk-accent, var(--accent));
   border-radius: 13px;
   padding: 8px 10px;
+}
+/* Animatable body wrapper: smoothly expands/collapses on hover */
+.tkSectionBody {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 6px; /* constant; clipped by max-height when collapsed */
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 0.24s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.18s ease;
 }
 .tkLabel {
   font-size: 10px;
@@ -1901,13 +1912,8 @@ textarea:focus {
 .statusBar { padding: 3px 11px; min-height: 18px; }
 
 /* Collapse verbose Toolkit descriptions — reveal on hover of the tool */
-.tkNote {
-  max-height: 0;
-  overflow: hidden;
-  opacity: 0;
-  transition: max-height 0.18s ease, opacity 0.15s ease;
-}
-.tkSection:hover .tkNote { max-height: 64px; opacity: 1; }
+/* Note is part of the section body flow (the body wrapper animates open). */
+.tkSection .tkNote { opacity: 0.85; }
 
 /* Tighter section labels everywhere */
 .captionLabel,
@@ -2044,9 +2050,7 @@ textarea:focus {
 .tkSection.collapsed .tkHeader::after { transform: rotate(-45deg); }
 .tkSection:hover .tkHeader::after { border-color: var(--text-dim); }
 
-/* Collapsed: keep only the header row visible */
-.tkSection.collapsed > :not(.tkHeader) { display: none; }
-.tkSection.collapsed { padding-top: 9px; padding-bottom: 9px; }
+/* Collapsed: the .tkSectionBody wrapper animates its height (see above) */
 
 /* Hidden by search */
 .tkSection.tkHiddenSearch { display: none; }

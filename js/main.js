@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.30.6
+// DopeTool main.js — v2.30.7
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -2428,11 +2428,32 @@ function tkEval(script) {
   var searching = false;
   var tkDragSec = null;
 
-  // Give each section a stable key, then apply the user's saved order.
+  // Give each section a stable key + wrap its body so it can animate open/closed.
   sections.forEach(function (sec) {
     var t = sec.querySelector(".tkTitle");
     sec.setAttribute("data-tool", (t ? t.textContent : "").toLowerCase());
+    var head = sec.querySelector(".tkHeader");
+    var wrap = document.createElement("div");
+    wrap.className = "tkSectionBody";
+    var kids = Array.prototype.slice.call(sec.children);
+    kids.forEach(function (k) { if (k !== head) wrap.appendChild(k); });
+    sec.appendChild(wrap);
   });
+
+  // Smoothly expand/collapse by animating the wrapper's measured height.
+  function setExpanded(sec, on) {
+    var b = sec.querySelector(".tkSectionBody");
+    if (!b) return;
+    if (on) {
+      sec.classList.remove("collapsed");
+      b.style.maxHeight = (b.scrollHeight + 8) + "px"; // small buffer avoids clipping
+      b.style.opacity = "1";
+    } else {
+      sec.classList.add("collapsed");
+      b.style.maxHeight = "0px";
+      b.style.opacity = "0";
+    }
+  }
   function persistToolkitOrder() {
     var keys = Array.prototype.slice.call(body.querySelectorAll(".tkSection"))
       .map(function (s) { return s.getAttribute("data-tool"); });
@@ -2452,8 +2473,8 @@ function tkEval(script) {
   sections.forEach(function (sec) {
     sec.classList.add("collapsed"); // compact by default — just the header row
     // Hover reveals the full tool; leaving collapses it again (unless searching).
-    sec.addEventListener("mouseenter", function () { sec.classList.remove("collapsed"); });
-    sec.addEventListener("mouseleave", function () { if (!searching) sec.classList.add("collapsed"); });
+    sec.addEventListener("mouseenter", function () { setExpanded(sec, true); });
+    sec.addEventListener("mouseleave", function () { if (!searching) setExpanded(sec, false); });
 
     // Drag the header to reorder tools; drop onto another to insert before it.
     var head = sec.querySelector(".tkHeader");
@@ -2487,13 +2508,13 @@ function tkEval(script) {
     searching = !!q;
     if (!q) {
       // back to hover mode: hide nothing, collapse everything
-      sections.forEach(function (s) { s.classList.remove("tkHiddenSearch"); s.classList.add("collapsed"); });
+      sections.forEach(function (s) { s.classList.remove("tkHiddenSearch"); setExpanded(s, false); });
       return;
     }
     sections.forEach(function (s) {
       var hit = s.getAttribute("data-tool").indexOf(q) !== -1;
       s.classList.toggle("tkHiddenSearch", !hit);
-      s.classList.toggle("collapsed", !hit); // matches stay open, rest collapsed/hidden
+      setExpanded(s, hit); // matches open smoothly, rest collapse/hide
     });
   });
 })();
