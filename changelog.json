@@ -1,4 +1,7 @@
 {
+  "2.30.5": [
+    "You can now reorder the sidebar tools — drag a tool up or down in the left rail to put your most-used ones on top. Your order is remembered."
+  ],
   "2.30.4": [
     "Slimmer side navigation — the left rail is now thinner and more compact, leaving more room for the tools when the panel is docked vertically on the side"
   ],

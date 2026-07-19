@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.30.4
+// DopeTool main.js — v2.30.5
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -188,17 +188,80 @@ function setRailActive(tab) {
   }
 }
 
+// User-customizable rail order (drag to reorder), persisted in localStorage.
+// New tools not present in a saved order are appended so nothing disappears.
+function railOrder() {
+  var saved = [];
+  try { saved = JSON.parse(localStorage.getItem("dopetool_rail_order") || "[]"); } catch (e) {}
+  var byTab = {};
+  TOOLS.forEach(function (t) { byTab[t.tab] = t; });
+  var out = [], seen = {};
+  saved.forEach(function (tab) { if (byTab[tab] && !seen[tab]) { out.push(byTab[tab]); seen[tab] = 1; } });
+  TOOLS.forEach(function (t) { if (!seen[t.tab]) out.push(t); });
+  return out;
+}
+function saveRailOrder(list) {
+  try { localStorage.setItem("dopetool_rail_order", JSON.stringify(list.map(function (t) { return t.tab; }))); } catch (e) {}
+}
+function indexOfTab(list, tab) {
+  for (var i = 0; i < list.length; i++) if (list[i].tab === tab) return i;
+  return -1;
+}
+var railDragTab = null;
+function reorderRail(dragTab, beforeTab) {
+  if (dragTab === beforeTab) return;
+  var order = railOrder();
+  var di = indexOfTab(order, dragTab);
+  if (di < 0) return;
+  var moved = order.splice(di, 1)[0];
+  var ti = (beforeTab == null) ? order.length : indexOfTab(order, beforeTab);
+  if (ti < 0) ti = order.length;
+  order.splice(ti, 0, moved);
+  saveRailOrder(order);
+  renderRail();
+  setRailActive(currentTab);
+}
+
 function renderRail() {
   var wrap = document.getElementById("appRailTabs");
   if (!wrap) return;
   wrap.innerHTML = "";
-  TOOLS.forEach(function (t) {
+  railOrder().forEach(function (t) {
     var b = document.createElement("button");
     b.className = "railBtn";
     b.setAttribute("data-tab", t.tab);
-    b.title = t.label;
+    b.setAttribute("draggable", "true");
+    b.title = t.label + " — drag to reorder";
     b.innerHTML = t.icon + '<span class="railLabel">' + t.label + '</span>';
-    b.addEventListener("click", function () { navTo(t.tab); });
+    b.addEventListener("click", function () {
+      if (b.getAttribute("data-just-dragged")) return; // ignore the click after a drag
+      navTo(t.tab);
+    });
+    b.addEventListener("dragstart", function (e) {
+      railDragTab = t.tab;
+      b.classList.add("railDragging");
+      try { e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", t.tab); } catch (x) {}
+    });
+    b.addEventListener("dragend", function () {
+      b.classList.remove("railDragging");
+      railDragTab = null;
+      var all = wrap.querySelectorAll(".railBtn");
+      for (var i = 0; i < all.length; i++) all[i].classList.remove("railDropInto");
+      b.setAttribute("data-just-dragged", "1");
+      setTimeout(function () { b.removeAttribute("data-just-dragged"); }, 60);
+    });
+    b.addEventListener("dragover", function (e) {
+      if (!railDragTab || railDragTab === t.tab) return;
+      e.preventDefault();
+      b.classList.add("railDropInto");
+    });
+    b.addEventListener("dragleave", function () { b.classList.remove("railDropInto"); });
+    b.addEventListener("drop", function (e) {
+      if (!railDragTab) return;
+      e.preventDefault();
+      b.classList.remove("railDropInto");
+      reorderRail(railDragTab, t.tab); // insert dragged button before this one
+    });
     wrap.appendChild(b);
   });
 }
