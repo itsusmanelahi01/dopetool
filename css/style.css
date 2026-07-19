@@ -49,12 +49,12 @@ body {
   flex-direction: row;
 }
 #appRail {
-  flex: 0 0 58px;
+  flex: 0 0 42px;
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 2px;
-  padding: 8px 6px;
+  gap: 1px;
+  padding: 5px 3px;
   background: rgba(10, 12, 24, 0.55);
   border-right: 1px solid var(--border);
   overflow-y: auto;
@@ -62,41 +62,41 @@ body {
 }
 .railBrand {
   flex: 0 0 auto;
-  height: 34px;
+  height: 26px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 800;
-  font-size: 17px;
-  letter-spacing: 0.5px;
+  font-size: 13px;
+  letter-spacing: 0.3px;
   color: #fff;
   background: var(--accent-grad, var(--accent));
-  border-radius: 11px;
-  margin-bottom: 8px;
-  box-shadow: 0 4px 14px rgba(81, 112, 255, 0.35);
+  border-radius: 8px;
+  margin-bottom: 5px;
+  box-shadow: 0 3px 10px rgba(81, 112, 255, 0.3);
 }
-.railTabs { flex: 1 1 auto; display: flex; flex-direction: column; gap: 3px; }
+.railTabs { flex: 1 1 auto; display: flex; flex-direction: column; gap: 2px; }
 .railBtn {
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
-  padding: 8px 2px 6px;
+  gap: 2px;
+  padding: 5px 0 4px;
   border: 1px solid transparent;
-  border-radius: 11px;
+  border-radius: 8px;
   background: transparent;
   color: var(--text-dim);
   cursor: pointer;
   transition: background .12s, color .12s, border-color .12s;
 }
-.railBtn svg { display: block; }
+.railBtn svg { display: block; width: 17px; height: 17px; }
 .railLabel {
-  font-size: 8.5px;
+  font-size: 7px;
   font-weight: 600;
-  letter-spacing: 0.2px;
-  line-height: 1;
+  letter-spacing: 0;
+  line-height: 1.05;
   text-align: center;
 }
 .railBtn:hover { background: var(--surface-2); color: var(--text); }
@@ -104,14 +104,15 @@ body {
   background: var(--accent-grad, var(--accent));
   color: #fff;
   border-color: transparent;
-  box-shadow: 0 3px 12px rgba(81, 112, 255, 0.3);
+  box-shadow: 0 2px 9px rgba(81, 112, 255, 0.28);
 }
 .railReload {
   flex: 0 0 auto;
-  margin-top: 6px;
+  margin-top: 4px;
   color: var(--text-faint);
 }
 .railReload .railLabel { display: none; }
+.railReload svg { width: 15px; height: 15px; }
 .railReload:hover { color: var(--text); background: var(--surface-2); }
 
 /* Main content area: hosts one visible view; the view's inner list scrolls. */

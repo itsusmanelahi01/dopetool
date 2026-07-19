@@ -1,4 +1,7 @@
 {
+  "2.30.4": [
+    "Slimmer side navigation — the left rail is now thinner and more compact, leaving more room for the tools when the panel is docked vertically on the side"
+  ],
   "2.30.3": [
     "Toolkit tools are now compact single rows that expand on hover — collapsed by default to save space, hover a tool to use it, move away and it tucks back. Search still opens matching tools."
   ],
