@@ -1,4 +1,8 @@
 {
+  "2.30.1": [
+    "Library section headers (Colors / Styles / FX / Assets) now scroll with the list instead of staying pinned to the top",
+    "Library no longer reloads on every navigation — the client list and each client's items are fetched once and cached; opening a client, going Back, re-opening, and searching all use the cache. It refreshes automatically when you add/edit/delete"
+  ],
   "2.30.0": [
     "Quick animation bar (Fade / Slide / Scale / Null / Trim + settings) is now pinned to the top on every tab — always one click away no matter which tool you're in",
     "Colors are even smaller now — tighter swatches packed more per row"

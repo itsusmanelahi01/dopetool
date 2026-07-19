@@ -611,10 +611,6 @@ body {
   gap: 8px;
   padding: 5px 2px 5px;
   border-bottom: 1px solid var(--border);
-  position: sticky;
-  top: 0;
-  background: var(--app);
-  z-index: 2;
 }
 .libSectionTitle {
   flex: 1;

@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.30.0
+// DopeTool main.js — v2.30.1
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -212,7 +212,11 @@ function updateTopTabFades() {}
 
 
 // ---- LOAD ALL CLIENTS ----
-function loadAllClients() {
+// Fetched once, then served from cache. Pass force=true after a mutation
+// (add/delete/rename a client) to refresh; plain navigation reuses the cache.
+var clientsLoaded = false;
+function loadAllClients(force) {
+  if (!force && clientsLoaded) { renderClientGrid(allClientsData); return; }
   var grid = document.getElementById("clientGrid");
   grid.innerHTML = '<div style="color:#333348;padding:20px;text-align:center;font-size:11px;">Loading...</div>';
   var collections = ["colors","textstyles","effects","assets"];
@@ -231,9 +235,9 @@ function loadAllClients() {
           clientMap[client].types[col] = (clientMap[client].types[col] || 0) + 1;
         });
         pending--;
-        if (pending === 0) renderClientGrid(clientMap);
+        if (pending === 0) { clientsLoaded = true; renderClientGrid(clientMap); }
       })
-      .catch(function () { pending--; if (pending === 0) renderClientGrid(clientMap); });
+      .catch(function () { pending--; if (pending === 0) { clientsLoaded = true; renderClientGrid(clientMap); } });
   });
 }
 
@@ -347,7 +351,7 @@ document.getElementById("clientRenameSaveBtn").addEventListener("click", functio
         if (pending === 0) {
           document.getElementById("clientRenameForm").classList.add("hidden");
           activeClientName = null;
-          loadAllClients();
+          loadAllClients(true);
         }
       })
       .catch(function () { pending--; });
@@ -370,12 +374,16 @@ document.getElementById("ctxClientDelete").addEventListener("click", function (e
         snapshot.forEach(function (doc) { batch.delete(doc.ref); });
         return batch.commit();
       })
-      .then(function () { pending--; if (pending === 0) { activeClientName = null; loadAllClients(); } })
+      .then(function () { pending--; if (pending === 0) { activeClientName = null; delete clientLibCache[clientToDelete]; loadAllClients(true); } })
       .catch(function () { pending--; });
   });
 });
 
 // ---- OPEN CLIENT ----
+// Per-client library cache: first open fetches, later opens reuse it. Any
+// add/edit/delete inside a client re-fetches (loadClientLibrary) and refreshes
+// this cache, so it stays correct without reloading on every open.
+var clientLibCache = {};
 function openClient(clientName, color) {
   currentClient = clientName;
   showView("clientView");
@@ -384,7 +392,12 @@ function openClient(clientName, color) {
   document.getElementById("clientViewInitial").style.background = color;
   document.getElementById("clientView").style.setProperty("--current-client-color", color);
   currentTab = "colors";
-  loadClientLibrary();
+  if (clientLibCache[clientName]) {
+    clientData = clientLibCache[clientName];
+    renderAllSections();
+  } else {
+    loadClientLibrary();
+  }
 }
 
 document.getElementById("backBtn").addEventListener("click", function () {
@@ -399,7 +412,11 @@ document.getElementById("backBtn").addEventListener("click", function () {
   loadAllClients();
 });
 
-document.getElementById("clientSearch").addEventListener("input", loadAllClients);
+// Search filters the cached list (no re-fetch per keystroke).
+document.getElementById("clientSearch").addEventListener("input", function () {
+  if (clientsLoaded) renderClientGrid(allClientsData);
+  else loadAllClients();
+});
 
 // ---- ADD NEW CLIENT ----
 document.getElementById("addClientBtn").addEventListener("click", function () {
@@ -421,7 +438,7 @@ document.getElementById("addClientSaveBtn").addEventListener("click", function (
     .then(function () {
       document.getElementById("addClientForm").classList.add("hidden");
       document.getElementById("newClientName").value = "";
-      loadAllClients();
+      loadAllClients(true);
       setTimeout(function () { openClient(name, clientColor(name)); }, 600);
     })
     .catch(function (err) { document.getElementById("newClientName").placeholder = "Error: " + err.message; });
@@ -463,8 +480,9 @@ function loadClientLibrary() {
       .catch(function (err) { failed = err; clientData[cat] = []; })
       .then(function () {
         if (--pending === 0) {
-          if (failed) contentEl.innerHTML = '<div style="color:#ff5566;padding:12px;font-size:11px;">Error: ' + failed.message + '</div>';
-          else renderAllSections();
+          if (failed) { contentEl.innerHTML = '<div style="color:#ff5566;padding:12px;font-size:11px;">Error: ' + failed.message + '</div>'; return; }
+          clientLibCache[currentClient] = clientData; // cache for instant re-open
+          renderAllSections();
         }
       });
   });
