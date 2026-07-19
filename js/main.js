@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.30.1
+// DopeTool main.js — v2.30.2
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -2356,7 +2356,7 @@ function tkEval(script) {
   });
 })();
 
-// ---- TOOLKIT accordion + search (single-open; scales to many tools) ----
+// ---- TOOLKIT sections: all open by default + search ----
 (function () {
   var body = document.querySelector(".toolkitBody");
   if (!body) return;
@@ -2366,45 +2366,23 @@ function tkEval(script) {
   sections.forEach(function (sec) {
     var t = sec.querySelector(".tkTitle");
     sec.setAttribute("data-tool", (t ? t.textContent : "").toLowerCase());
+    sec.classList.remove("collapsed"); // every tool open by default — no click needed
     var head = sec.querySelector(".tkHeader");
-    if (head) head.addEventListener("click", function () { toggleSection(sec); });
+    // Header click still lets you collapse/expand an individual tool if you want.
+    if (head) head.addEventListener("click", function () { sec.classList.toggle("collapsed"); });
   });
-
-  function openOnly(sec) {
-    sections.forEach(function (s) { s.classList.add("collapsed"); });
-    if (sec) sec.classList.remove("collapsed");
-  }
-  function restoreSingleOpen() {
-    var target = null;
-    try { target = localStorage.getItem("dopetool_tk_open"); } catch (e) {}
-    var match = null;
-    if (target) { for (var i = 0; i < sections.length; i++) if (sections[i].getAttribute("data-tool") === target) { match = sections[i]; break; } }
-    openOnly(match || sections[0]);
-  }
-  function toggleSection(sec) {
-    if (sec.classList.contains("collapsed")) {
-      openOnly(sec);
-      try { localStorage.setItem("dopetool_tk_open", sec.getAttribute("data-tool")); } catch (e) {}
-      try { sec.scrollIntoView({ block: "nearest", behavior: "smooth" }); } catch (e) {}
-    } else {
-      sec.classList.add("collapsed"); // allow collapsing the open one
-    }
-  }
-
-  restoreSingleOpen();
 
   var search = document.getElementById("tkSearch");
   if (search) search.addEventListener("input", function () {
     var q = (this.value || "").toLowerCase().replace(/^\s+|\s+$/g, "");
     if (!q) {
-      sections.forEach(function (s) { s.classList.remove("tkHiddenSearch"); });
-      restoreSingleOpen();
+      sections.forEach(function (s) { s.classList.remove("tkHiddenSearch"); s.classList.remove("collapsed"); });
       return;
     }
     sections.forEach(function (s) {
       var hit = s.getAttribute("data-tool").indexOf(q) !== -1;
       s.classList.toggle("tkHiddenSearch", !hit);
-      s.classList.toggle("collapsed", !hit); // expand matches, collapse the rest
+      s.classList.toggle("collapsed", !hit); // show matches expanded, hide the rest
     });
   });
 })();

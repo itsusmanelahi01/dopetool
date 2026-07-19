@@ -1,4 +1,8 @@
 {
+  "2.30.2": [
+    "Toolkit tools are now all expanded by default — no clicking to open each one (search still filters; click a header to collapse one if you want)",
+    "Fixed the quick-bar settings icon — it's a proper gear now instead of looking like a brightness icon"
+  ],
   "2.30.1": [
     "Library section headers (Colors / Styles / FX / Assets) now scroll with the list instead of staying pinned to the top",
     "Library no longer reloads on every navigation — the client list and each client's items are fetched once and cached; opening a client, going Back, re-opening, and searching all use the cache. It refreshes automatically when you add/edit/delete"
