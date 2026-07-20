@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.30.8
+// DopeTool main.js — v2.30.9
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -45,11 +45,12 @@ var localVersionPath = extensionPath + "/local_version.json";
 // "Image is not a constructor". Forcing long-polling avoids that transport and
 // works reliably inside After Effects. Must run before any Firestore query
 // (this executes at load, before DOMContentLoaded fires the first read).
+var dbSettingsError = null;
 try {
   if (typeof db !== "undefined" && db && db.settings) {
     db.settings({ experimentalForceLongPolling: true });
   }
-} catch (e) {}
+} catch (e) { dbSettingsError = (e && (e.message || e.code)) || String(e); }
 
 // ---- UPDATE CHANNEL ----
 // channel.json decides which GitHub branch this panel pulls its code, version,
@@ -284,16 +285,20 @@ function loadAllClients(force, isRetry) {
   grid.innerHTML = '<div style="color:#333348;padding:20px;text-align:center;font-size:11px;">Loading...</div>';
   var collections = ["colors","textstyles","effects","assets"];
   var clientMap = {};
-  var pending = collections.length, anyFailed = false;
+  var pending = collections.length, anyFailed = false, firstErr = null;
 
   function done() {
     if (--pending !== 0) return;
     if (anyFailed) {
-      // Never cache a failed/partial load — retry once, then surface a Retry.
+      // Never cache a failed/partial load — retry once, then surface the error.
       if (!isRetry) { setTimeout(function () { loadAllClients(true, true); }, 1200); return; }
+      var detail = (firstErr && (firstErr.code || firstErr.message)) ? (firstErr.code || firstErr.message) : "";
+      if (dbSettingsError) detail = "settings: " + dbSettingsError + (detail ? " · " + detail : "");
       grid.innerHTML =
-        '<div style="color:#8a8aa8;padding:26px;text-align:center;font-size:11px;">' +
-        'Couldn\'t reach the library.<br>Check your connection, then <b id="clientRetryBtn" style="color:var(--accent);cursor:pointer;text-decoration:underline;">retry</b>.</div>';
+        '<div style="color:#8a8aa8;padding:24px 16px;text-align:center;font-size:11px;line-height:1.6;">' +
+        'Couldn\'t reach the library.<br>Check your connection, then <b id="clientRetryBtn" style="color:var(--accent);cursor:pointer;text-decoration:underline;">retry</b>.' +
+        (detail ? '<div style="margin-top:10px;color:#5b5b78;font-size:9.5px;word-break:break-word;">' + detail + '</div>' : '') +
+        '</div>';
       var rb = document.getElementById("clientRetryBtn");
       if (rb) rb.addEventListener("click", function () { loadAllClients(true); });
       return;
@@ -314,7 +319,7 @@ function loadAllClients(force, isRetry) {
           clientMap[client].types[col] = (clientMap[client].types[col] || 0) + 1;
         });
       })
-      .catch(function () { anyFailed = true; })
+      .catch(function (e) { anyFailed = true; if (!firstErr) firstErr = e; })
       .then(done);
   });
 }
