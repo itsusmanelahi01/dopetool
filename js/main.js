@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.31.0
+// DopeTool main.js — v2.31.1
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -2623,6 +2623,18 @@ function tkEval(script) {
         csInterface.evalScript('alignLayers("' + mode + '","' + ref + '")', function (res) {
           if (typeof tkStatus === "function") tkStatus(res || "Aligned.");
         });
+      });
+    });
+  }
+
+  // Quick-bar Distribute buttons (scoped to the bar).
+  var qDist = bar.querySelectorAll("[data-dist]");
+  for (var qd = 0; qd < qDist.length; qd++) {
+    qDist[qd].addEventListener("click", function () {
+      var axis = this.getAttribute("data-dist");
+      if (typeof tkStatus === "function") tkStatus("Distributing…");
+      csInterface.evalScript('distributeLayers("' + axis + '")', function (res) {
+        if (typeof tkStatus === "function") tkStatus(res || "Distributed.");
       });
     });
   }

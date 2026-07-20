@@ -2078,11 +2078,20 @@ textarea:focus {
   cursor: pointer;
   transition: background 0.12s, border-color 0.12s, color 0.12s, transform 0.08s;
 }
-.tkQuickBtn:hover { color: #fff; border-color: var(--accent); background: var(--surface-3); }
+.tkQuickBtn:hover { border-color: currentColor; background: var(--surface-3); filter: brightness(1.2); }
 .tkQuickBtn:active { transform: translateY(1px); }
 .tkQuickGear { margin-left: 0; }
 .tkQuickGear.on { color: var(--accent); border-color: var(--accent); }
 .tkQuickSep { width: 1px; height: 20px; background: var(--border); margin: 0 3px; }
+.tkQuickMiniSep { width: 3px; flex: 0 0 auto; }
+
+/* Category colours — fade / slide / scale / null / trim / align */
+.tkQuickBtn[data-cat="fade"]  { color: #6d8bff; }
+.tkQuickBtn[data-cat="slide"] { color: #b98cff; }
+.tkQuickBtn[data-cat="scale"] { color: #46cfa8; }
+.tkQuickBtn[data-cat="null"]  { color: #9aa3c0; }
+.tkQuickBtn[data-cat="trim"]  { color: #e87da0; }
+.tkQuickBtn[data-cat="align"] { color: #ffab5c; }
 .tkQuickSpacer { flex: 1 1 auto; }
 
 .tkQuickSettings {

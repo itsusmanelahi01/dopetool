@@ -1,4 +1,8 @@
 {
+  "2.31.1": [
+    "Quick bar now colour-codes each category — fade (blue), slide (purple), scale (teal), null (slate), trim (pink), align/distribute (orange)",
+    "Added Distribute (Horizontal / Vertical) next to Align in the quick bar, in their own section"
+  ],
   "2.31.0": [
     "Align is now in the quick tools bar — Left / Center / Right / Top / Middle / Bottom as small icon buttons, on every tab. Reference auto-follows your selection: one layer aligns to the composition, two or more align to each other."
   ],
