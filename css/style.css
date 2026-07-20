@@ -2155,7 +2155,7 @@ textarea:focus {
   display: inline-flex; align-items: center; justify-content: center;
   cursor: help; position: relative; flex-shrink: 0;
 }
-.acInfo:hover { color: var(--accent); border-color: var(--accent); }
+.acInfo:hover { color: var(--accent); border-color: var(--accent); z-index: 80; }
 .acInfo[data-tip]::after {
   content: attr(data-tip);
   position: absolute; bottom: calc(100% + 6px); right: -2px;

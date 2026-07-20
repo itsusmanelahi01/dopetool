@@ -1,4 +1,7 @@
 {
+  "2.31.3": [
+    "Hardened the Auto Captions info tooltip against the same behind-buttons issue (all quick-bar tooltips were already fixed)"
+  ],
   "2.31.2": [
     "Fixed quick-bar tooltips showing behind other buttons — they now appear on top"
   ],
