@@ -1,4 +1,7 @@
 {
+  "2.31.2": [
+    "Fixed quick-bar tooltips showing behind other buttons — they now appear on top"
+  ],
   "2.31.1": [
     "Quick bar now colour-codes each category — fade (blue), slide (purple), scale (teal), null (slate), trim (pink), align/distribute (orange)",
     "Added Distribute (Horizontal / Vertical) next to Align in the quick bar, in their own section"
