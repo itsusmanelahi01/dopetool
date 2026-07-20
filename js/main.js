@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.30.7
+// DopeTool main.js — v2.30.8
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -278,13 +278,29 @@ function updateTopTabFades() {}
 // Fetched once, then served from cache. Pass force=true after a mutation
 // (add/delete/rename a client) to refresh; plain navigation reuses the cache.
 var clientsLoaded = false;
-function loadAllClients(force) {
+function loadAllClients(force, isRetry) {
   if (!force && clientsLoaded) { renderClientGrid(allClientsData); return; }
   var grid = document.getElementById("clientGrid");
   grid.innerHTML = '<div style="color:#333348;padding:20px;text-align:center;font-size:11px;">Loading...</div>';
   var collections = ["colors","textstyles","effects","assets"];
   var clientMap = {};
-  var pending = collections.length;
+  var pending = collections.length, anyFailed = false;
+
+  function done() {
+    if (--pending !== 0) return;
+    if (anyFailed) {
+      // Never cache a failed/partial load — retry once, then surface a Retry.
+      if (!isRetry) { setTimeout(function () { loadAllClients(true, true); }, 1200); return; }
+      grid.innerHTML =
+        '<div style="color:#8a8aa8;padding:26px;text-align:center;font-size:11px;">' +
+        'Couldn\'t reach the library.<br>Check your connection, then <b id="clientRetryBtn" style="color:var(--accent);cursor:pointer;text-decoration:underline;">retry</b>.</div>';
+      var rb = document.getElementById("clientRetryBtn");
+      if (rb) rb.addEventListener("click", function () { loadAllClients(true); });
+      return;
+    }
+    clientsLoaded = true; // only cache a clean, complete load
+    renderClientGrid(clientMap);
+  }
 
   collections.forEach(function (col) {
     db.collection(col).get()
@@ -297,10 +313,9 @@ function loadAllClients(force) {
           clientMap[client].total++;
           clientMap[client].types[col] = (clientMap[client].types[col] || 0) + 1;
         });
-        pending--;
-        if (pending === 0) { clientsLoaded = true; renderClientGrid(clientMap); }
       })
-      .catch(function () { pending--; if (pending === 0) { clientsLoaded = true; renderClientGrid(clientMap); } });
+      .catch(function () { anyFailed = true; })
+      .then(done);
   });
 }
 

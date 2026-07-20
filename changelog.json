@@ -1,4 +1,7 @@
 {
+  "2.30.8": [
+    "Fixed clients appearing to vanish — a momentary connection hiccup could cache an empty library. It now never caches a failed load, retries automatically, and shows a Retry option instead of a false “No clients yet”. Your data was always safe."
+  ],
   "2.30.7": [
     "Toolkit tools now expand and collapse with a smooth height animation on hover instead of snapping open"
   ],
