@@ -1,4 +1,7 @@
 {
+  "2.31.0": [
+    "Align is now in the quick tools bar — Left / Center / Right / Top / Middle / Bottom as small icon buttons, on every tab. Reference auto-follows your selection: one layer aligns to the composition, two or more align to each other."
+  ],
   "2.30.9": [
     "The library \"couldn't reach\" message now shows the exact underlying error, to pinpoint why Firestore can't be reached"
   ],

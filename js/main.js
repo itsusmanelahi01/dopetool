@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.30.9
+// DopeTool main.js — v2.31.0
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -2607,6 +2607,24 @@ function tkEval(script) {
   var btns = document.querySelectorAll("[data-preset]");
   for (var i = 0; i < btns.length; i++) {
     btns[i].addEventListener("click", function () { applyPreset(this.getAttribute("data-preset")); });
+  }
+
+  // Quick-bar Align buttons (scoped to the bar so they don't double-bind the
+  // Toolkit's Align section). Reference auto-follows selection: 1 layer ->
+  // composition, 2+ -> selection.
+  var qAlign = bar.querySelectorAll("[data-align]");
+  for (var qa = 0; qa < qAlign.length; qa++) {
+    qAlign[qa].addEventListener("click", function () {
+      var mode = this.getAttribute("data-align");
+      if (typeof tkStatus === "function") tkStatus("Aligning…");
+      csInterface.evalScript("dtSelCount()", function (r) {
+        var n = parseInt(r, 10) || 0;
+        var ref = (n <= 1) ? "composition" : "selection";
+        csInterface.evalScript('alignLayers("' + mode + '","' + ref + '")', function (res) {
+          if (typeof tkStatus === "function") tkStatus(res || "Aligned.");
+        });
+      });
+    });
   }
 
   // Anchor point 3x3 setter (still inside the Toolkit view)
