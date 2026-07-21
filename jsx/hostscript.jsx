@@ -1064,7 +1064,10 @@ function alignLayers(mode, ref) {
     if (!comp) return "No active composition.";
     var layers = comp.selectedLayers;
     if (!layers.length) return "No layer selected.";
-    ref = (ref === "composition") ? "composition" : "selection";
+    // "auto": one layer -> composition, two or more -> selection. Decided here
+    // from the live selection so it can't disagree with a separate count query.
+    if (ref === "auto") ref = (layers.length <= 1) ? "composition" : "selection";
+    else ref = (ref === "composition") ? "composition" : "selection";
     var t = comp.time, count = 0;
 
     // Gather non-animated layers with their bounds up front.

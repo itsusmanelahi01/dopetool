@@ -1,4 +1,7 @@
 {
+  "2.31.4": [
+    "Fixed quick-bar Align sending multiple layers to the comp centre instead of aligning them to each other — the host now decides composition (1 layer) vs selection (2+) in one atomic step from the live selection"
+  ],
   "2.31.3": [
     "Hardened the Auto Captions info tooltip against the same behind-buttons issue (all quick-bar tooltips were already fixed)"
   ],

@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.31.3
+// DopeTool main.js — v2.31.4
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -2617,12 +2617,10 @@ function tkEval(script) {
     qAlign[qa].addEventListener("click", function () {
       var mode = this.getAttribute("data-align");
       if (typeof tkStatus === "function") tkStatus("Aligning…");
-      csInterface.evalScript("dtSelCount()", function (r) {
-        var n = parseInt(r, 10) || 0;
-        var ref = (n <= 1) ? "composition" : "selection";
-        csInterface.evalScript('alignLayers("' + mode + '","' + ref + '")', function (res) {
-          if (typeof tkStatus === "function") tkStatus(res || "Aligned.");
-        });
+      // "auto" — the host decides composition (1 layer) vs selection (2+) from
+      // the live selection in a single call, so it can't mismatch.
+      csInterface.evalScript('alignLayers("' + mode + '","auto")', function (res) {
+        if (typeof tkStatus === "function") tkStatus(res || "Aligned.");
       });
     });
   }
