@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.31.4
+// DopeTool main.js — v2.32.0
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -273,6 +273,53 @@ function switchTopTab(tab) { navTo(tab); }
 function currentActiveTab() { return currentTab; }
 function buildDock() {}
 function updateTopTabFades() {}
+
+// ---- THEMES ----
+// id "" is the default Midnight (no data-theme attribute). Others map to the
+// :root[data-theme="…"] palettes in style.css. Choice persists in localStorage
+// and is applied before first paint by a tiny inline script in index.html.
+var THEMES = [
+  { id: "",         name: "Midnight", bg: "#0c0e17", accent: "#5170ff" },
+  { id: "cheetay",  name: "Cheetay",  bg: "#15110c", accent: "#e4d2a6" },
+  { id: "graphite", name: "Graphite", bg: "#111316", accent: "#2dd4bf" },
+  { id: "violet",   name: "Violet",   bg: "#141022", accent: "#a855f7" },
+  { id: "emerald",  name: "Emerald",  bg: "#0c1512", accent: "#10b981" },
+  { id: "ember",    name: "Ember",    bg: "#16100d", accent: "#ff7a45" }
+];
+function currentTheme() { try { return localStorage.getItem("dopetool_theme") || ""; } catch (e) { return ""; } }
+function applyTheme(id) {
+  if (id) document.documentElement.setAttribute("data-theme", id);
+  else document.documentElement.removeAttribute("data-theme");
+  try { if (id) localStorage.setItem("dopetool_theme", id); else localStorage.removeItem("dopetool_theme"); } catch (e) {}
+  renderThemeList();
+}
+function renderThemeList() {
+  var list = document.getElementById("themeList");
+  if (!list) return;
+  var cur = currentTheme();
+  list.innerHTML = "";
+  THEMES.forEach(function (t) {
+    var row = document.createElement("div");
+    row.className = "themeRow" + (t.id === cur ? " active" : "");
+    row.innerHTML =
+      '<span class="themeSwatch" style="background:' + t.bg + '"><span class="themeSwatchDot" style="background:' + t.accent + '"></span></span>' +
+      '<span class="themeName">' + t.name + '</span>' +
+      '<span class="themeCheck">✓</span>';
+    row.addEventListener("click", function () { applyTheme(t.id); });
+    list.appendChild(row);
+  });
+}
+(function initThemes() {
+  renderThemeList();
+  var btn = document.getElementById("themeBtn");
+  var pop = document.getElementById("themePopup");
+  if (!btn || !pop) return;
+  btn.addEventListener("click", function (e) { e.stopPropagation(); pop.classList.toggle("hidden"); });
+  document.addEventListener("click", function (e) {
+    if (pop.classList.contains("hidden")) return;
+    if (!pop.contains(e.target) && e.target !== btn && !btn.contains(e.target)) pop.classList.add("hidden");
+  });
+})();
 
 
 // ---- LOAD ALL CLIENTS ----

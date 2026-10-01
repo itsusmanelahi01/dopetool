@@ -14,6 +14,10 @@
   --accent-weak: rgba(81,112,255,0.14);
   --accent-soft: #171b34;
   --accent-grad: linear-gradient(135deg, #5170ff 0%, #7d8bff 100%);
+  --on-accent: #ffffff;
+  --glow: rgba(81,112,255,0.13);
+  --glow2: rgba(81,112,255,0.08);
+  --bg-top: #0e1122;
   --danger: #ff5d6c;
   --r-sm: 8px;
   --r: 11px;
@@ -24,13 +28,81 @@
   --shadow-card: 0 4px 18px rgba(0,0,0,0.25);
 }
 
+/* ═══════════════ THEMES ═══════════════ */
+/* Default (:root above) is "Midnight". Each theme overrides the palette. */
+
+/* Cheetay — warm charcoal-brown + champagne (inspired by cheetayhq.com) */
+:root[data-theme="cheetay"] {
+  --app: #15110c; --bg: #0f0c08; --bg-top: #1a140d;
+  --surface: #211a12; --surface-2: #2b2217; --surface-3: #372c1e;
+  --border: #3c3225; --border-soft: #2b221780;
+  --text: #f3ecdd; --text-dim: #b7ab93; --text-faint: #7d7259;
+  --accent: #e4d2a6; --accent-hover: #efe0bd; --accent-weak: rgba(228,210,166,0.14); --accent-soft: #241d12;
+  --accent-grad: linear-gradient(135deg, #ecdcb4 0%, #cdb37e 100%);
+  --on-accent: #2a2114;
+  --glow: rgba(224,186,110,0.15); --glow2: rgba(224,186,110,0.07);
+  --ring: 0 0 0 3px rgba(228,210,166,0.28);
+}
+
+/* Graphite — neutral slate + teal */
+:root[data-theme="graphite"] {
+  --app: #111316; --bg: #0c0e10; --bg-top: #121619;
+  --surface: #191c20; --surface-2: #21252b; --surface-3: #2b3038;
+  --border: #30363f; --border-soft: #22272e80;
+  --text: #e9edf2; --text-dim: #9aa3ad; --text-faint: #5f6670;
+  --accent: #2dd4bf; --accent-hover: #56e0cf; --accent-weak: rgba(45,212,191,0.14); --accent-soft: #10231f;
+  --accent-grad: linear-gradient(135deg, #2dd4bf 0%, #22b8c9 100%);
+  --on-accent: #06211d;
+  --glow: rgba(45,212,191,0.10); --glow2: rgba(45,212,191,0.06);
+  --ring: 0 0 0 3px rgba(45,212,191,0.26);
+}
+
+/* Violet — deep purple-black + violet */
+:root[data-theme="violet"] {
+  --app: #141022; --bg: #0e0a18; --bg-top: #16112a;
+  --surface: #1e1733; --surface-2: #261d41; --surface-3: #312650;
+  --border: #352a57; --border-soft: #241c3d80;
+  --text: #ece8f8; --text-dim: #a89fc5; --text-faint: #6b6190;
+  --accent: #a855f7; --accent-hover: #bd7bff; --accent-weak: rgba(168,85,247,0.16); --accent-soft: #1d1535;
+  --accent-grad: linear-gradient(135deg, #a855f7 0%, #7c5cff 100%);
+  --on-accent: #ffffff;
+  --glow: rgba(168,85,247,0.14); --glow2: rgba(124,92,255,0.08);
+  --ring: 0 0 0 3px rgba(168,85,247,0.28);
+}
+
+/* Emerald — green-black + emerald */
+:root[data-theme="emerald"] {
+  --app: #0c1512; --bg: #08100d; --bg-top: #0f1a15;
+  --surface: #121f1a; --surface-2: #182a22; --surface-3: #21372d;
+  --border: #263f34; --border-soft: #182a2280;
+  --text: #e6f2ec; --text-dim: #93b2a4; --text-faint: #5c7568;
+  --accent: #10b981; --accent-hover: #34d399; --accent-weak: rgba(16,185,129,0.15); --accent-soft: #0d2219;
+  --accent-grad: linear-gradient(135deg, #10b981 0%, #0ea5a5 100%);
+  --on-accent: #042016;
+  --glow: rgba(16,185,129,0.12); --glow2: rgba(16,185,129,0.06);
+  --ring: 0 0 0 3px rgba(16,185,129,0.26);
+}
+
+/* Ember — warm dark + sunset orange */
+:root[data-theme="ember"] {
+  --app: #16100d; --bg: #100a08; --bg-top: #1b120d;
+  --surface: #231813; --surface-2: #2e1f18; --surface-3: #3b2920;
+  --border: #422e22; --border-soft: #2e1f1880;
+  --text: #f6ebe4; --text-dim: #bba093; --text-faint: #7e6557;
+  --accent: #ff7a45; --accent-hover: #ff9466; --accent-weak: rgba(255,122,69,0.15); --accent-soft: #2a1812;
+  --accent-grad: linear-gradient(135deg, #ff7a45 0%, #ff5d6c 100%);
+  --on-accent: #231008;
+  --glow: rgba(255,122,69,0.13); --glow2: rgba(255,93,108,0.07);
+  --ring: 0 0 0 3px rgba(255,122,69,0.26);
+}
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
   background:
-    radial-gradient(900px 520px at 88% -8%, rgba(81,112,255,0.13), transparent 58%),
-    radial-gradient(760px 480px at -10% 110%, rgba(81,112,255,0.08), transparent 55%),
-    linear-gradient(180deg, #0e1122 0%, var(--app) 60%);
+    radial-gradient(900px 520px at 88% -8%, var(--glow), transparent 58%),
+    radial-gradient(760px 480px at -10% 110%, var(--glow2), transparent 55%),
+    linear-gradient(180deg, var(--bg-top) 0%, var(--app) 60%);
   color: var(--text);
   font-family: "SF Pro Display", -apple-system, "Helvetica Neue", sans-serif;
   font-size: 12px;
@@ -69,7 +141,7 @@ body {
   font-weight: 800;
   font-size: 13px;
   letter-spacing: 0.3px;
-  color: #fff;
+  color: var(--on-accent);
   background: var(--accent-grad, var(--accent));
   border-radius: 8px;
   margin-bottom: 5px;
@@ -104,7 +176,7 @@ body {
 .railBtn.railDropInto { box-shadow: inset 0 2px 0 0 var(--accent); }
 .railBtn.active {
   background: var(--accent-grad, var(--accent));
-  color: #fff;
+  color: var(--on-accent);
   border-color: transparent;
   box-shadow: 0 2px 9px rgba(81, 112, 255, 0.28);
 }
@@ -568,7 +640,7 @@ body {
   font-weight: 700;
   cursor: pointer;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   transition: background 0.12s;
 }
 
@@ -813,7 +885,7 @@ body {
 #updateBanner button {
   background: var(--accent);
   border: none;
-  color: #fff;
+  color: var(--on-accent);
   padding: 3px 9px;
   border-radius: 8px;
   font-size: 10px;
@@ -889,7 +961,7 @@ body {
   font-weight: 700;
   cursor: pointer;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 .addClientFormWrap .formRow button:hover { background: var(--accent-hover); }
 
@@ -1007,7 +1079,7 @@ body {
   margin-right: 3px;
   border-radius: 50%;
   background: var(--accent-grad, var(--accent));
-  color: #fff;
+  color: var(--on-accent);
   font-size: 9px;
   font-weight: 800;
   letter-spacing: 0;
@@ -1043,7 +1115,7 @@ body {
 .srtBrowseBtn {
   background: var(--accent);
   border: none;
-  color: #fff;
+  color: var(--on-accent);
   padding: 6px 12px;
   border-radius: 10px;
   font-size: 11px;
@@ -1147,7 +1219,7 @@ body {
   background: var(--accent);
   border: none;
   border-radius: 12px;
-  color: #fff;
+  color: var(--on-accent);
   font-size: 12px;
   font-weight: 800;
   cursor: pointer;
@@ -1267,7 +1339,7 @@ body {
 .captionClientPill.active {
   background: var(--accent);
   border-color: var(--accent);
-  color: #ffffff;
+  color: var(--on-accent);
 }
 
 /* ---- CLIENT VIEW LAYOUT FIX ---- */
@@ -1369,7 +1441,7 @@ body {
   cursor: pointer;
 }
 .smoothModeBtn:hover { color: #b5b5d0; }
-.smoothModeBtn.active { background: var(--accent); color: #fff; }
+.smoothModeBtn.active { background: var(--accent); color: var(--on-accent); }
 
 /* Saved (shared) presets + delete button */
 .smoothSavedItem { position: relative; }
@@ -1545,7 +1617,7 @@ body {
   background: var(--accent);
   border: none;
   border-radius: 10px;
-  color: #ffffff;
+  color: var(--on-accent);
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
@@ -2242,3 +2314,43 @@ textarea:focus {
 @keyframes taRight { 0% { opacity: 0; transform: translateX(-22px) } 40%,60% { opacity: 1; transform: translateX(0) } 100% { opacity: 0; transform: translateX(22px) } }
 @keyframes taScale { 0% { opacity: 0; transform: scale(0.3) } 50% { opacity: 1; transform: scale(1) } 100% { opacity: 0; transform: scale(1.4) } }
 @keyframes taPulse { 0%,100% { transform: scale(0.9); opacity: 0.5 } 50% { transform: scale(1.05); opacity: 1 } }
+
+/* ═══ THEME PICKER ═══ */
+.themePopup {
+  position: fixed;
+  left: 48px;
+  bottom: 10px;
+  z-index: 200;
+  width: 186px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow);
+  padding: 9px;
+}
+.themePopupTitle {
+  font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;
+  color: var(--text-faint); padding: 2px 4px 7px;
+}
+.themeList { display: flex; flex-direction: column; gap: 3px; }
+.themeRow {
+  display: flex; align-items: center; gap: 9px;
+  padding: 6px 7px; border-radius: var(--r-sm);
+  cursor: pointer; border: 1px solid transparent;
+  transition: background .12s, border-color .12s;
+}
+.themeRow:hover { background: var(--surface-2); }
+.themeRow.active { background: var(--surface-2); border-color: var(--accent); }
+.themeSwatch {
+  width: 22px; height: 22px; border-radius: 7px; flex-shrink: 0;
+  border: 1px solid rgba(255,255,255,0.12);
+  position: relative; overflow: hidden;
+}
+.themeSwatchDot {
+  position: absolute; right: 3px; bottom: 3px;
+  width: 8px; height: 8px; border-radius: 50%;
+  border: 1.5px solid rgba(0,0,0,0.25);
+}
+.themeName { font-size: 11px; font-weight: 600; color: var(--text); flex: 1; }
+.themeRow.active .themeCheck { opacity: 1; }
+.themeCheck { opacity: 0; color: var(--accent); font-size: 12px; flex-shrink: 0; }

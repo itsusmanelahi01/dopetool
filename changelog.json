@@ -1,4 +1,8 @@
 {
+  "2.32.0": [
+    "Themes! Pick a look from the new palette button at the bottom of the left rail — Midnight (default), Cheetay (warm charcoal + champagne), Graphite, Violet, Emerald, and Ember. Your choice is remembered.",
+    "Each theme recolours the whole panel (background, accents, text, glow) and stays readable — buttons and the active tab use the right text colour for light or dark accents."
+  ],
   "2.31.4": [
     "Fixed quick-bar Align sending multiple layers to the comp centre instead of aligning them to each other — the host now decides composition (1 layer) vs selection (2+) in one atomic step from the live selection"
   ],
