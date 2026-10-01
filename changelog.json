@@ -1,4 +1,7 @@
 {
+  "2.32.3": [
+    "Premium visual pass — cards and panels now have subtle depth and a soft top-sheen, avatars and the active tool have a gentle glow, primary buttons use a gradient with a hover lift, headers are refined, and inputs get a clean focus glow. Looks consistent across every theme."
+  ],
   "2.32.2": [
     "Overall UI polish for side-docked use — thin themed scrollbars, smoother hovers and button presses, a gentle fade when switching tools, eased theme changes, and crisper text throughout"
   ],

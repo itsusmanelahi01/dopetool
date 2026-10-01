@@ -2415,3 +2415,68 @@ body, #appRail, .tkSection, .card, .clientCard, .librarySections, #quickDock, .c
 
 /* Inputs feel softer and respond on focus */
 input, select, textarea { transition: border-color 0.14s ease, box-shadow 0.14s ease, background 0.14s ease; }
+
+/* ═══════════════ PREMIUM PASS — depth, refinement, materials ═══════════════ */
+
+/* Refined view headers: subtle gradient + tighter type */
+.clientHeader {
+  padding: 9px 12px 8px;
+  background: linear-gradient(180deg, var(--surface) 0%, var(--bg) 100%);
+}
+.clientViewName { color: var(--text); letter-spacing: -0.2px; }
+.clientViewCount { color: var(--text-dim); }
+
+/* Material depth: soft drop shadow + hairline top highlight */
+.card, .clientCard, .captionStyleCard, .tkSection, .captionSettings,
+.smoothCanvasWrap, .acReviewList, .themePopup {
+  box-shadow: 0 1px 0 rgba(255,255,255,0.035) inset, 0 3px 12px rgba(0,0,0,0.22);
+}
+#quickDock { box-shadow: 0 1px 0 rgba(255,255,255,0.03) inset, 0 6px 16px rgba(0,0,0,0.26); }
+
+/* Subtle top sheen over the token surface colour for dimensionality */
+.card, .clientCard, .captionStyleCard, .tkSection, .captionSettings {
+  background-image: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0) 42%);
+}
+
+/* Clickable cards lift gently on hover */
+.clientCard:hover, .card:hover, .captionStyleCard:hover {
+  transform: translateY(-1px);
+  border-color: var(--accent);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.05) inset, 0 8px 22px rgba(0,0,0,0.32);
+}
+
+/* Premium client avatar */
+.clientInitial {
+  opacity: 1;
+  border-radius: 11px;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.30), 0 0 0 1px rgba(255,255,255,0.06) inset;
+}
+
+/* Rail: soft glow on the active tool + crisper brand */
+.railBtn.active { box-shadow: 0 4px 16px var(--accent-weak); }
+.railBrand { box-shadow: 0 4px 14px var(--accent-weak), 0 0 0 1px rgba(255,255,255,0.08) inset; }
+
+/* Primary buttons: gradient fill, inner sheen, soft shadow, lift on hover */
+.formRow button, .addClientFormWrap .formRow button, #updateBanner button {
+  background: var(--accent-grad);
+  color: var(--on-accent);
+  letter-spacing: 0.2px;
+  box-shadow: 0 2px 10px var(--accent-weak), 0 1px 0 rgba(255,255,255,0.14) inset;
+}
+.formRow button:hover, .addClientFormWrap .formRow button:hover, #updateBanner button:hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+  box-shadow: 0 7px 20px var(--accent-weak), 0 1px 0 rgba(255,255,255,0.18) inset;
+}
+
+/* Inputs: faint inner depth + a clean focus glow */
+.tkSearch, #clientSearch, .settingInput,
+input[type="text"], input[type="number"], select, textarea {
+  box-shadow: 0 1px 0 rgba(255,255,255,0.02) inset;
+}
+.tkSearch:focus, #clientSearch:focus, .settingInput:focus,
+input[type="text"]:focus, input[type="number"]:focus, select:focus, textarea:focus {
+  border-color: var(--accent);
+  box-shadow: var(--ring);
+}
+#clientSearch { padding: 6px 12px; }
