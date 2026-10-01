@@ -2480,3 +2480,13 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus, textarea:foc
   box-shadow: var(--ring);
 }
 #clientSearch { padding: 6px 12px; }
+
+/* ═══ THEME COHESION — unify accents with the active theme ═══ */
+/* Default (Midnight, no data-theme) keeps the colourful category/tool look.
+   Any selected theme tints the quick-bar categories and toolkit tools with
+   that theme's accent so nothing clashes with the palette. */
+:root[data-theme] .tkQuickBtn[data-cat] { color: var(--accent); }
+:root[data-theme] .tkSection {
+  --tk-accent: var(--accent) !important;
+  --tk-accent-bg: var(--accent-soft) !important;
+}

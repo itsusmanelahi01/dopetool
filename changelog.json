@@ -1,4 +1,7 @@
 {
+  "2.32.4": [
+    "Themes now recolour everything to match — the quick-bar icons, the Toolkit tool accents, and the client avatars all follow the active theme instead of staying rainbow (the default Midnight keeps its colourful look). Avatars stay distinct per client but harmonise with the palette, and update instantly when you switch themes."
+  ],
   "2.32.3": [
     "Premium visual pass — cards and panels now have subtle depth and a soft top-sheen, avatars and the active tool have a gentle glow, primary buttons use a gradient with a hover lift, headers are refined, and inputs get a clean focus glow. Looks consistent across every theme."
   ],

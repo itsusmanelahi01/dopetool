@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.32.3
+// DopeTool main.js — v2.32.4
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -115,11 +115,48 @@ function showVersion() {
   if (hubTag) hubTag.innerText = "v" + v + suffix;
 }
 
-function clientColor(name) {
-  var colors = ["#4c72ff","#ff5577","#33cc88","#ff9944","#aa55ff","#00cccc","#ff4488","#66bb33","#ff6644","#4499ff","#cc44aa","#88cc00"];
+function _hashStr(name) {
   var hash = 0;
   for (var i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  return colors[Math.abs(hash) % colors.length];
+  return Math.abs(hash);
+}
+function _hexToHsl(hex) {
+  hex = (hex || "").replace("#", "");
+  if (hex.length === 3) hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+  var r = parseInt(hex.substr(0,2),16)/255, g = parseInt(hex.substr(2,2),16)/255, b = parseInt(hex.substr(4,2),16)/255;
+  var mx = Math.max(r,g,b), mn = Math.min(r,g,b), h=0, s=0, l=(mx+mn)/2;
+  if (mx !== mn) {
+    var d = mx-mn;
+    s = l > 0.5 ? d/(2-mx-mn) : d/(mx+mn);
+    if (mx===r) h=(g-b)/d+(g<b?6:0); else if (mx===g) h=(b-r)/d+2; else h=(r-g)/d+4;
+    h *= 60;
+  }
+  return { h: h, s: s*100, l: l*100 };
+}
+function _hslToHex(h, s, l) {
+  h=((h%360)+360)%360; s=Math.max(0,Math.min(100,s))/100; l=Math.max(0,Math.min(100,l))/100;
+  var c=(1-Math.abs(2*l-1))*s, x=c*(1-Math.abs((h/60)%2-1)), m=l-c/2, r=0,g=0,b=0;
+  if (h<60){r=c;g=x;} else if (h<120){r=x;g=c;} else if (h<180){g=c;b=x;}
+  else if (h<240){g=x;b=c;} else if (h<300){r=x;b=c;} else {r=c;b=x;}
+  function hx(v){ var s=Math.round((v+m)*255).toString(16); return s.length<2?"0"+s:s; }
+  return "#"+hx(r)+hx(g)+hx(b);
+}
+// Default (Midnight) keeps a vibrant palette. Under a theme, avatars become
+// harmonised shades of that theme's accent so they fit the palette.
+function clientColor(name) {
+  var hash = _hashStr(name);
+  if (!(typeof currentTheme === "function" && currentTheme())) {
+    var colors = ["#4c72ff","#ff5577","#33cc88","#ff9944","#aa55ff","#00cccc","#ff4488","#66bb33","#ff6644","#4499ff","#cc44aa","#88cc00"];
+    return colors[hash % colors.length];
+  }
+  var accent = "#5170ff";
+  try { accent = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || accent; } catch (e) {}
+  var hsl = _hexToHsl(accent);
+  var idx = hash % 6;                    // 0..5 → spread of shades
+  var h = hsl.h + (idx - 2.5) * 10;      // ±25° hue shift, stays in family
+  var s = Math.max(28, Math.min(72, hsl.s));
+  var l = Math.max(34, Math.min(66, 50 + (idx - 2.5) * 5)); // vary lightness
+  return _hslToHex(h, s, l);
 }
 function clientInitial(name) { return name.trim().charAt(0).toUpperCase(); }
 
@@ -292,6 +329,19 @@ function applyTheme(id) {
   else document.documentElement.removeAttribute("data-theme");
   try { if (id) localStorage.setItem("dopetool_theme", id); else localStorage.removeItem("dopetool_theme"); } catch (e) {}
   renderThemeList();
+  // Recolour avatars to fit the new theme
+  try {
+    if (typeof clientsLoaded !== "undefined" && clientsLoaded && typeof renderClientGrid === "function" && typeof allClientsData !== "undefined") {
+      renderClientGrid(allClientsData);
+    }
+    if (typeof currentClient !== "undefined" && currentClient) {
+      var c = clientColor(currentClient);
+      var ini = document.getElementById("clientViewInitial");
+      if (ini) ini.style.background = c;
+      var cv = document.getElementById("clientView");
+      if (cv) cv.style.setProperty("--current-client-color", c);
+    }
+  } catch (e) {}
 }
 function renderThemeList() {
   var list = document.getElementById("themeList");
