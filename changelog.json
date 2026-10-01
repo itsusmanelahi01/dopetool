@@ -1,4 +1,7 @@
 {
+  "2.32.2": [
+    "Overall UI polish for side-docked use — thin themed scrollbars, smoother hovers and button presses, a gentle fade when switching tools, eased theme changes, and crisper text throughout"
+  ],
   "2.32.1": [
     "Auto Captions: slimmed the Text Style area — the client filter is now a single scrollable row and the style cards are compact, so the whole flow fits without so much scrolling"
   ],

@@ -2364,3 +2364,54 @@ textarea:focus {
 .themeName { font-size: 11px; font-weight: 600; color: var(--text); flex: 1; }
 .themeRow.active .themeCheck { opacity: 1; }
 .themeCheck { opacity: 0; color: var(--accent); font-size: 12px; flex-shrink: 0; }
+
+/* ═══════════════ GLOBAL POLISH — smoother & more approachable ═══════════════ */
+/* Crisper text */
+html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; }
+
+/* Thin, themed scrollbars — big win in a narrow side panel */
+* { scrollbar-width: thin; scrollbar-color: var(--surface-3) transparent; }
+::-webkit-scrollbar { width: 9px; height: 9px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--surface-3);
+  border-radius: 8px;
+  border: 2.5px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--border); background-clip: content-box; }
+::-webkit-scrollbar-corner { background: transparent; }
+
+/* Smooth, contained scrolling in the scroll regions */
+.librarySections, .toolkitBody, .captionBody, .library,
+.captionStyleGrid, .captionClientFilter, #textAnimView, #smoothView {
+  scroll-behavior: smooth;
+  overscroll-behavior: contain;
+}
+
+/* Gentle fade+rise when a tool view appears (replays on tab switch) */
+@keyframes dtViewIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+#homeView, #clientView, #captionView, #autoCapView, #toolkitView, #textAnimView, #smoothView {
+  animation: dtViewIn 0.2s ease both;
+}
+
+/* Consistent, springy press feedback on every button */
+button { transition: transform 0.08s ease, background 0.14s ease, border-color 0.14s ease, color 0.14s ease, filter 0.14s ease, box-shadow 0.14s ease; }
+button:active { transform: translateY(0.5px) scale(0.985); }
+
+/* Softer, animated active rail pill */
+.railBtn { transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease, transform 0.1s ease; }
+.railBtn:active { transform: scale(0.94); }
+
+/* Cards & tiles ease on hover instead of snapping */
+.card, .colorTile, .clientCard, .captionStyleCard, .tkSection, .libAddBtn {
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
+}
+
+/* Theme change eases instead of hard-cutting */
+body, #appRail, .tkSection, .card, .clientCard, .librarySections, #quickDock, .captionSettings {
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease;
+}
+
+/* Inputs feel softer and respond on focus */
+input, select, textarea { transition: border-color 0.14s ease, box-shadow 0.14s ease, background 0.14s ease; }
