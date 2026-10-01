@@ -31,8 +31,8 @@
 /* ═══════════════ THEMES ═══════════════ */
 /* Default (:root above) is "Midnight". Each theme overrides the palette. */
 
-/* Cheetay — warm charcoal-brown + champagne (inspired by cheetayhq.com) */
-:root[data-theme="cheetay"] {
+/* Dune — warm charcoal-brown + champagne */
+:root[data-theme="dune"] {
   --app: #15110c; --bg: #0f0c08; --bg-top: #1a140d;
   --surface: #211a12; --surface-2: #2b2217; --surface-3: #372c1e;
   --border: #3c3225; --border-soft: #2b221780;

@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.32.4
+// DopeTool main.js — v2.32.5
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -317,7 +317,7 @@ function updateTopTabFades() {}
 // and is applied before first paint by a tiny inline script in index.html.
 var THEMES = [
   { id: "",         name: "Midnight", bg: "#0c0e17", accent: "#5170ff" },
-  { id: "cheetay",  name: "Cheetay",  bg: "#15110c", accent: "#e4d2a6" },
+  { id: "dune",     name: "Dune",     bg: "#15110c", accent: "#e4d2a6" },
   { id: "graphite", name: "Graphite", bg: "#111316", accent: "#2dd4bf" },
   { id: "violet",   name: "Violet",   bg: "#141022", accent: "#a855f7" },
   { id: "emerald",  name: "Emerald",  bg: "#0c1512", accent: "#10b981" },
