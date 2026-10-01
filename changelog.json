@@ -1,4 +1,7 @@
 {
+  "2.32.1": [
+    "Auto Captions: slimmed the Text Style area — the client filter is now a single scrollable row and the style cards are compact, so the whole flow fits without so much scrolling"
+  ],
   "2.32.0": [
     "Themes! Pick a look from the new palette button at the bottom of the left rail — Midnight (default), Cheetay (warm charcoal + champagne), Graphite, Violet, Emerald, and Ember. Your choice is remembered.",
     "Each theme recolours the whole panel (background, accents, text, glow) and stays readable — buttons and the active tab use the right text colour for light or dark accents."
