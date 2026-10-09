@@ -2490,3 +2490,19 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus, textarea:foc
   --tk-accent: var(--accent) !important;
   --tk-accent-bg: var(--accent-soft) !important;
 }
+
+/* ═══ SCRIPT RUNNER (rail drop target) ═══ */
+.railScriptBtn {
+  border: 1px dashed var(--border);
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+.railScriptBtn:hover { border-color: var(--accent); color: var(--text); background: var(--surface-2); }
+.railScriptBtn.dropActive {
+  border-color: var(--accent);
+  border-style: solid;
+  color: var(--text);
+  background: var(--accent-weak);
+  box-shadow: 0 0 0 2px var(--accent-weak), 0 4px 14px var(--accent-weak);
+}
+.railScriptBtn.running { border-style: solid; border-color: var(--accent); color: var(--accent); }

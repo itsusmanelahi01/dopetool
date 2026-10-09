@@ -1,4 +1,7 @@
 {
+  "2.33.0": [
+    "New Script button in the rail — drag a .jsx (or .jsxbin) onto it to run the script instantly in After Effects, or click it to browse for one. Drop several at once to run them in sequence; the status line reports the result."
+  ],
   "2.32.5": [
     "Renamed the warm champagne theme to “Dune”"
   ],

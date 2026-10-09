@@ -780,6 +780,14 @@ function pickAudioFile() {
   } catch (e) { return ""; }
 }
 
+function pickScriptFile() {
+  try {
+    var f = File.openDialog("Select a script to run", "ExtendScript:*.jsx;*.jsxbin,All Files:*.*");
+    if (f) return f.fsName;
+    return "";
+  } catch (e) { return ""; }
+}
+
 // ---- FONT INSTALLATION HELPER ----
 // Returns "installed" if font is found in AE, "missing" if not.
 // NOTE: Assigning a non-existent font name to TextDocument.font does NOT throw

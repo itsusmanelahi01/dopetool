@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.32.5
+// DopeTool main.js — v2.33.0
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -368,6 +368,66 @@ function renderThemeList() {
   document.addEventListener("click", function (e) {
     if (pop.classList.contains("hidden")) return;
     if (!pop.contains(e.target) && e.target !== btn && !btn.contains(e.target)) pop.classList.add("hidden");
+  });
+})();
+
+// ---- SCRIPT RUNNER (drag a .jsx onto the rail button to run it) ----
+(function initScriptRunner() {
+  var btn = document.getElementById("scriptDropBtn");
+  if (!btn) return;
+
+  function scriptStatus(msg) {
+    var el = document.getElementById("toolkitOutput") || document.getElementById("output");
+    if (el) el.innerText = msg;
+  }
+  function isJsx(name) { return /\.jsx(bin)?$/i.test(name || ""); }
+
+  function runScripts(paths) {
+    btn.classList.add("running");
+    scriptStatus("Running " + paths.length + " script" + (paths.length > 1 ? "s" : "") + "…");
+    var done = 0, ok = 0, lastErr = "";
+    paths.forEach(function (p) {
+      var jp = toJsxPath(p).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+      // Wrapped so a failing script reports cleanly instead of silently.
+      csInterface.evalScript('(function(){try{$.evalFile("' + jp + '");return "ok";}catch(e){return "ERR:"+e.toString();}})()', function (res) {
+        done++;
+        if (res && res.indexOf("ERR:") === 0) lastErr = res.slice(4); else ok++;
+        if (done === paths.length) {
+          btn.classList.remove("running");
+          if (ok === paths.length) scriptStatus("✓ Ran " + ok + " script" + (ok > 1 ? "s" : ""));
+          else scriptStatus("Ran " + ok + "/" + paths.length + " — error: " + lastErr);
+        }
+      });
+    });
+  }
+
+  function stop(e) { e.preventDefault(); e.stopPropagation(); }
+  ["dragenter", "dragover"].forEach(function (ev) {
+    btn.addEventListener(ev, function (e) { stop(e); btn.classList.add("dropActive"); });
+  });
+  ["dragleave", "dragend"].forEach(function (ev) {
+    btn.addEventListener(ev, function (e) { stop(e); btn.classList.remove("dropActive"); });
+  });
+  btn.addEventListener("drop", function (e) {
+    stop(e);
+    btn.classList.remove("dropActive");
+    var files = e.dataTransfer && e.dataTransfer.files;
+    if (!files || !files.length) return;
+    var scripts = [];
+    for (var i = 0; i < files.length; i++) {
+      var p = files[i].path || "";
+      if (p && (isJsx(files[i].name) || isJsx(p))) scripts.push(p);
+    }
+    if (!scripts.length) { scriptStatus("Drop a .jsx script file."); return; }
+    runScripts(scripts);
+  });
+
+  // Click opens a file picker (needs the host pickScriptFile(); drop works regardless).
+  btn.addEventListener("click", function () {
+    csInterface.evalScript("typeof pickScriptFile === 'function' ? pickScriptFile() : 'NOFN'", function (r) {
+      if (r === "NOFN") { scriptStatus("Drag a .jsx onto this button to run it."); return; }
+      if (r && r !== "undefined" && r !== "") runScripts([r]);
+    });
   });
 })();
 
