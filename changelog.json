@@ -1,4 +1,7 @@
 {
+  "2.33.1": [
+    "Fixed “JSON is undefined” on some Windows/After Effects setups that broke applying text styles and effects — the host script now bundles its own JSON support so it works on every AE version."
+  ],
   "2.33.0": [
     "New Script button in the rail — drag a .jsx (or .jsxbin) onto it to run the script instantly in After Effects, or click it to browse for one. Drop several at once to run them in sequence; the status line reports the result."
   ],
