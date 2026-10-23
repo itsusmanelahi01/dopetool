@@ -570,9 +570,49 @@
         <div class="captionLabel"><span class="stepNum">3</span> Settings</div>
         <div class="captionSettings">
           <div class="settingRow">
-            <span class="settingLabel">Words per caption</span>
+            <span class="settingLabel" id="autoCapWordsLabel">Max words per caption</span>
             <input type="number" id="autoCapWords" value="4" min="1" max="12" class="settingInput" />
             <span class="settingUnit">words</span>
+          </div>
+          <div class="settingRow">
+            <label class="settingLabel">
+              <input type="checkbox" id="autoCapAware" checked style="margin-right:6px;" />
+              Audio-aware breaks
+            </label>
+            <span class="acInfo" data-tip="Ends captions where the speaker actually pauses or finishes a sentence, so a caption never runs across a pause and the next line never appears early. Words per caption becomes a maximum. Turn off for a fixed word count.">i</span>
+          </div>
+          <div class="settingRow" id="autoCapPauseRow">
+            <span class="settingLabel">Pause sensitivity</span>
+            <select id="autoCapPause" class="settingInput acSelect">
+              <option value="tight">Tight (fast talkers)</option>
+              <option value="natural" selected>Natural</option>
+              <option value="loose">Loose (slow talkers)</option>
+            </select>
+          </div>
+          <div class="settingRow" id="autoCapSmartRow">
+            <label class="settingLabel">
+              <input type="checkbox" id="autoCapSmart" checked style="margin-right:6px;" />
+              Smart phrasing (AI)
+            </label>
+            <span class="acInfo" data-tip="Uses the Groq model to break captions into complete phrases (every journey / every wave / has bumps &amp; winds) instead of trusting Whisper's punctuation, which is often wrong. Real pauses still win. Falls back to pause-only breaks if the request fails.">i</span>
+          </div>
+          <div class="settingRow">
+            <span class="settingLabel">Caption text</span>
+            <select id="autoCapCase" class="settingInput acSelect">
+              <option value="asis" selected>As transcribed</option>
+              <option value="lower">lowercase</option>
+              <option value="upper">UPPERCASE</option>
+            </select>
+          </div>
+          <div class="settingRow">
+            <label class="settingLabel">
+              <input type="checkbox" id="autoCapNoPunct" style="margin-right:6px;" />
+              Drop commas &amp; full stops
+            </label>
+            <label class="settingLabel">
+              <input type="checkbox" id="autoCapAmp" style="margin-right:6px;" />
+              and → &amp;
+            </label>
           </div>
           <div class="settingRow">
             <span class="settingLabel">Language</span>

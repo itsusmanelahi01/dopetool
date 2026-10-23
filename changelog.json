@@ -1,4 +1,9 @@
 {
+  "2.34.0": [
+    "Audio-aware Auto Captions — captions now end where the speaker actually pauses instead of every N words, so the next line never shows up early. Words per caption becomes a maximum; choose Tight / Natural / Loose pause sensitivity.",
+    "Smart phrasing (AI) — captions are split into complete, natural phrases (every journey / every wave / has bumps & winds) and ignore Whisper’s wrong full stops. Falls back to pause-only breaks if the request fails.",
+    "New caption text options: lowercase / UPPERCASE, drop commas & full stops, and “and” → “&”."
+  ],
   "2.33.1": [
     "Fixed “JSON is undefined” on some Windows/After Effects setups that broke applying text styles and effects — the host script now bundles its own JSON support so it works on every AE version."
   ],

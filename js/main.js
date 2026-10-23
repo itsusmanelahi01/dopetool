@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.33.1
+// DopeTool main.js — v2.34.0
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -1450,6 +1450,287 @@ function acGroupWords(words, n) {
   return segs;
 }
 
+// ---- Audio-aware grouping ----
+// Breaks captions where the speaker actually pauses instead of every N words,
+// so a caption never runs across a pause. maxWords becomes a ceiling, and each
+// stretch between pauses is split into the most natural phrases: AI phrase
+// breaks when available, otherwise micro-pauses and punctuation, never ending
+// a line on a dangling "the / of / and / ka / ki".
+var AC_PAUSE_GAP = { tight: 0.25, natural: 0.38, loose: 0.6 };
+var AC_WEAK_END = {
+  a: 1, an: 1, the: 1, to: 1, of: 1, and: 1, or: 1, but: 1, "in": 1, on: 1, at: 1,
+  "for": 1, "with": 1, my: 1, your: 1, our: 1, their: 1, his: 1, her: 1, its: 1,
+  every: 1, each: 1, this: 1, these: 1, those: 1, some: 1,
+  ka: 1, ki: 1, ke: 1, ko: 1, se: 1, aur: 1, ya: 1, jo: 1, keh: 1, kay: 1
+};
+var AC_SENT_END = /[.?!۔؟…]["'”)\]]*$/;
+var AC_CLAUSE_END = /[,،;:]["'”)\]]*$/;
+
+function acBareWord(t) {
+  return String(t || "").toLowerCase().replace(/[\s.,!?;:"'“”‘’()\[\]…،۔؟\/|\-–—]/g, "");
+}
+
+// Whisper words -> clean timed tokens (shared by the grouper and the AI pass so
+// both index the same words).
+function acPrepWords(words) {
+  var W = [];
+  for (var i = 0; i < (words || []).length; i++) {
+    var t = String(words[i].word || "").replace(/^\s+|\s+$/g, "");
+    if (!t) continue;
+    var st = Number(words[i].start), en = Number(words[i].end);
+    if (!isFinite(st)) st = W.length ? W[W.length - 1].end : 0;
+    if (!isFinite(en) || en < st) en = st + 0.2;
+    W.push({ text: t, start: st, end: en });
+  }
+  return W;
+}
+
+// Pause long enough to always end a caption. With AI phrasing on, brief
+// hesitations ("every… wave") may stay inside a phrase.
+function acHardGap(sensitivity, smart) {
+  var p = AC_PAUSE_GAP[sensitivity] || AC_PAUSE_GAP.natural;
+  return smart ? Math.max(p * 1.4, 0.5) : p;
+}
+
+// sem (optional): sem[i] === true means the AI ends a phrase after word i.
+function acGroupWordsAware(words, segments, maxWords, sensitivity, sem) {
+  var M = Math.max(1, maxWords);
+  var W = acPrepWords(words), i;
+  if (!W.length) return [];
+  var useSem = !!(sem && sem.length === W.length);
+  var softGap = AC_PAUSE_GAP[sensitivity] || AC_PAUSE_GAP.natural;
+  var hardGap = acHardGap(sensitivity, useSem);
+  function gapAfter(ix) { return ix + 1 < W.length ? Math.max(0, W[ix + 1].start - W[ix].end) : 0; }
+  function isWeak(ix) { return !!AC_WEAK_END[acBareWord(W[ix].text)]; }
+
+  // Punctuation strength after each word: 2 = sentence end, 1 = clause end.
+  // Whisper's word timestamps carry no punctuation, but its segments do; when a
+  // segment's text lines up word-for-word with its timed words, its commas and
+  // full stops map back onto those words.
+  var brk = [];
+  for (i = 0; i < W.length; i++) brk.push(0);
+  var prevLast = -1;
+  (segments || []).forEach(function (s) {
+    var end = Number(s.end);
+    if (!isFinite(end)) return;
+    var last = prevLast;
+    for (var j = prevLast + 1; j < W.length && W[j].start < end - 0.02; j++) last = j;
+    if (last <= prevLast) return;
+    var text = String(s.text || "").replace(/^\s+|\s+$/g, "");
+    var tokens = text ? text.split(/\s+/) : [];
+    if (tokens.length === last - prevLast) {
+      for (var tk = 0; tk < tokens.length; tk++) {
+        var wi = prevLast + 1 + tk;
+        if (AC_SENT_END.test(tokens[tk])) brk[wi] = 2;
+        else if (AC_CLAUSE_END.test(tokens[tk])) brk[wi] = Math.max(brk[wi], 1);
+      }
+    }
+    brk[last] = Math.max(brk[last], AC_SENT_END.test(text) ? 2 : 1);
+    prevLast = last;
+  });
+  for (i = 0; i < W.length; i++) {
+    if (AC_SENT_END.test(W[i].text)) brk[i] = 2;
+    else if (AC_CLAUSE_END.test(W[i].text)) brk[i] = Math.max(brk[i], 1);
+    // A full stop after "every" / "the" is Whisper guessing wrong, not a sentence end.
+    if (isWeak(i)) brk[i] = 0;
+  }
+
+  // 1) Spans: always cut at a real pause (and, without AI, at a sentence end).
+  var spans = [], cur = [];
+  for (i = 0; i < W.length; i++) {
+    cur.push(i);
+    if (i === W.length - 1) break;
+    if (gapAfter(i) >= hardGap || (!useSem && brk[i] === 2)) { spans.push(cur); cur = []; }
+  }
+  if (cur.length) spans.push(cur);
+
+  // 2) Split each span into lines of at most M words with the cheapest breaks.
+  //    Every line costs 1 (prefer fewer, fuller lines); a break is cheap at a
+  //    phrase end or pause and expensive after a weak word; one-word lines are
+  //    penalised so nothing is left dangling. An AI phrase may run one word
+  //    over the limit rather than be split mid-phrase.
+  function breakCost(ix) {
+    var g = gapAfter(ix), c = (softGap - Math.min(g, softGap)) / softGap - (g >= softGap ? 0.8 : 0);
+    if (useSem) c += sem[ix] ? -1.6 : 2;
+    else if (brk[ix] === 2) c -= 1.6;
+    else if (brk[ix] === 1) c -= 1;
+    if (isWeak(ix)) c += 2;
+    return c;
+  }
+  var chunks = [];
+  spans.forEach(function (sp) {
+    var L = sp.length;
+    if (L <= 1) { chunks.push(sp); return; }
+    var maxLen = useSem ? M + 1 : M;
+    var best = [0], from = [-1];
+    for (var e = 1; e <= L; e++) {
+      best[e] = Infinity; from[e] = -1;
+      for (var s = Math.max(0, e - maxLen); s < e; s++) {
+        if (best[s] === Infinity) continue;
+        var c = best[s] + 1 + (e - s === 1 ? 1.5 : 0) + (e < L ? breakCost(sp[e - 1]) : 0);
+        if (e - s > M) {
+          var whole = (s === 0 || sem[sp[s - 1]]) && (e === L || sem[sp[e - 1]]);
+          for (var x = s; whole && x < e - 1; x++) if (sem[sp[x]]) whole = false;
+          if (!whole) continue;
+          c += 0.5;
+        }
+        if (c < best[e]) { best[e] = c; from[e] = s; }
+      }
+    }
+    var cuts = [];
+    for (var at = L; at > 0; at = from[at]) cuts.unshift(at);
+    var st0 = 0;
+    cuts.forEach(function (cu) { chunks.push(sp.slice(st0, cu)); st0 = cu; });
+  });
+
+  // 3) Timed captions: hold through short gaps (no flicker), fade out early in
+  //    a long silence instead of sitting on screen for the whole pause.
+  var segs = chunks.map(function (ch) {
+    return {
+      inSec: W[ch[0]].start,
+      outSec: W[ch[ch.length - 1]].end,
+      text: ch.map(function (ix) { return W[ix].text; }).join(" ").replace(/\s+/g, " ")
+    };
+  });
+  for (var q = 0; q < segs.length; q++) {
+    var nextIn = q + 1 < segs.length ? segs[q + 1].inSec : Infinity;
+    var gp = nextIn - segs[q].outSec;
+    if (gp < 1.0) segs[q].outSec = nextIn;
+    else segs[q].outSec += 0.35;
+    if (segs[q].outSec - segs[q].inSec < 0.25) segs[q].outSec = Math.min(nextIn, segs[q].inSec + 0.25);
+  }
+  return segs;
+}
+
+// Map the AI's phrase lines back onto word indices. Words are matched in order
+// (punctuation/case ignored) with a small look-ahead, so a skipped or tweaked
+// word doesn't derail the rest. Returns false when too little lined up.
+function acAlignPhraseLines(lines, W, base, count, sem) {
+  var pos = base, end = base + count, matched = 0;
+  for (var l = 0; l < lines.length; l++) {
+    var toks = lines[l].split(/\s+/), lastHit = -1;
+    for (var t = 0; t < toks.length; t++) {
+      var b = acBareWord(toks[t]);
+      if (!b) continue;
+      for (var k = pos; k < Math.min(end, pos + 4); k++) {
+        if (acBareWord(W[k].text) === b) { lastHit = k; pos = k + 1; matched++; break; }
+      }
+    }
+    if (lastHit >= 0 && lastHit < end - 1) sem[lastHit] = true;
+  }
+  return matched >= count * 0.85;
+}
+
+// AI phrase pass: asks the Groq chat model where natural caption phrases end.
+// cb(semArray | null) — null means "use the pause/punctuation heuristic".
+function acSemanticBreaks(key, words, maxWords, sensitivity, cb) {
+  var W = acPrepWords(words);
+  if (!W.length) { cb(null); return; }
+  var hardGap = acHardGap(sensitivity, true);
+  var sem = [];
+  for (var i = 0; i < W.length; i++) sem.push(false);
+  var sys =
+    "You split a speech transcript into short on-screen video captions. Each line is ONE caption of at most " + maxWords + " words.\n" +
+    "Every line must read as a complete, natural phrase: keep determiners with their nouns (every wave, the best part), " +
+    "prepositions with their objects, and short verb phrases together (has bumps and winds). Never end a line on a dangling " +
+    "word like a, the, every, of, to, and, ka, ki, ke, ko, se.\n" +
+    "The transcript has no reliable punctuation; ignore any sentence boundaries you might guess and judge by meaning. " +
+    "A ' / ' marks a real pause in the audio: always end a line there (do not output the slash).\n" +
+    "Output the SAME words in the SAME order with the same spelling — do not add, drop, translate, reorder or change any word. " +
+    "One caption per line, no numbering, no commentary.\n\n" +
+    "Example (max 3): Every journey every / wave has bumps and winds\n" +
+    "Every journey\nevery wave\nhas bumps and winds";
+  // Batches of ~150 words, cut at the longest gap near the end so a batch
+  // boundary falls on a real pause.
+  var batches = [], s0 = 0, B = 150;
+  while (s0 < W.length) {
+    var e0 = Math.min(W.length, s0 + B);
+    if (e0 < W.length) {
+      var bestCut = e0, bestGap = -1;
+      for (var c = Math.max(s0 + 20, e0 - 40); c < e0; c++) {
+        var g = W[c + 1].start - W[c].end;
+        if (g > bestGap) { bestGap = g; bestCut = c + 1; }
+      }
+      e0 = bestCut;
+    }
+    batches.push([s0, e0]);
+    s0 = e0;
+  }
+  var ok = 0, bi = 0;
+  acTick("Finding natural phrases");
+  (function next() {
+    if (bi >= batches.length) { acStopTick(); cb(ok === batches.length ? sem : null); return; }
+    var b0 = batches[bi][0], b1 = batches[bi][1], parts = [];
+    for (var j = b0; j < b1; j++) {
+      parts.push(W[j].text);
+      if (j < b1 - 1 && W[j + 1].start - W[j].end >= hardGap) parts.push("/");
+    }
+    groqChat(key, sys, parts.join(" "), function (err, data) {
+      var content = !err && data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+      if (content) {
+        var lines = String(content).split(/\n+/).map(function (x) { return x.replace(/^\s*\d+[.)]\s*/, "").replace(/^\s+|\s+$/g, ""); }).filter(function (x) { return x; });
+        if (acAlignPhraseLines(lines, W, b0, b1 - b0, sem)) ok++;
+      }
+      if (b1 < W.length) sem[b1 - 1] = true;
+      bi++;
+      next();
+    });
+  })();
+}
+
+// Caption text styling applied after cleanup/romanizing: case, punctuation, "&".
+function acStyleText(segs) {
+  var caseEl = document.getElementById("autoCapCase");
+  var mode = (caseEl && caseEl.value) || "asis";
+  var np = document.getElementById("autoCapNoPunct");
+  var amp = document.getElementById("autoCapAmp");
+  var noPunct = !!(np && np.checked), useAmp = !!(amp && amp.checked);
+  if (mode === "asis" && !noPunct && !useAmp) return segs;
+  return segs.map(function (s) {
+    var t = s.text;
+    if (noPunct) t = t.replace(/[,.،۔;]+(?=\s|$)/g, "");
+    if (useAmp) t = t.replace(/(^|\s)and(?=\s|$)/gi, "$1&");
+    if (mode === "lower") t = t.toLowerCase();
+    else if (mode === "upper") t = t.toUpperCase();
+    t = t.replace(/\s+/g, " ").replace(/^\s+|\s+$/g, "");
+    return { inSec: s.inSec, outSec: s.outSec, text: t };
+  });
+}
+
+// Audio-aware / smart phrasing / text style settings: persisted, and the words
+// label switches between "Max words" and a fixed count.
+(function () {
+  var aware = document.getElementById("autoCapAware");
+  if (!aware) return;
+  var row = document.getElementById("autoCapPauseRow");
+  var smartRow = document.getElementById("autoCapSmartRow");
+  var label = document.getElementById("autoCapWordsLabel");
+  var persisted = [
+    ["autoCapAware", "dopetool_ac_aware"], ["autoCapSmart", "dopetool_ac_smart"],
+    ["autoCapPause", "dopetool_ac_pause"], ["autoCapCase", "dopetool_ac_case"],
+    ["autoCapNoPunct", "dopetool_ac_nopunct"], ["autoCapAmp", "dopetool_ac_amp"]
+  ];
+  function sync() {
+    if (row) row.style.display = aware.checked ? "" : "none";
+    if (smartRow) smartRow.style.display = aware.checked ? "" : "none";
+    if (label) label.textContent = aware.checked ? "Max words per caption" : "Words per caption";
+  }
+  persisted.forEach(function (p) {
+    var el = document.getElementById(p[0]);
+    if (!el) return;
+    var isBox = el.type === "checkbox";
+    try {
+      var v = localStorage.getItem(p[1]);
+      if (v !== null) { if (isBox) el.checked = v === "1"; else el.value = v; }
+    } catch (e) {}
+    el.addEventListener("change", function () {
+      try { localStorage.setItem(p[1], isBox ? (el.checked ? "1" : "0") : el.value); } catch (e) {}
+      sync();
+    });
+  });
+  sync();
+})();
+
 function acSecToTC(s) {
   if (s < 0 || isNaN(s)) s = 0;
   var ms = Math.floor((s % 1) * 1000), t = Math.floor(s);
@@ -1678,6 +1959,12 @@ function autoCapRun() {
   var n = Math.max(1, Math.min(12, parseInt(document.getElementById("autoCapWords").value, 10) || 4));
   var lang = document.getElementById("autoCapLang").value;
   var roman = document.getElementById("autoCapRoman").checked;
+  var awareEl = document.getElementById("autoCapAware");
+  var aware = !awareEl || awareEl.checked;
+  var pauseEl = document.getElementById("autoCapPause");
+  var sensitivity = (pauseEl && pauseEl.value) || "natural";
+  var smartEl = document.getElementById("autoCapSmart");
+  var smart = !smartEl || smartEl.checked;
 
   function cleanup(tmp) { if (!tmp) return; try { require("fs").unlinkSync(tmp); } catch (e) {} }
 
@@ -1690,16 +1977,24 @@ function autoCapRun() {
       cleanup(tmpFile);
       if (err) { acProgress("Transcription failed: " + err); return; }
       var words = (data && data.words) || [];
-      var segs;
-      if (words.length) {
-        segs = acGroupWords(words, n);
-      } else {
-        var segsOnly = (data && data.segments) || [];
-        if (!segsOnly.length) { acProgress("No speech detected."); return; }
-        segs = segsOnly.map(function (s) { return { inSec: s.start, outSec: s.end, text: (s.text || "").replace(/^\s+|\s+$/g, "") }; });
+      var segments = (data && data.segments) || [];
+      function proceed(segs) {
+        function done(r) { acFinish(acStyleText(r)); }
+        if (roman) acRomanize(key, segs, function (e2, r) { if (e2) acProgress("Romanize failed: " + e2); else done(r); });
+        else acCorrect(key, segs, function (e2, r) { done(r || segs); });
       }
-      if (roman) acRomanize(key, segs, function (e2, r) { if (e2) acProgress("Romanize failed: " + e2); else acFinish(r); });
-      else acCorrect(key, segs, function (e2, r) { acFinish(r || segs); });
+      if (!words.length) {
+        if (!segments.length) { acProgress("No speech detected."); return; }
+        proceed(segments.map(function (s) { return { inSec: s.start, outSec: s.end, text: (s.text || "").replace(/^\s+|\s+$/g, "") }; }));
+      } else if (!aware) {
+        proceed(acGroupWords(words, n));
+      } else if (smart) {
+        acSemanticBreaks(key, words, n, sensitivity, function (sem) {
+          proceed(acGroupWordsAware(words, segments, n, sensitivity, sem));
+        });
+      } else {
+        proceed(acGroupWordsAware(words, segments, n, sensitivity));
+      }
     });
   });
 }
