@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.34.1
+// DopeTool main.js — v2.34.2
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -403,7 +403,17 @@ function renderThemeList() {
     paths.forEach(function (p) {
       var jp = toJsxPath(p).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
       // Wrapped so a failing script reports cleanly instead of silently.
-      csInterface.evalScript('(function(){try{$.evalFile("' + jp + '");return "ok";}catch(e){return "ERR:"+e.toString();}})()', function (res) {
+      // On failure, report the line and code that broke, plus a hint when no
+      // comp is active (the usual cause of "null is not an object").
+      csInterface.evalScript(
+        '(function(){var f=new File("' + jp + '");try{$.evalFile(f);return "ok";}catch(e){' +
+        'var m=e.toString(),ln=e.line;' +
+        'if(ln&&!/bin$/i.test(f.name)){m+=" (line "+ln+")";try{f.open("r");var i=0,t="";while(!f.eof&&i<ln){t=f.readln();i++;}f.close();' +
+        't=t.replace(/^\\s+|\\s+$/g,"");if(t)m+=": "+(t.length>70?t.substr(0,70)+"\\u2026":t);}catch(e2){}}' +
+        'var c=null;try{c=app.project.activeItem;}catch(e3){}' +
+        'if(!(c instanceof CompItem))m+=" \\u2014 open a comp (click its timeline) and try again";' +
+        'else if(!c.selectedLayers.length)m+=" \\u2014 the script may need selected layers";' +
+        'return "ERR:"+f.displayName+": "+m;}})()', function (res) {
         done++;
         if (res && res.indexOf("ERR:") === 0) lastErr = res.slice(4); else ok++;
         if (done === paths.length) {

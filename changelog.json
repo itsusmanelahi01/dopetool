@@ -1,4 +1,7 @@
 {
+  "2.34.2": [
+    "Script button: when a dropped script fails, the error now shows the script name, the line and code that broke, and a hint if no comp is open or no layers are selected."
+  ],
   "2.34.1": [
     "Fixed the red “Image is not a constructor” error that could appear when the library connection dropped (sleep, Wi-Fi blip)."
   ],
