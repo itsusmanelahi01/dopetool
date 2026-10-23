@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.34.0
+// DopeTool main.js — v2.34.1
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -45,6 +45,20 @@ var localVersionPath = extensionPath + "/local_version.json";
 // "Image is not a constructor". Forcing long-polling avoids that transport and
 // works reliably inside After Effects. Must run before any Firestore query
 // (this executes at load, before DOMContentLoaded fires the first read).
+// Long-polling still pings with `new Image()` when the connection drops (sleep,
+// Wi-Fi blip), so give it a working Image if the CEP context's one isn't.
+(function () {
+  try { new window.Image(); return; } catch (e) {}
+  var Img = function (w, h) {
+    var el = document.createElement("img");
+    if (w != null) el.width = w;
+    if (h != null) el.height = h;
+    return el;
+  };
+  try { window.Image = Img; } catch (e) {}
+  try { if (typeof global !== "undefined") global.Image = Img; } catch (e) {}
+})();
+
 var dbSettingsError = null;
 try {
   if (typeof db !== "undefined" && db && db.settings) {

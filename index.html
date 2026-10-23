@@ -755,6 +755,19 @@
     <div id="themeList" class="themeList"></div>
   </div>
 
+  <script>
+    // Firestore pings with `new Image()` on a dropped connection; CEP's Node
+    // context can leave Image unusable, so shim it before Firebase loads.
+    (function () {
+      try { new window.Image(); return; } catch (e) {}
+      window.Image = function (w, h) {
+        var el = document.createElement("img");
+        if (w != null) el.width = w;
+        if (h != null) el.height = h;
+        return el;
+      };
+    })();
+  </script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <script type="text/javascript" src="js/firebase-init.js"></script>

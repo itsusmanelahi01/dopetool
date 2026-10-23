@@ -1,4 +1,7 @@
 {
+  "2.34.1": [
+    "Fixed the red “Image is not a constructor” error that could appear when the library connection dropped (sleep, Wi-Fi blip)."
+  ],
   "2.34.0": [
     "Audio-aware Auto Captions — captions now end where the speaker actually pauses instead of every N words, so the next line never shows up early. Words per caption becomes a maximum; choose Tight / Natural / Loose pause sensitivity.",
     "Smart phrasing (AI) — captions are split into complete, natural phrases (every journey / every wave / has bumps & winds) and ignore Whisper’s wrong full stops. Falls back to pause-only breaks if the request fails.",
