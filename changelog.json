@@ -1,4 +1,7 @@
 {
+  "2.34.5": [
+    "With Language on Auto-detect, any Hindi/Urdu-script transcript is now always converted to Roman Urdu, even if the Roman Urdu box is off. Pick Hindi or Urdu as the language to keep the original script."
+  ],
   "2.34.4": [
     "Roman Urdu captions can no longer come out in Hindi script — if the AI misses a line, DopeTool converts it to Roman letters itself."
   ],

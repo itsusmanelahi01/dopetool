@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.34.4
+// DopeTool main.js — v2.34.5
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -2087,7 +2087,10 @@ function autoCapRun() {
       var segments = (data && data.segments) || [];
       function proceed(segs) {
         function done(r) { acFinish(acStyleText(r)); }
-        if (roman) acRomanize(key, segs, function (e2, r) { if (e2) acProgress("Romanize failed: " + e2); else done(r); });
+        // Hindi/Urdu script with Language on Auto always gets romanized, even if
+        // the Roman box is off: pick Hindi or Urdu explicitly to keep the script.
+        var scripted = segs.some(function (s) { return /[ऀ-ॿ؀-ۿ]/.test(s.text); });
+        if (roman || (scripted && lang === "auto")) acRomanize(key, segs, function (e2, r) { if (e2) acProgress("Romanize failed: " + e2); else done(r); });
         else acCorrect(key, segs, function (e2, r) { done(r || segs); });
       }
       if (!words.length) {
