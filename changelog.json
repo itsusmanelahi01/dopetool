@@ -1,4 +1,7 @@
 {
+  "2.34.4": [
+    "Roman Urdu captions can no longer come out in Hindi script — if the AI misses a line, DopeTool converts it to Roman letters itself."
+  ],
   "2.34.3": [
     "Auto Captions for mixed English + Urdu speech: Urdu now comes out in Roman letters (Hinglish) with English kept in English, instead of Hindi script. Whisper is guided toward Roman text from the start, and any line still in Hindi/Urdu script gets a second pass.",
     "Roman Urdu / Hinglish is now on by default, and it and the Language choice are remembered."

@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.34.3
+// DopeTool main.js — v2.34.4
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -1916,6 +1916,51 @@ var ROMAN_URDU_STYLE =
   "- Nasal endings vary — dropped (doosro, logo, nahi), '-ein' (cheezein, karein, milein), or '-on/-un/-an/-in' (cheezon, kahan, hoon, hain, mein). Do NOT over-normalize; this casual inconsistency is correct.\n" +
   "- Minimal punctuation: no commas or periods between phrases; keep question marks (kaisay ban sakti hoon?).\n";
 
+// Last-resort Devanagari -> Roman letters, used only for lines the AI left in
+// Hindi script, so captions never ship in the wrong script. Plain phonetic
+// output (karna, hai, main), not the full house style.
+var AC_DEVA_VOWEL = { "अ": "a", "आ": "aa", "इ": "i", "ई": "ee", "उ": "u", "ऊ": "oo", "ऋ": "ri", "ए": "e", "ऐ": "ai", "ओ": "o", "औ": "au", "ऑ": "o", "ऍ": "e" };
+var AC_DEVA_MATRA = { "ा": "aa", "ि": "i", "ी": "ee", "ु": "u", "ू": "oo", "ृ": "ri", "े": "e", "ै": "ai", "ो": "o", "ौ": "au", "ॉ": "o", "ॅ": "e" };
+var AC_DEVA_CONS = {
+  "क": "k", "ख": "kh", "ग": "g", "घ": "gh", "ङ": "n", "च": "ch", "छ": "chh", "ज": "j", "झ": "jh", "ञ": "n",
+  "ट": "t", "ठ": "th", "ड": "d", "ढ": "dh", "ण": "n", "त": "t", "थ": "th", "द": "d", "ध": "dh", "न": "n",
+  "प": "p", "फ": "ph", "ब": "b", "भ": "bh", "म": "m", "य": "y", "र": "r", "ल": "l", "व": "w",
+  "श": "sh", "ष": "sh", "स": "s", "ह": "h",
+  "क़": "q", "ख़": "kh", "ग़": "gh", "ज़": "z", "ड़": "r", "ढ़": "rh", "फ़": "f", "य़": "y"
+};
+var AC_DEVA_NUKTA = { k: "q", kh: "kh", g: "gh", j: "z", d: "r", dh: "rh", ph: "f" };
+
+function acDevaWord(w) {
+  var u = [], i, ch;
+  for (i = 0; i < w.length; i++) {
+    ch = w.charAt(i);
+    var last = u[u.length - 1];
+    if (AC_DEVA_CONS[ch]) u.push({ c: AC_DEVA_CONS[ch], v: null, n: "" });
+    else if (AC_DEVA_VOWEL[ch]) u.push({ c: "", v: AC_DEVA_VOWEL[ch], n: "" });
+    else if (ch === "़") { if (last && AC_DEVA_NUKTA[last.c]) last.c = AC_DEVA_NUKTA[last.c]; }
+    else if (AC_DEVA_MATRA[ch]) { if (last) last.v = AC_DEVA_MATRA[ch]; }
+    else if (ch === "्") { if (last) last.v = ""; }
+    else if (ch === "ं" || ch === "ँ") { if (last) last.n = "n"; }
+    else if (ch === "ः") { if (last) last.n = "h"; }
+    else u.push({ c: ch, v: "", n: "" }); // digits, punctuation, Latin
+  }
+  // Schwa deletion: drop the inherent "a" at the end of a word, and in the
+  // middle when the pattern is vowel-C_C-vowel (karna, not karana).
+  for (i = u.length - 1; i >= 0; i--) {
+    if (u[i].v !== null) continue;
+    var next = u[i + 1], prev = u[i - 1];
+    if (!next) u[i].v = (i === 0) ? "a" : "";
+    else if (prev && prev.v !== "" && next.c && next.v !== "" && !u[i].n) u[i].v = "";
+    else u[i].v = "a";
+  }
+  var out = u.map(function (x) { return x.c + x.v + x.n; }).join("");
+  return out.replace(/aa$/, "a").replace(/ee(n?)$/, "i$1").replace(/oo$/, "u");
+}
+
+function acDevaToRoman(text) {
+  return String(text || "").replace(/[ऀ-ॿ]+/g, function (w) { return acDevaWord(w); });
+}
+
 // Romanize each segment's text to Roman Urdu / Hinglish, preserving segmentation & timing
 function acRomanize(key, segs, cb) {
   acTick("Romanizing to Roman Urdu");
@@ -1940,7 +1985,10 @@ function acRomanize(key, segs, cb) {
   function sweep() {
     var left = [];
     for (var i = 0; i < out.length; i++) if (NON_LATIN.test(out[i].text)) left.push(i);
-    if (!left.length || sweeps >= 2) { acStopTick(); cb(null, out); return; }
+    if (!left.length || sweeps >= 2) {
+      for (var f = 0; f < left.length; f++) out[left[f]].text = acDevaToRoman(out[left[f]].text);
+      acStopTick(); cb(null, out); return;
+    }
     sweeps++;
     var idx = left.slice(0, CHUNK);
     var lines = idx.map(function (ix, n) { return (n + 1) + ". " + out[ix].text; }).join("\n");
