@@ -1,4 +1,8 @@
 {
+  "2.34.3": [
+    "Auto Captions for mixed English + Urdu speech: Urdu now comes out in Roman letters (Hinglish) with English kept in English, instead of Hindi script. Whisper is guided toward Roman text from the start, and any line still in Hindi/Urdu script gets a second pass.",
+    "Roman Urdu / Hinglish is now on by default, and it and the Language choice are remembered."
+  ],
   "2.34.2": [
     "Script button: when a dropped script fails, the error now shows the script name, the line and code that broke, and a hint if no comp is open or no layers are selected."
   ],

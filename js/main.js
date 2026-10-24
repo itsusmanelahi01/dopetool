@@ -8,7 +8,7 @@ window.onerror = function(msg, url, line, col, error) {
   return false;
 };
 
-// DopeTool main.js — v2.34.2
+// DopeTool main.js — v2.34.3
 
 var csInterface = new CSInterface();
 var currentTab = "colors";
@@ -1245,7 +1245,11 @@ function setAutoCapFile(path) {
 }
 
 // ---- Groq requests via curl ----
-function groqTranscribe(key, audioPath, lang, cb) {
+// A short mixed Roman-Urdu/English sample nudges Whisper to write Urdu in
+// Latin letters (and English as English) instead of Hindi/Urdu script.
+var AC_ROMAN_PROMPT = "Toh aaj hum baat karenge keh apna business kaise grow karna hai. Yeh bohut important hai, so let's get started. Mainay socha tha keh content consistently post karun.";
+
+function groqTranscribe(key, audioPath, lang, cb, prompt) {
   var hdr = require("path").join(require("os").tmpdir(), "dopetool_hdr_" + Date.now() + ".txt");
   var args = [
     "-s", "-S", "--max-time", "600",
@@ -1260,6 +1264,7 @@ function groqTranscribe(key, audioPath, lang, cb) {
     "-F", "timestamp_granularities[]=segment"
   ];
   if (lang && lang !== "auto") args.push("-F", "language=" + lang);
+  if (prompt) args.push("-F", "prompt=" + prompt);
   acExecJson(args, cb, hdr);
 }
 
@@ -1732,7 +1737,8 @@ function acStyleText(segs) {
   var persisted = [
     ["autoCapAware", "dopetool_ac_aware"], ["autoCapSmart", "dopetool_ac_smart"],
     ["autoCapPause", "dopetool_ac_pause"], ["autoCapCase", "dopetool_ac_case"],
-    ["autoCapNoPunct", "dopetool_ac_nopunct"], ["autoCapAmp", "dopetool_ac_amp"]
+    ["autoCapNoPunct", "dopetool_ac_nopunct"], ["autoCapAmp", "dopetool_ac_amp"],
+    ["autoCapRoman", "dopetool_ac_roman"], ["autoCapLang", "dopetool_ac_lang"]
   ];
   function sync() {
     if (row) row.style.display = aware.checked ? "" : "none";
@@ -1928,8 +1934,30 @@ function acRomanize(key, segs, cb) {
   var out = segs.map(function (s) { return { inSec: s.inSec, outSec: s.outSec, text: s.text }; });
   var pos = 0;
 
+  // After the main pass, re-send only the lines that still contain Hindi/Urdu
+  // script (a couple of rounds), so nothing ships in the wrong script.
+  var sweeps = 0;
+  function sweep() {
+    var left = [];
+    for (var i = 0; i < out.length; i++) if (NON_LATIN.test(out[i].text)) left.push(i);
+    if (!left.length || sweeps >= 2) { acStopTick(); cb(null, out); return; }
+    sweeps++;
+    var idx = left.slice(0, CHUNK);
+    var lines = idx.map(function (ix, n) { return (n + 1) + ". " + out[ix].text; }).join("\n");
+    groqChat(key, sys, lines, function (err, data) {
+      var content = !err && data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+      if (content) {
+        content.split(/\n+/).forEach(function (ln) {
+          var m = ln.match(/^\s*(\d+)\.\s*(.+)$/);
+          if (m && idx[parseInt(m[1], 10) - 1] != null) out[idx[parseInt(m[1], 10) - 1]].text = m[2].replace(/^\s+|\s+$/g, "");
+        });
+      }
+      sweep();
+    });
+  }
+
   function processChunk() {
-    if (pos >= segs.length) { acStopTick(); cb(null, out); return; }
+    if (pos >= segs.length) { sweep(); return; }
     var base = pos;
     var slice = segs.slice(base, base + CHUNK);
     var lines = slice.map(function (s, i) { return (i + 1) + ". " + s.text; }).join("\n");
@@ -2019,7 +2047,7 @@ function autoCapRun() {
       } else {
         proceed(acGroupWordsAware(words, segments, n, sensitivity));
       }
-    });
+    }, roman ? AC_ROMAN_PROMPT : "");
   });
 }
 
