@@ -1957,8 +1957,15 @@ function acDevaWord(w) {
   return out.replace(/aa$/, "a").replace(/ee(n?)$/, "i$1").replace(/oo$/, "u");
 }
 
+var AC_DEVA_HOUSE = {
+  men: "mein", nahin: "nahi", yah: "yeh", vah: "woh", wah: "woh", bahut: "bohut", ham: "hum",
+  to: "tou", par: "per", ek: "aik", the: "thay", kyon: "kyun"
+};
 function acDevaToRoman(text) {
-  return String(text || "").replace(/[ऀ-ॿ]+/g, function (w) { return acDevaWord(w); });
+  return String(text || "").replace(/[ऀ-ॿ]+/g, function (w) {
+    var r = acDevaWord(w);
+    return AC_DEVA_HOUSE[r] || r;
+  });
 }
 
 // Romanize each segment's text to Roman Urdu / Hinglish, preserving segmentation & timing
